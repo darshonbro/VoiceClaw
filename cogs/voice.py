@@ -106,13 +106,10 @@ class SetupCustomModal(discord.ui.Modal, title="⚙️ Custom Voice Setup"):
             new_chan = await guild.create_voice_channel(chan_name, category=new_cat)
 
             async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute("DELETE FROM guild WHERE guildID = ?", (guild.id,))
                 await db.execute('''
                     INSERT INTO guild (guildID, ownerID, voiceChannelID, voiceCategoryID)
                     VALUES (?, ?, ?, ?)
-                    ON CONFLICT(guildID) DO UPDATE SET
-                        ownerID=excluded.ownerID,
-                        voiceChannelID=excluded.voiceChannelID,
-                        voiceCategoryID=excluded.voiceCategoryID
                 ''', (guild.id, interaction.user.id, new_chan.id, new_cat.id))
                 await db.commit()
 
@@ -192,13 +189,10 @@ class SetupLayoutView(discord.ui.LayoutView):
             new_chan = await guild.create_voice_channel("➕ Join to Create", category=new_cat)
 
             async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute("DELETE FROM guild WHERE guildID = ?", (guild.id,))
                 await db.execute('''
                     INSERT INTO guild (guildID, ownerID, voiceChannelID, voiceCategoryID)
                     VALUES (?, ?, ?, ?)
-                    ON CONFLICT(guildID) DO UPDATE SET
-                        ownerID=excluded.ownerID,
-                        voiceChannelID=excluded.voiceChannelID,
-                        voiceCategoryID=excluded.voiceCategoryID
                 ''', (guild.id, interaction.user.id, new_chan.id, new_cat.id))
                 await db.commit()
 
@@ -670,6 +664,10 @@ class voice(commands.Cog):
                     channelLimit INTEGER
                 )
             ''')
+            await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_guild_guildID ON guild(guildID)')
+            await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_voiceChannel_voiceID ON voiceChannel(voiceID)')
+            await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_userSettings_userID ON userSettings(userID)')
+            await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_guildSettings_guildID ON guildSettings(guildID)')
             await db.commit()
 
     async def get_guild_config(self, guild_id: int):
@@ -696,7 +694,8 @@ class voice(commands.Cog):
 
     async def register_temp_channel(self, user_id: int, voice_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute("INSERT OR REPLACE INTO voiceChannel (userID, voiceID) VALUES (?, ?)", (user_id, voice_id))
+            await db.execute("DELETE FROM voiceChannel WHERE voiceID = ?", (voice_id,))
+            await db.execute("INSERT INTO voiceChannel (userID, voiceID) VALUES (?, ?)", (user_id, voice_id))
             await db.commit()
 
     async def delete_temp_channel_record(self, voice_id: int):
@@ -714,8 +713,9 @@ class voice(commands.Cog):
             current = await self.get_user_setting(user_id)
             name = channel_name if channel_name is not None else (current[0] if current else None)
             limit = channel_limit if channel_limit is not None else (current[1] if current else 0)
+            await db.execute("DELETE FROM userSettings WHERE userID = ?", (user_id,))
             await db.execute(
-                "INSERT INTO userSettings (userID, channelName, channelLimit) VALUES (?, ?, ?) ON CONFLICT(userID) DO UPDATE SET channelName=excluded.channelName, channelLimit=excluded.channelLimit",
+                "INSERT INTO userSettings (userID, channelName, channelLimit) VALUES (?, ?, ?)",
                 (user_id, name, limit)
             )
             await db.commit()
