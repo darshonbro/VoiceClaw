@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoiceClaw - Terms of Service & Privacy Policy</title>
+  <meta name="description" content="Official Terms of Service and Privacy Policy for VoiceClaw Discord Bot. Learn how we handle your data, voice permissions, and privacy.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="nav-inner">
+        <a href="#" class="brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+          </div>
+          <span>VoiceClaw</span>
+          <span class="brand-badge">Official Bot</span>
+        </a>
+        <div class="nav-actions">
+          <button class="btn btn-secondary" id="btnOpenDataModal">Request Data Deletion</button>
+          <a href="https://discord.gg/y9pgpbt" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+            Support Discord
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-pill">
+        <span class="pulse-dot"></span>
+        Discord Developer Policy Compliant
+      </div>
+      <h1>Legal Terms & Privacy Policy</h1>
+      <p>Transparency and user privacy are our highest priorities. Review our terms of service, acceptable use rules, and data handling practices below.</p>
+      
+      <div class="hero-meta">
+        <span><strong>Effective Date:</strong> January 1, 2026</span>
+        <span>•</span>
+        <span><strong>Last Updated:</strong> September 2026</span>
+        <span>•</span>
+        <span><strong>Version:</strong> 2.4.0</span>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs-wrapper">
+      <div class="tabs-bar">
+        <button class="tab-btn" data-tab="privacy">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Privacy Policy
+        </button>
+        <button class="tab-btn active" data-tab="terms">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Terms of Service
+        </button>
+        <button class="tab-btn" data-tab="data-practices">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          Data Practices & Retention
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content Layout -->
+    <main class="content-layout">
+      <!-- Sticky Sidebar -->
+      <aside class="sidebar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="policySearch" placeholder="Filter clauses...">
+        </div>
+
+        <div class="toc-card">
+          <h3 id="tocTitle">Table of Contents</h3>
+          <ul class="toc-list" id="tocList">
+            <!-- Dynamic TOC items populated via JS -->
+          </ul>
+        </div>
+
+        <div class="sidebar-summary-card">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Zero Audio Storage
+          </h4>
+          <p>VoiceClaw never listens to, transmits, or records your voice audio. Channels are purely managed via channel creation & permissions.</p>
+        </div>
+      </aside>
+
+      <!-- Document Content Panels -->
+      <div class="document-container">
+        
+        <!-- PRIVACY POLICY PANE -->
+        <section class="doc-pane" id="pane-privacy">
+          
+          <div class="policy-card" id="priv-intro">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">01</span>
+                <h2>Introduction & Scope</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="priv-intro">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>This Privacy Policy outlines how <strong>VoiceClaw</strong> ("we", "us", or "our") collects, processes, and safeguards information when you invite our Discord application to your Discord server or interact with its voice creation features and commands.</p>
+              <p>By using VoiceClaw, you acknowledge and agree to the data collection and usage practices described in this document. We respect your privacy and are committed to complying with applicable data protection laws, including the European Union General Data Protection Regulation (<strong>GDPR</strong>) and the California Consumer Privacy Act (<strong>CCPA</strong>).</p>
+            </div>
+          </div>
+
+          <div class="policy-card" id="priv-data-collected">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">02</span>
+                <h2>Information We Collect & Process</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="priv-data-collected">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>To provide dynamic voice channel generation and server permission management, VoiceClaw processes a strictly minimal set of non-sensitive metadata:</p>
+              <div class="data-table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Data Point</th>
+                      <th>Purpose</th>
+                      <th>Storage Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>User Discord ID</strong></td>
+                      <td>Identifying channel owner, rate limiting, and saving user custom channel settings.</td>
+                      <td><span class="tag tag-stored">Stored in DB</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Server (Guild) ID</strong></td>
+                      <td>Linking setup configurations (category and root join channel) to the server.</td>
+                      <td><span class="tag tag-stored">Stored in DB</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Channel IDs</strong></td>
+                      <td>Managing permissions, temporary voice channels, and deletion upon vacancy.</td>
+                      <td><span class="tag tag-ephemeral">Ephemeral (Until Empty)</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Custom Channel Names & Limits</strong></td>
+                      <td>Applying user or server preferences when a temporary channel is auto-generated.</td>
+                      <td><span class="tag tag-stored">Stored in DB</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Voice Audio Data</strong></td>
+                      <td><strong>NEVER COLLECTED.</strong> VoiceClaw has zero microphone/audio streaming access.</td>
+                      <td><span class="tag tag-never">Never Stored</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Private Text Messages / DMs</strong></td>
+                      <td><strong>NEVER STORED.</strong> DMs are only sent for cooldown alerts; no message logs are kept.</td>
+                      <td><span class="tag tag-never">Never Stored</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="callout callout-info">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                <div><strong>Important Notice:</strong> VoiceClaw never sells, rents, or distributes your personal identification or Discord user information to third-party advertisers or commercial entities.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="policy-card" id="priv-audio-statement">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">03</span>
+                <h2>Voice Audio & Communication Privacy</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="priv-audio-statement">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>VoiceClaw operates strictly as a <strong>channel orchestrator</strong>. We want to be unequivocally clear regarding your conversations:</p>
+              <ul>
+                <li>The bot does not join voice calls as an audio listener or speaker.</li>
+                <li>The bot does not process, stream, transcribe, or capture voice packets.</li>
+                <li>All voice traffic occurs directly over Discord's end-to-end infrastructure, governed exclusively by Discord's own terms and security infrastructure.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="policy-card" id="priv-data-retention">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">04</span>
+                <h2>Data Retention & Automatic Purging</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="priv-data-retention">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>We believe in minimal data footprint. Our retention rules operate automatically:</p>
+              <ul>
+                <li><strong>Temporary Channel Mappings:</strong> When a dynamic channel is emptied and deleted, the associated record in <code>voiceChannel</code> table is purged within 3 seconds.</li>
+                <li><strong>Guild Configuration:</strong> Server configuration records persist only until the bot is removed from the server or a server administrator runs a reset command.</li>
+                <li><strong>User Settings:</strong> Custom channel names and limits persist until requested to be removed by the user or upon 180 consecutive days of inactivity.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="policy-card" id="priv-user-rights">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">05</span>
+                <h2>Your Rights & Data Removal (GDPR / CCPA)</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="priv-user-rights">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>Under international privacy regulations, you have the following rights:</p>
+              <ol>
+                <li><strong>Right of Access:</strong> You may request a copy of all stored preferences associated with your Discord user ID.</li>
+                <li><strong>Right to Erasure ("Right to be Forgotten"):</strong> You may request immediate deletion of your user preferences and database references at any time.</li>
+                <li><strong>Right to Rectification:</strong> You can update or override your custom settings anytime using bot commands (e.g., <code>.voice name</code>, <code>.voice limit</code>).</li>
+              </ol>
+              <p>To request data erasure, click the <strong>"Request Data Deletion"</strong> button above or join our official support server.</p>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- TERMS OF SERVICE PANE -->
+        <section class="doc-pane active" id="pane-terms">
+          
+          <div class="policy-card" id="terms-agreement">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">01</span>
+                <h2>Agreement to Terms</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="terms-agreement">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>By adding the <strong>VoiceClaw</strong> bot to your Discord server or utilizing its features, commands, and automated voice channels, you agree to be bound by these Terms of Service. If you disagree with any part of these terms, you must remove the bot from your server and cease use of the service immediately.</p>
+              <p>These terms operate alongside and subject to <a href="https://discord.com/terms" target="_blank" rel="noopener noreferrer" style="color:var(--accent-discord);">Discord's Terms of Service</a> and <a href="https://discord.com/guidelines" target="_blank" rel="noopener noreferrer" style="color:var(--accent-discord);">Discord's Community Guidelines</a>.</p>
+            </div>
+          </div>
+
+          <div class="policy-card" id="terms-acceptable-use">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">02</span>
+                <h2>Acceptable Use & Prohibited Conduct</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="terms-acceptable-use">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>When using VoiceClaw, you agree not to engage in any of the following activities:</p>
+              <ul>
+                <li><strong>Abuse & Spamming:</strong> Rapidly triggering join-to-create channels with automated scripts or macros in order to crash the bot, spam server audit logs, or flood Discord API rate limits.</li>
+                <li><strong>Harmful or Illegal Content:</strong> Setting temporary voice channel names containing hate speech, harassment, sexually explicit wording, promotion of self-harm, or illegal material.</li>
+                <li><strong>Reverse Engineering:</strong> Attempting to disrupt, exploit, inject malicious SQL code, or circumvent the bot's cooldown restrictions.</li>
+                <li><strong>Violation of Discord Guidelines:</strong> Using VoiceClaw channels to host or facilitate activities that violate Discord Community Guidelines.</li>
+              </ul>
+              <div class="callout callout-warning">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                <div>Violating acceptable use rules may result in server blacklisting, bot command timeouts, or referral to Discord Trust & Safety.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="policy-card" id="terms-owner-responsibility">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">03</span>
+                <h2>Server Owner Responsibilities</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="terms-owner-responsibility">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>Server owners and administrators are solely responsible for:</p>
+              <ul>
+                <li>Granting the bot adequate permissions (Manage Channels, Move Members, View Channels) necessary for proper execution.</li>
+                <li>Moderating the names and behavior of users inside channels created within their server.</li>
+                <li>Ensuring their server rules align with acceptable usage of dynamic voice channels.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="policy-card" id="terms-availability">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">04</span>
+                <h2>Service Availability & Modifications</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="terms-availability">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>VoiceClaw is provided on an "as is" and "as available" basis. While we strive for 99.9% uptime, we do not guarantee uninterrupted, bug-free, or continuous operation. Service may be temporarily paused for maintenance, database optimization, or Discord API outages.</p>
+              <p>We reserve the right to modify, upgrade, or deprecate features of the bot at our discretion without prior individual notice.</p>
+            </div>
+          </div>
+
+          <div class="policy-card" id="terms-liability">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">05</span>
+                <h2>Limitation of Liability</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="terms-liability">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>To the maximum extent permitted by applicable law, the developers and maintainers of VoiceClaw shall not be held liable for any direct, indirect, incidental, special, or consequential damages resulting from:</p>
+              <ul>
+                <li>The use or inability to use the bot.</li>
+                <li>Accidental channel deletion or permission misconfigurations executed by server staff.</li>
+                <li>Discord API outages or interruptions beyond our control.</li>
+              </ul>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- DATA PRACTICES PANE -->
+        <section class="doc-pane" id="pane-data-practices">
+          
+          <div class="policy-card" id="sec-architecture">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">01</span>
+                <h2>Database Architecture & Security</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="sec-architecture">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>The bot stores relational metadata in an isolated, secure database. Access is strictly restricted to automated bot operations using parameterized queries, preventing SQL injection vulnerabilities.</p>
+              <div class="callout callout-success">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                <div>No plaintext passwords, sensitive Discord tokens, or payment details are ever touched or stored by VoiceClaw.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="policy-card" id="sec-permissions">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">02</span>
+                <h2>Discord Bot Permissions Explained</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="sec-permissions">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>When inviting VoiceClaw, the bot requests specific Discord OAuth2 permissions. Here is why each is required:</p>
+              <ul>
+                <li><strong>Manage Channels:</strong> Used to dynamically create temporary voice channels under your specified category and delete them once empty.</li>
+                <li><strong>Move Members:</strong> Automatically moves the user from the "Join to Create" channel directly into their newly created temporary channel.</li>
+                <li><strong>Manage Permissions:</strong> Allows the owner to run <code>.voice lock</code>, <code>.voice unlock</code>, <code>.voice permit</code>, and <code>.voice reject</code>.</li>
+                <li><strong>Send Messages & Embed Links:</strong> Sends control instructions, embed guides, and responses to command executions.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="policy-card" id="sec-contact">
+            <div class="card-header">
+              <div class="card-title-group">
+                <span class="section-number">03</span>
+                <h2>Contact Information</h2>
+              </div>
+              <button class="copy-anchor" title="Copy Section Link" data-anchor="sec-contact">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p>For inquiries, bug reports, or legal notices regarding these Terms or our Privacy Policy, please join our Discord support community or submit an inquiry through our developer portal:</p>
+              <ul>
+                <li><strong>Support Server:</strong> <a href="https://discord.gg/y9pgpbt" target="_blank" rel="noopener noreferrer" style="color:var(--accent-discord);">discord.gg/y9pgpbt</a></li>
+                <li><strong>Official Web:</strong> <a href="https://voicemaster.xyz/" target="_blank" rel="noopener noreferrer" style="color:var(--accent-cyan);">voicemaster.xyz</a></li>
+              </ul>
+            </div>
+          </div>
+
+        </section>
+
+      </div>
+    </main>
+
+    <!-- Data Deletion Modal -->
+    <div class="modal-overlay" id="dataModal">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3>Request Data Deletion</h3>
+          <button class="modal-close" id="btnCloseDataModal">&times;</button>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1.25rem;">
+          Under GDPR & CCPA, you have the right to request full erasure of all database records linked to your Discord User ID or Guild ID.
+        </p>
+        <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.5rem;">
+          <label style="display:block; font-size: 0.8rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.4rem;">HOW TO REQUEST:</label>
+          <p style="font-size: 0.88rem; color: var(--text-main); margin-bottom: 0.5rem;">1. Join our support server: <strong>discord.gg/y9pgpbt</strong></p>
+          <p style="font-size: 0.88rem; color: var(--text-main); margin-bottom: 0.5rem;">2. Open a ticket in <code>#support</code></p>
+          <p style="font-size: 0.88rem; color: var(--text-main);">3. Provide your 18-digit Discord Snowflake ID.</p>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button class="btn btn-secondary" id="btnCancelModal">Close</button>
+          <a href="https://discord.gg/y9pgpbt" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Join Support Server</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+      <span id="toastMsg">Link copied to clipboard!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <div>
+          © 2026 VoiceClaw. All rights reserved. Not affiliated with Discord Inc.
+        </div>
+        <div class="footer-links">
+          <a href="#pane-privacy" class="footer-nav" data-tab="privacy">Privacy</a>
+          <a href="#pane-terms" class="footer-nav" data-tab="terms">Terms</a>
+          <a href="#pane-data-practices" class="footer-nav" data-tab="data-practices">Data Practices</a>
+          <a href="https://discord.gg/y9pgpbt" target="_blank" rel="noopener noreferrer">Support</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
