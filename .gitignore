@@ -1,0 +1,21 @@
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Python cache & virtualenvs
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Database files
+*.db-journal
+*.db-wal
+
+# Vercel
+.vercel
