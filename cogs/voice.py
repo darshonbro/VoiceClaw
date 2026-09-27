@@ -116,31 +116,67 @@ class SetupCustomModal(discord.ui.Modal, title="⚙️ Custom Voice Setup"):
                 ''', (guild.id, interaction.user.id, new_chan.id, new_cat.id))
                 await db.commit()
 
-            embed = discord.Embed(
-                title="✨ VoiceClaw Setup Complete!",
-                description=(
-                    "Your dynamic voice channels are now configured and active.\n\n"
+            # Pure Components v2 LayoutView (No Embeds)
+            complete_view = discord.ui.LayoutView()
+            thumb_url = guild.icon.url if guild.icon else "https://cdn.discordapp.com/embed/avatars/0.png"
+            container = discord.ui.Container(
+                discord.ui.Section(
+                    discord.ui.TextDisplay("## ✨ VoiceClaw Setup Complete!\nYour dynamic voice channels are now live and active."),
+                    accessory=discord.ui.Thumbnail(thumb_url)
+                ),
+                discord.ui.Separator(),
+                discord.ui.TextDisplay(
                     f"📁 **Category:** `{new_cat.name}`\n"
                     f"🔊 **Join Channel:** {new_chan.mention}\n\n"
-                    "🎉 **How to use:** Join the channel above to immediately generate your private room with the **VoiceClaw Dashboard**!"
+                    f"🎉 **How to use:** Join {new_chan.mention} to immediately generate your room with the **VoiceClaw Components v2 Dashboard**!"
                 ),
-                color=0x10B981
+                accent_color=0x10B981
             )
-            embed.set_footer(text="VoiceClaw Enterprise v2")
-            await interaction.followup.send(embed=embed)
+            complete_view.add_item(container)
+            await interaction.followup.send(view=complete_view)
         except Exception as e:
             await interaction.followup.send(f"❌ Setup failed: {e}", ephemeral=True)
 
 
 # ==========================================
-# Discord UI Components v2 - Setup View
+# Discord UI Components v2 - Setup LayoutView
 # ==========================================
 
-class SetupView(discord.ui.View):
-    def __init__(self, cog, author_id: int):
+class SetupLayoutView(discord.ui.LayoutView):
+    def __init__(self, cog, author_id: int, guild_icon_url: str):
         super().__init__(timeout=120)
         self.cog = cog
         self.author_id = author_id
+
+        # Native Discord Components v2 Container (Zero Embeds)
+        container = discord.ui.Container(
+            discord.ui.Section(
+                discord.ui.TextDisplay("## ⚡ VoiceClaw Automated Setup\nConfigure your server's automated dynamic voice channels in seconds."),
+                accessory=discord.ui.Thumbnail(guild_icon_url)
+            ),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(
+                "### Choose your preferred setup method:\n\n"
+                "• **⚡ 1-Click Quick Setup** (Recommended)\n"
+                "Automatically creates a `🔊 Voice Channels` category and `➕ Join to Create` channel in 1 second.\n\n"
+                "• **⚙️ Custom Setup**\n"
+                "Open a Discord popup modal to customize the category & channel names."
+            ),
+            accent_color=0x5865F2
+        )
+        self.add_item(container)
+
+        # ActionRow with Buttons
+        btn_quick = discord.ui.Button(label="1-Click Quick Setup", style=discord.ButtonStyle.success, emoji="⚡", custom_id="vc_setup_quick")
+        btn_custom = discord.ui.Button(label="Custom Setup", style=discord.ButtonStyle.primary, emoji="⚙️", custom_id="vc_setup_custom")
+        btn_cancel = discord.ui.Button(label="Cancel", style=discord.ButtonStyle.secondary, emoji="✖️", custom_id="vc_setup_cancel")
+
+        btn_quick.callback = self.quick_setup_callback
+        btn_custom.callback = self.custom_setup_callback
+        btn_cancel.callback = self.cancel_callback
+
+        action_row = discord.ui.ActionRow(btn_quick, btn_custom, btn_cancel)
+        self.add_item(action_row)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id and not interaction.user.guild_permissions.administrator:
@@ -148,8 +184,7 @@ class SetupView(discord.ui.View):
             return False
         return True
 
-    @discord.ui.button(emoji="⚡", label="1-Click Quick Setup", style=discord.ButtonStyle.success)
-    async def quick_setup(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def quick_setup_callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
         guild = interaction.guild
         try:
@@ -167,41 +202,45 @@ class SetupView(discord.ui.View):
                 ''', (guild.id, interaction.user.id, new_chan.id, new_cat.id))
                 await db.commit()
 
-            for child in self.children:
-                child.disabled = True
-
-            embed = discord.Embed(
-                title="✨ VoiceClaw Setup Complete!",
-                description=(
-                    "Your automated voice channels are ready in 1 second!\n\n"
+            # Success LayoutView (Components v2)
+            thumb_url = guild.icon.url if guild.icon else "https://cdn.discordapp.com/embed/avatars/0.png"
+            success_view = discord.ui.LayoutView()
+            container = discord.ui.Container(
+                discord.ui.Section(
+                    discord.ui.TextDisplay("## ✨ VoiceClaw Setup Complete!\nYour automated voice channels are ready in 1 second!"),
+                    accessory=discord.ui.Thumbnail(thumb_url)
+                ),
+                discord.ui.Separator(),
+                discord.ui.TextDisplay(
                     f"📁 **Category:** `{new_cat.name}`\n"
                     f"🔊 **Root Channel:** {new_chan.mention}\n\n"
-                    f"👉 **Test it now:** Join {new_chan.mention} to experience your automated private room with real-time button controls!"
+                    f"👉 **Test it now:** Join {new_chan.mention} to experience your private room with real-time **Components v2 button controls**!"
                 ),
-                color=0x10B981
+                accent_color=0x10B981
             )
-            embed.set_footer(text="VoiceClaw Enterprise v2 • Zero Clutter")
-            await interaction.edit_original_response(embed=embed, view=self)
+            success_view.add_item(container)
+            await interaction.edit_original_response(view=success_view)
         except Exception as e:
             await interaction.followup.send(f"❌ Error creating channels: {e}", ephemeral=True)
 
-    @discord.ui.button(emoji="⚙️", label="Custom Setup", style=discord.ButtonStyle.primary)
-    async def custom_setup(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def custom_setup_callback(self, interaction: discord.Interaction):
         await interaction.response.send_modal(SetupCustomModal(self.cog))
 
-    @discord.ui.button(emoji="✖️", label="Cancel", style=discord.ButtonStyle.secondary)
-    async def cancel_setup(self, interaction: discord.Interaction, button: discord.ui.Button):
-        for child in self.children:
-            child.disabled = True
-        embed = discord.Embed(title="🚫 Setup Cancelled", description="VoiceClaw setup has been cancelled.", color=0xF43F5E)
-        await interaction.response.edit_message(embed=embed, view=self)
+    async def cancel_callback(self, interaction: discord.Interaction):
+        cancel_view = discord.ui.LayoutView()
+        container = discord.ui.Container(
+            discord.ui.TextDisplay("## 🚫 Setup Cancelled\nVoiceClaw setup has been safely cancelled."),
+            accent_color=0xF43F5E
+        )
+        cancel_view.add_item(container)
+        await interaction.response.edit_message(view=cancel_view)
 
 
 # ==========================================
-# Discord UI Components v2 - Knock & Request Views
+# Discord UI Components v2 - Knock Doorbell Views
 # ==========================================
 
-class KnockResponseView(discord.ui.View):
+class KnockResponseView(discord.ui.LayoutView):
     def __init__(self, cog, channel: discord.VoiceChannel, requester: discord.Member, owner_id: int):
         super().__init__(timeout=120)
         self.cog = cog
@@ -209,8 +248,31 @@ class KnockResponseView(discord.ui.View):
         self.requester = requester
         self.owner_id = owner_id
 
-    @discord.ui.button(emoji="✅", label="Allow Entry", style=discord.ButtonStyle.success)
-    async def allow_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        container = discord.ui.Container(
+            discord.ui.Section(
+                discord.ui.TextDisplay(
+                    f"## 🚪 Knock, Knock!\n"
+                    f"🔔 {requester.mention} is requesting to enter this room!\n"
+                    f"**Host:** <@{owner_id}>"
+                ),
+                accessory=discord.ui.Thumbnail(requester.display_avatar.url)
+            ),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay("Click **Allow Entry** to grant permission and pull them in, or **Decline** to deny access."),
+            accent_color=0xF59E0B
+        )
+        self.add_item(container)
+
+        btn_allow = discord.ui.Button(label="Allow Entry", style=discord.ButtonStyle.success, emoji="✅", custom_id="vc_knock_allow")
+        btn_decline = discord.ui.Button(label="Decline", style=discord.ButtonStyle.danger, emoji="❌", custom_id="vc_knock_decline")
+
+        btn_allow.callback = self.allow_callback
+        btn_decline.callback = self.decline_callback
+
+        row = discord.ui.ActionRow(btn_allow, btn_decline)
+        self.add_item(row)
+
+    async def allow_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.owner_id:
             return await interaction.response.send_message("❌ Only the channel host can respond to knock requests.", ephemeral=True)
 
@@ -224,30 +286,25 @@ class KnockResponseView(discord.ui.View):
             except Exception:
                 pass
 
-        for child in self.children:
-            child.disabled = True
-
-        embed = discord.Embed(
-            title="🚪 Knock Request Accepted",
-            description=f"✅ {interaction.user.mention} granted entry to {self.requester.mention}{moved_msg}!",
-            color=0x10B981
+        resp_view = discord.ui.LayoutView()
+        c = discord.ui.Container(
+            discord.ui.TextDisplay(f"## 🚪 Knock Request Accepted\n✅ {interaction.user.mention} granted entry to {self.requester.mention}{moved_msg}!"),
+            accent_color=0x10B981
         )
-        await interaction.response.edit_message(embed=embed, view=self)
+        resp_view.add_item(c)
+        await interaction.response.edit_message(view=resp_view)
 
-    @discord.ui.button(emoji="❌", label="Decline", style=discord.ButtonStyle.danger)
-    async def decline_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def decline_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.owner_id:
             return await interaction.response.send_message("❌ Only the channel host can respond to knock requests.", ephemeral=True)
 
-        for child in self.children:
-            child.disabled = True
-
-        embed = discord.Embed(
-            title="🚪 Knock Request Declined",
-            description=f"❌ {interaction.user.mention} declined {self.requester.mention}'s request.",
-            color=0xF43F5E
+        resp_view = discord.ui.LayoutView()
+        c = discord.ui.Container(
+            discord.ui.TextDisplay(f"## 🚪 Knock Request Declined\n❌ {interaction.user.mention} declined {self.requester.mention}'s request."),
+            accent_color=0xF43F5E
         )
-        await interaction.response.edit_message(embed=embed, view=self)
+        resp_view.add_item(c)
+        await interaction.response.edit_message(view=resp_view)
 
 
 # ==========================================
@@ -341,13 +398,76 @@ class TransferOwnerView(discord.ui.View):
 
 
 # ==========================================
-# Discord UI Components v2 - Persistent Dashboard
+# Discord UI Components v2 - Voice Room LayoutView
 # ==========================================
 
-class VoiceControlView(discord.ui.View):
-    def __init__(self, cog):
+class VoiceControlLayoutView(discord.ui.LayoutView):
+    def __init__(self, cog, member_avatar_url: str = "https://cdn.discordapp.com/embed/avatars/0.png", member_name: str = "Member"):
         super().__init__(timeout=None)
         self.cog = cog
+
+        # Pure Components v2 Card Container (Replaces legacy Embeds completely!)
+        container = discord.ui.Container(
+            discord.ui.Section(
+                discord.ui.TextDisplay(f"## 🎙️ VoiceClaw Control Center\n**Welcome to your private room, {member_name}!**"),
+                accessory=discord.ui.Thumbnail(member_avatar_url)
+            ),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(
+                "### 🛡️ Privacy Suite\n"
+                "• 🔒 `Lock` / 🔓 `Unlock` — Restrict or allow public joining\n"
+                "• 👻 `Ghost` / 👁️ `Reveal` — Invisibility toggle for @everyone\n"
+                "• 🔔 `Knock` — Toggle guest doorbell requests\n\n"
+                "### ⚙️ Room Settings\n"
+                "• ✏️ `Rename` & 🔢 `Limit` — Native Discord popup inputs\n"
+                "• 👤 `Permit` & 🚫 `Reject` — Member select menus\n"
+                "• 👑 `Claim` & 🤝 `Transfer` — Host ownership management"
+            ),
+            accent_color=0x5865F2
+        )
+        self.add_item(container)
+
+        # Row 0: Privacy, Invisibility & Knocking Controls
+        btn_lock = discord.ui.Button(emoji="🔒", label="Lock", style=discord.ButtonStyle.danger, custom_id="vc_btn_lock")
+        btn_unlock = discord.ui.Button(emoji="🔓", label="Unlock", style=discord.ButtonStyle.success, custom_id="vc_btn_unlock")
+        btn_ghost = discord.ui.Button(emoji="👻", label="Ghost", style=discord.ButtonStyle.secondary, custom_id="vc_btn_ghost")
+        btn_reveal = discord.ui.Button(emoji="👁️", label="Reveal", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reveal")
+        btn_knock = discord.ui.Button(emoji="🔔", label="Knock", style=discord.ButtonStyle.primary, custom_id="vc_btn_knock_toggle")
+
+        btn_lock.callback = self.lock_callback
+        btn_unlock.callback = self.unlock_callback
+        btn_ghost.callback = self.ghost_callback
+        btn_reveal.callback = self.reveal_callback
+        btn_knock.callback = self.knock_toggle_callback
+
+        row0 = discord.ui.ActionRow(btn_lock, btn_unlock, btn_ghost, btn_reveal, btn_knock)
+        self.add_item(row0)
+
+        # Row 1: Customization & Ownership
+        btn_rename = discord.ui.Button(emoji="✏️", label="Rename", style=discord.ButtonStyle.primary, custom_id="vc_btn_rename")
+        btn_limit = discord.ui.Button(emoji="🔢", label="Limit", style=discord.ButtonStyle.primary, custom_id="vc_btn_limit")
+        btn_claim = discord.ui.Button(emoji="👑", label="Claim", style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim")
+        btn_transfer = discord.ui.Button(emoji="🤝", label="Transfer", style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
+
+        btn_rename.callback = self.rename_callback
+        btn_limit.callback = self.limit_callback
+        btn_claim.callback = self.claim_callback
+        btn_transfer.callback = self.transfer_callback
+
+        row1 = discord.ui.ActionRow(btn_rename, btn_limit, btn_claim, btn_transfer)
+        self.add_item(row1)
+
+        # Row 2: Access & Info
+        btn_permit = discord.ui.Button(emoji="👤", label="Permit", style=discord.ButtonStyle.success, custom_id="vc_btn_permit")
+        btn_reject = discord.ui.Button(emoji="🚫", label="Reject", style=discord.ButtonStyle.danger, custom_id="vc_btn_reject")
+        btn_info = discord.ui.Button(emoji="📊", label="Info", style=discord.ButtonStyle.secondary, custom_id="vc_btn_info")
+
+        btn_permit.callback = self.permit_callback
+        btn_reject.callback = self.reject_callback
+        btn_info.callback = self.info_callback
+
+        row2 = discord.ui.ActionRow(btn_permit, btn_reject, btn_info)
+        self.add_item(row2)
 
     async def _get_voice_context(self, interaction: discord.Interaction):
         user = interaction.user
@@ -364,9 +484,7 @@ class VoiceControlView(discord.ui.View):
 
         return channel, owner_id
 
-    # Row 0: Privacy, Invisibility & Knocking Controls
-    @discord.ui.button(emoji="🔒", label="Lock", style=discord.ButtonStyle.danger, custom_id="vc_btn_lock", row=0)
-    async def lock_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def lock_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
         if interaction.user.id != owner_id:
@@ -375,8 +493,7 @@ class VoiceControlView(discord.ui.View):
         await channel.set_permissions(interaction.guild.default_role, connect=False)
         await interaction.response.send_message("🔒 **Channel locked!** Unauthorized members cannot connect (they can still knock).", ephemeral=True)
 
-    @discord.ui.button(emoji="🔓", label="Unlock", style=discord.ButtonStyle.success, custom_id="vc_btn_unlock", row=0)
-    async def unlock_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def unlock_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
         if interaction.user.id != owner_id:
@@ -385,8 +502,7 @@ class VoiceControlView(discord.ui.View):
         await channel.set_permissions(interaction.guild.default_role, connect=True)
         await interaction.response.send_message("🔓 **Channel unlocked!** Public connection allowed.", ephemeral=True)
 
-    @discord.ui.button(emoji="👻", label="Ghost", style=discord.ButtonStyle.secondary, custom_id="vc_btn_ghost", row=0)
-    async def ghost_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def ghost_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
         if interaction.user.id != owner_id:
@@ -395,8 +511,7 @@ class VoiceControlView(discord.ui.View):
         await channel.set_permissions(interaction.guild.default_role, view_channel=False, connect=False)
         await interaction.response.send_message("👻 **Ghost Mode Activated!** The room is completely invisible to @everyone.", ephemeral=True)
 
-    @discord.ui.button(emoji="👁️", label="Reveal", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reveal", row=0)
-    async def reveal_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def reveal_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
         if interaction.user.id != owner_id:
@@ -405,8 +520,7 @@ class VoiceControlView(discord.ui.View):
         await channel.set_permissions(interaction.guild.default_role, view_channel=True)
         await interaction.response.send_message("👁️ **Channel revealed!** Visible on the channel list again.", ephemeral=True)
 
-    @discord.ui.button(emoji="🔔", label="Knock", style=discord.ButtonStyle.primary, custom_id="vc_btn_knock_toggle", row=0)
-    async def knock_toggle_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def knock_toggle_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
         if interaction.user.id != owner_id:
@@ -421,9 +535,7 @@ class VoiceControlView(discord.ui.View):
         else:
             await interaction.response.send_message("🔕 **Knock Mode: MUTED (Do Not Disturb)**\nKnock requests are disabled. No one can ring the bell.", ephemeral=True)
 
-    # Row 1: Customization & Ownership
-    @discord.ui.button(emoji="✏️", label="Rename", style=discord.ButtonStyle.primary, custom_id="vc_btn_rename", row=1)
-    async def rename_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def rename_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
         if interaction.user.id != owner_id:
@@ -431,8 +543,7 @@ class VoiceControlView(discord.ui.View):
 
         await interaction.response.send_modal(ChannelRenameModal(self.cog, channel))
 
-    @discord.ui.button(emoji="🔢", label="Limit", style=discord.ButtonStyle.primary, custom_id="vc_btn_limit", row=1)
-    async def limit_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def limit_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
         if interaction.user.id != owner_id:
@@ -440,8 +551,7 @@ class VoiceControlView(discord.ui.View):
 
         await interaction.response.send_modal(ChannelLimitModal(self.cog, channel))
 
-    @discord.ui.button(emoji="👑", label="Claim", style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim", row=1)
-    async def claim_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def claim_callback(self, interaction: discord.Interaction):
         user = interaction.user
         voice_state = user.voice
         if not voice_state or not voice_state.channel:
@@ -463,8 +573,7 @@ class VoiceControlView(discord.ui.View):
         await channel.set_permissions(user, connect=True, view_channel=True, read_messages=True, manage_channels=True)
         await interaction.response.send_message(f"👑 **Congratulations!** You are now the new owner of {channel.name}.", ephemeral=False)
 
-    @discord.ui.button(emoji="🤝", label="Transfer", style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer", row=1)
-    async def transfer_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def transfer_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
         if interaction.user.id != owner_id:
@@ -472,9 +581,7 @@ class VoiceControlView(discord.ui.View):
 
         await interaction.response.send_message("Select a room member to pass channel ownership to:", view=TransferOwnerView(self.cog, channel), ephemeral=True)
 
-    # Row 2: User Access & Info
-    @discord.ui.button(emoji="👤", label="Permit", style=discord.ButtonStyle.success, custom_id="vc_btn_permit", row=2)
-    async def permit_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def permit_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
         if interaction.user.id != owner_id:
@@ -482,8 +589,7 @@ class VoiceControlView(discord.ui.View):
 
         await interaction.response.send_message("Select a member to grant access to your channel:", view=PermitSelectView(channel), ephemeral=True)
 
-    @discord.ui.button(emoji="🚫", label="Reject", style=discord.ButtonStyle.danger, custom_id="vc_btn_reject", row=2)
-    async def reject_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def reject_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
         if interaction.user.id != owner_id:
@@ -491,8 +597,7 @@ class VoiceControlView(discord.ui.View):
 
         await interaction.response.send_message("Select a member to disconnect and deny access:", view=RejectSelectView(self.cog, channel), ephemeral=True)
 
-    @discord.ui.button(emoji="📊", label="Info", style=discord.ButtonStyle.secondary, custom_id="vc_btn_info", row=2)
-    async def info_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def info_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
 
@@ -501,14 +606,21 @@ class VoiceControlView(discord.ui.View):
         limit_text = "Unlimited" if channel.user_limit == 0 else f"{len(channel.members)}/{channel.user_limit}"
         knock_mode = "🔔 Enabled" if self.cog.knock_settings.get(channel.id, True) else "🔕 Muted"
 
-        embed = discord.Embed(title="📊 Room Information", color=0x5865F2)
-        embed.add_field(name="Room Name", value=f"`{channel.name}`", inline=True)
-        embed.add_field(name="Host", value=owner_name, inline=True)
-        embed.add_field(name="Occupancy", value=f"`{limit_text}`", inline=True)
-        embed.add_field(name="Bitrate", value=f"`{channel.bitrate // 1000} kbps`", inline=True)
-        embed.add_field(name="Doorbell", value=f"`{knock_mode}`", inline=True)
-        embed.set_footer(text="VoiceClaw Enterprise Architecture")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        info_view = discord.ui.LayoutView()
+        c = discord.ui.Container(
+            discord.ui.TextDisplay("## 📊 Room Information"),
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(
+                f"• **Room Name:** `{channel.name}`\n"
+                f"• **Host:** {owner_name}\n"
+                f"• **Occupancy:** `{limit_text}`\n"
+                f"• **Bitrate:** `{channel.bitrate // 1000} kbps`\n"
+                f"• **Doorbell:** `{knock_mode}`"
+            ),
+            accent_color=0x5865F2
+        )
+        info_view.add_item(c)
+        await interaction.response.send_message(view=info_view, ephemeral=True)
 
 
 # ==========================================
@@ -525,7 +637,7 @@ class voice(commands.Cog):
     async def cog_load(self):
         """Initialize database tables and register persistent views"""
         await self.init_db()
-        self.bot.add_view(VoiceControlView(self))
+        self.bot.add_view(VoiceControlLayoutView(self))
 
     # --- Asynchronous Database Utilities ---
     async def init_db(self):
@@ -669,27 +781,9 @@ class voice(commands.Cog):
                 await self.register_temp_channel(member.id, temp_channel.id)
                 self.knock_settings[temp_channel.id] = True
 
-                # Ultra-Clean Discord UI v2 Embed
-                embed = discord.Embed(
-                    title="🎙️ VoiceClaw Control Center",
-                    description=(
-                        f"Hey {member.mention}, welcome to your private dynamic room!\n"
-                        "Manage your voice room using the interactive buttons below.\n\n"
-                        "╭─── 🛡️ **Privacy Suite** ───╮\n"
-                        "├ 🔒 `Lock` / 🔓 `Unlock` — Toggle public connection\n"
-                        "├ 👻 `Ghost` / 👁️ `Reveal` — Invisibility for @everyone\n"
-                        "╰ 🔔 `Knock` — Toggle guest doorbell requests\n\n"
-                        "╭─── ⚙️ **Room Settings** ───╮\n"
-                        "├ ✏️ `Rename` & 🔢 `Limit` — Direct popup inputs\n"
-                        "├ 👤 `Permit` & 🚫 `Reject` — Member select menus\n"
-                        "╰ 👑 `Claim` & 🤝 `Transfer` — Host management\n"
-                    ),
-                    color=0x2B2D31
-                )
-                embed.set_thumbnail(url=member.display_avatar.url)
-                embed.set_footer(text="VoiceClaw Enterprise • Zero Command Clutter")
-                
-                await temp_channel.send(embed=embed, view=VoiceControlView(self))
+                # Send Pure Discord Components v2 LayoutView (Zero Embeds)
+                ctrl_view = VoiceControlLayoutView(self, member.display_avatar.url, member.display_name)
+                await temp_channel.send(view=ctrl_view)
 
             except Exception as e:
                 print(f"[VoiceClaw Error] Failed to create channel: {e}")
@@ -710,7 +804,7 @@ class voice(commands.Cog):
     # --- Knock / Request to Join Command ---
     @commands.command(name="knock")
     async def knock_cmd(self, ctx, target: discord.Member = None):
-        """Request permission to join a locked or ghosted voice room"""
+        """Request permission to join a locked or ghosted voice room (Components v2)"""
         user = ctx.author
 
         now = time.time()
@@ -744,20 +838,9 @@ class voice(commands.Cog):
 
         self.knock_cooldowns[user.id] = now
 
-        embed = discord.Embed(
-            title="🚪 Knock, Knock!",
-            description=(
-                f"🔔 {user.mention} is requesting to enter this room!\n"
-                f"**Host:** <@{owner_id}>\n\n"
-                "Click **Allow Entry** to grant permission and pull them in, or **Decline** to deny."
-            ),
-            color=0xF59E0B
-        )
-        embed.set_thumbnail(url=user.display_avatar.url)
-        embed.set_footer(text="VoiceClaw Doorbell Notification")
-
-        view = KnockResponseView(self, target_channel, user, owner_id)
-        await target_channel.send(f"<@{owner_id}>", embed=embed, view=view)
+        # Send Components v2 Doorbell Alert into target voice channel
+        doorbell_view = KnockResponseView(self, target_channel, user, owner_id)
+        await target_channel.send(content=f"<@{owner_id}>", view=doorbell_view)
         await ctx.send(f"🔔 You knocked on **{target_channel.name}**! Waiting for host response...", delete_after=8)
 
     # --- Setup & Management Commands ---
@@ -768,68 +851,43 @@ class voice(commands.Cog):
     @voice_cmd.command(name="setup")
     @commands.has_permissions(administrator=True)
     async def setup_cmd(self, ctx):
-        """Interactive One-Click UI Setup for VoiceClaw"""
-        embed = discord.Embed(
-            title="⚡ VoiceClaw Automated Setup",
-            description=(
-                "Welcome to **VoiceClaw**! Configure your server's automated dynamic voice channels in seconds.\n\n"
-                "Choose your preferred setup method below:\n\n"
-                "⚡ **1-Click Quick Setup** (Recommended)\n"
-                "Creates a `🔊 Voice Channels` category and `➕ Join to Create` channel instantly.\n\n"
-                "⚙️ **Custom Setup**\n"
-                "Open a Discord popup modal to customize the category & channel names.\n"
-            ),
-            color=0x5865F2
-        )
-        if ctx.guild.icon:
-            embed.set_thumbnail(url=ctx.guild.icon.url)
-        embed.set_footer(text="VoiceClaw Discord UI Components v2")
-        view = SetupView(self, ctx.author.id)
-        await ctx.send(embed=embed, view=view)
+        """Pure Discord Components v2 Interactive Setup (Zero Embeds)"""
+        thumb_url = ctx.guild.icon.url if ctx.guild.icon else "https://cdn.discordapp.com/embed/avatars/0.png"
+        view = SetupLayoutView(self, ctx.author.id, thumb_url)
+        await ctx.send(view=view)
 
     @voice_cmd.command(name="panel")
     async def panel_cmd(self, ctx):
-        """Send the VoiceClaw Control Dashboard directly into current channel"""
-        embed = discord.Embed(
-            title="🎙️ VoiceClaw Control Center",
-            description="Manage your voice room using the interactive buttons below.",
-            color=0x2B2D31
-        )
-        embed.set_footer(text="VoiceClaw UI Components v2")
-        await ctx.send(embed=embed, view=VoiceControlView(self))
+        """Send the VoiceClaw Control Center directly using Components v2"""
+        view = VoiceControlLayoutView(self, ctx.author.display_avatar.url, ctx.author.display_name)
+        await ctx.send(view=view)
 
     @commands.command(name="help")
     async def help_cmd(self, ctx):
-        """Help embed showing VoiceClaw features and dashboard guide"""
-        embed = discord.Embed(
-            title="🎙️ VoiceClaw - Verified Dynamic Voice",
-            description=(
-                "VoiceClaw is a next-generation voice management bot powered by **Discord UI Components v2**.\n"
-                "No annoying command typing—everything is managed via interactive buttons and modals!"
+        """Help view powered by 100% Discord Components v2 (Zero Embeds)"""
+        thumb_url = ctx.guild.icon.url if ctx.guild.icon else "https://cdn.discordapp.com/embed/avatars/0.png"
+        help_view = discord.ui.LayoutView()
+        container = discord.ui.Container(
+            discord.ui.Section(
+                discord.ui.TextDisplay("## 🎙️ VoiceClaw • Verified System\nPowered by authentic **Discord Components v2** Layouts."),
+                accessory=discord.ui.Thumbnail(thumb_url)
             ),
-            color=0x5865F2
-        )
-        embed.add_field(
-            name="🛡️ Privacy Suite",
-            value=(
-                "🔒 **Lock / 🔓 Unlock** — Toggle public connection\n"
-                "👻 **Ghost / 👁️ Reveal** — Invisibility for `@everyone`\n"
-                "🔔 **Knock Mode** — Toggle guest doorbell requests"
+            discord.ui.Separator(),
+            discord.ui.TextDisplay(
+                "### 🛡️ Privacy Suite\n"
+                "• 🔒 **Lock / Unlock** — Restrict or allow connection\n"
+                "• 👻 **Ghost / Reveal** — Invisibility for `@everyone`\n"
+                "• 🔔 **Knock Mode** — Doorbell request toggle\n\n"
+                "### 🚪 Doorbell Knocking\n"
+                "• `.knock @Host` — Ring the doorbell of a locked room\n\n"
+                "### 🛠️ Admin Commands\n"
+                "• `.voice setup` — 1-Click Interactive Components v2 Setup\n"
+                "• `.voice panel` — Send control dashboard"
             ),
-            inline=False
+            accent_color=0x5865F2
         )
-        embed.add_field(
-            name="🚪 Knocking on Locked Rooms",
-            value="`.knock @Host` — Ring the doorbell of a locked/ghosted room. The host gets an **Allow/Decline** prompt!",
-            inline=False
-        )
-        embed.add_field(
-            name="🛠️ Admin Commands",
-            value="`.voice setup` — One-Click Interactive Setup\n`.voice panel` — Post dashboard view",
-            inline=False
-        )
-        embed.set_footer(text="VoiceClaw • Modern, Clean & High Performance")
-        await ctx.send(embed=embed)
+        help_view.add_item(container)
+        await ctx.send(view=help_view)
 
 
 async def setup(bot):
