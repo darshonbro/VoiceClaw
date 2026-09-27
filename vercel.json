@@ -2,11 +2,9 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/privacy", "destination": "/webpanel/index.html" },
-    { "source": "/terms", "destination": "/webpanel/index.html" },
-    { "source": "/data", "destination": "/webpanel/index.html" },
-    { "source": "/", "destination": "/webpanel/index.html" },
-    { "source": "/(.*)", "destination": "/webpanel/$1" }
+    { "source": "/privacy", "destination": "/index.html" },
+    { "source": "/terms", "destination": "/index.html" },
+    { "source": "/data", "destination": "/index.html" }
   ],
   "headers": [
     {
