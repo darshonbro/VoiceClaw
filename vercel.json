@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/privacy", "destination": "/webpanel/index.html" },
+    { "source": "/terms", "destination": "/webpanel/index.html" },
+    { "source": "/data", "destination": "/webpanel/index.html" },
+    { "source": "/", "destination": "/webpanel/index.html" },
+    { "source": "/(.*)", "destination": "/webpanel/$1" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+      ]
+    }
+  ]
+}
