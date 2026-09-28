@@ -152,9 +152,9 @@ class SetupLayoutView(discord.ui.LayoutView):
         self.add_item(container)
 
         # Clean Custom Aesthetic Icon Buttons (No default emojis)
-        btn_quick = discord.ui.Button(label="Quick Setup", style=discord.ButtonStyle.success, emoji="✦", custom_id="vc_setup_quick")
-        btn_custom = discord.ui.Button(label="Custom Setup", style=discord.ButtonStyle.primary, emoji="◈", custom_id="vc_setup_custom")
-        btn_cancel = discord.ui.Button(label="Cancel", style=discord.ButtonStyle.secondary, emoji="✕", custom_id="vc_setup_cancel")
+        btn_quick = discord.ui.Button(label="✦  Quick Setup", style=discord.ButtonStyle.success, custom_id="vc_setup_quick")
+        btn_custom = discord.ui.Button(label="◈  Custom Setup", style=discord.ButtonStyle.primary, custom_id="vc_setup_custom")
+        btn_cancel = discord.ui.Button(label="✕  Cancel", style=discord.ButtonStyle.secondary, custom_id="vc_setup_cancel")
 
         btn_quick.callback = self.quick_setup_callback
         btn_custom.callback = self.custom_setup_callback
@@ -237,8 +237,8 @@ class KnockResponseView(discord.ui.LayoutView):
         )
         self.add_item(container)
 
-        btn_allow = discord.ui.Button(label="Allow Entry", style=discord.ButtonStyle.success, emoji="✦", custom_id="vc_knock_allow")
-        btn_decline = discord.ui.Button(label="Decline", style=discord.ButtonStyle.danger, emoji="✕", custom_id="vc_knock_decline")
+        btn_allow = discord.ui.Button(label="✦  Allow Entry", style=discord.ButtonStyle.success, custom_id="vc_knock_allow")
+        btn_decline = discord.ui.Button(label="✕  Decline", style=discord.ButtonStyle.danger, custom_id="vc_knock_decline")
 
         btn_allow.callback = self.allow_callback
         btn_decline.callback = self.decline_callback
@@ -391,11 +391,11 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         self.add_item(container)
 
         # Row 0: Privacy & Knocking Controls (Aesthetic Custom Glyphs)
-        btn_lock = discord.ui.Button(emoji="⚿", label="Lock", style=discord.ButtonStyle.danger, custom_id="vc_btn_lock")
-        btn_unlock = discord.ui.Button(emoji="✧", label="Unlock", style=discord.ButtonStyle.success, custom_id="vc_btn_unlock")
-        btn_ghost = discord.ui.Button(emoji="◈", label="Ghost", style=discord.ButtonStyle.secondary, custom_id="vc_btn_ghost")
-        btn_reveal = discord.ui.Button(emoji="◇", label="Reveal", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reveal")
-        btn_knock = discord.ui.Button(emoji="⌬", label="Knock", style=discord.ButtonStyle.primary, custom_id="vc_btn_knock_toggle")
+        btn_lock = discord.ui.Button(label="⚿  Lock", style=discord.ButtonStyle.danger, custom_id="vc_btn_lock")
+        btn_unlock = discord.ui.Button(label="✧  Unlock", style=discord.ButtonStyle.success, custom_id="vc_btn_unlock")
+        btn_ghost = discord.ui.Button(label="◈  Ghost", style=discord.ButtonStyle.secondary, custom_id="vc_btn_ghost")
+        btn_reveal = discord.ui.Button(label="◇  Reveal", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reveal")
+        btn_knock = discord.ui.Button(label="⌬  Knock", style=discord.ButtonStyle.primary, custom_id="vc_btn_knock_toggle")
 
         btn_lock.callback = self.lock_callback
         btn_unlock.callback = self.unlock_callback
@@ -407,10 +407,10 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         self.add_item(row0)
 
         # Row 1: Customization & Ownership
-        btn_rename = discord.ui.Button(emoji="✎", label="Rename", style=discord.ButtonStyle.primary, custom_id="vc_btn_rename")
-        btn_limit = discord.ui.Button(emoji="⌗", label="Limit", style=discord.ButtonStyle.primary, custom_id="vc_btn_limit")
-        btn_claim = discord.ui.Button(emoji="♔", label="Claim", style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim")
-        btn_transfer = discord.ui.Button(emoji="⇄", label="Transfer", style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
+        btn_rename = discord.ui.Button(label="✎  Rename", style=discord.ButtonStyle.primary, custom_id="vc_btn_rename")
+        btn_limit = discord.ui.Button(label="⌗  Limit", style=discord.ButtonStyle.primary, custom_id="vc_btn_limit")
+        btn_claim = discord.ui.Button(label="♔  Claim", style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim")
+        btn_transfer = discord.ui.Button(label="⇄  Transfer", style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
 
         btn_rename.callback = self.rename_callback
         btn_limit.callback = self.limit_callback
@@ -421,9 +421,9 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         self.add_item(row1)
 
         # Row 2: Access & Info
-        btn_permit = discord.ui.Button(emoji="＋", label="Permit", style=discord.ButtonStyle.success, custom_id="vc_btn_permit")
-        btn_reject = discord.ui.Button(emoji="✕", label="Reject", style=discord.ButtonStyle.danger, custom_id="vc_btn_reject")
-        btn_info = discord.ui.Button(emoji="ℹ", label="Info", style=discord.ButtonStyle.secondary, custom_id="vc_btn_info")
+        btn_permit = discord.ui.Button(label="＋  Permit", style=discord.ButtonStyle.success, custom_id="vc_btn_permit")
+        btn_reject = discord.ui.Button(label="✕  Reject", style=discord.ButtonStyle.danger, custom_id="vc_btn_reject")
+        btn_info = discord.ui.Button(label="ℹ  Info", style=discord.ButtonStyle.secondary, custom_id="vc_btn_info")
 
         btn_permit.callback = self.permit_callback
         btn_reject.callback = self.reject_callback
