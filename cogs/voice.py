@@ -1329,8 +1329,9 @@ class voice(commands.Cog):
                     user_limit=chan_limit
                 )
 
-                await temp_channel.set_permissions(self.bot.user, connect=True, view_channel=True, manage_channels=True)
-                await temp_channel.set_permissions(member, connect=True, view_channel=True, read_messages=True, manage_channels=True)
+                await temp_channel.set_permissions(self.bot.user, connect=True, view_channel=True, read_messages=True, send_messages=True, read_message_history=True, manage_channels=True)
+                await temp_channel.set_permissions(member, connect=True, view_channel=True, read_messages=True, send_messages=True, read_message_history=True, manage_channels=True)
+                await temp_channel.set_permissions(guild.default_role, read_messages=True, read_message_history=True)
 
                 await member.move_to(temp_channel)
                 await self.register_temp_channel(member.id, temp_channel.id)
@@ -1338,8 +1339,13 @@ class voice(commands.Cog):
                 print(f"[VoiceClaw] Moved {member.display_name} to {temp_channel.name} ({temp_channel.id})")
 
                 # Send Minimalist Discord Components v2 LayoutView (Ultra-compact, matching VoiceMaster/Zynarix)
-                ctrl_view = VoiceControlLayoutView(self, member.display_avatar.url, member.display_name)
-                await temp_channel.send(view=ctrl_view)
+                try:
+                    ctrl_view = VoiceControlLayoutView(self, member.display_avatar.url, member.display_name)
+                    msg = await temp_channel.send(view=ctrl_view)
+                    print(f"[VoiceClaw] Successfully sent interface message ({msg.id}) into {temp_channel.name}")
+                except Exception as send_err:
+                    print(f"[VoiceClaw Error] Failed to send interface message into {temp_channel.name}: {send_err}")
+                    traceback.print_exc()
 
             # 2. Member Left a Temporary Channel
             if before.channel and before.channel.id != master_channel_id:

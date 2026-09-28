@@ -6,6 +6,13 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 # Load environment variables from .env
 load_dotenv()
 
