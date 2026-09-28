@@ -750,28 +750,52 @@ class UnmuteSelectView(discord.ui.View):
 # Discord UI Components v2 - Voice Room LayoutView
 # ==========================================
 
+# Custom VoiceClaw Application Emojis (Uploaded directly to bot application)
+APP_EMOJIS = {
+    "lock": discord.PartialEmoji(name="vc_lock", id=1553938960890339412),
+    "unlock": discord.PartialEmoji(name="vc_unlock", id=1553938974798651395),
+    "ghost": discord.PartialEmoji(name="vc_ghost", id=1553938948907081749),
+    "reveal": discord.PartialEmoji(name="vc_reveal", id=1553938967186116739),
+    "rename": discord.PartialEmoji(name="vc_rename", id=1553938964799299627),
+    "limit": discord.PartialEmoji(name="vc_limit", id=1553938959288107088),
+    "mute": discord.PartialEmoji(name="vc_mute", id=1553938963147001980),
+    "unmute": discord.PartialEmoji(name="vc_unmute", id=1553938976782680225),
+    "trust": discord.PartialEmoji(name="vc_trust", id=1553938971095072798),
+    "untrust": discord.PartialEmoji(name="vc_untrust", id=1553938978338644108),
+    "invite": discord.PartialEmoji(name="vc_invite", id=1553938952921284679),
+    "kick": discord.PartialEmoji(name="vc_kick", id=1553938955635003412),
+    "block": discord.PartialEmoji(name="vc_block", id=1553938943433777233),
+    "unblock": discord.PartialEmoji(name="vc_unblock", id=1553938972986712194),
+    "knock": discord.PartialEmoji(name="vc_knock", id=1553938957480370286),
+    "claim": discord.PartialEmoji(name="vc_claim", id=1553938945442840657),
+    "transfer": discord.PartialEmoji(name="vc_transfer", id=1553938969165824031),
+    "info": discord.PartialEmoji(name="vc_info", id=1553938951012880487),
+    "delete": discord.PartialEmoji(name="vc_delete", id=1553938947271557190),
+}
+
+
 class VoiceControlSelect(discord.ui.Select):
     def __init__(self, cog):
         options = [
-            discord.SelectOption(label="Lock Channel", emoji="🔒", value="lock", description="Restrict connections to your room"),
-            discord.SelectOption(label="Unlock Channel", emoji="🔓", value="unlock", description="Open connection to everyone"),
-            discord.SelectOption(label="Ghost Channel", emoji="👻", value="ghost", description="Hide room from server sidebar"),
-            discord.SelectOption(label="Reveal Channel", emoji="👁️", value="reveal", description="Make room visible on sidebar"),
-            discord.SelectOption(label="Rename Channel", emoji="✏️", value="rename", description="Change channel name via popup modal"),
-            discord.SelectOption(label="Set Member Limit", emoji="👥", value="limit", description="Set user capacity limit via modal"),
-            discord.SelectOption(label="Mute Member", emoji="🔇", value="mute", description="Server mute member in your room"),
-            discord.SelectOption(label="Unmute Member", emoji="🔊", value="unmute", description="Unmute member in your room"),
-            discord.SelectOption(label="Trust Member", emoji="🤝", value="trust", description="Grant bypass access to a member"),
-            discord.SelectOption(label="Untrust Member", emoji="👤", value="untrust", description="Remove trusted status from a member"),
-            discord.SelectOption(label="Invite Member", emoji="✉️", value="invite", description="Send direct invite link to a member"),
-            discord.SelectOption(label="Kick Member", emoji="👢", value="kick", description="Disconnect member from your room"),
-            discord.SelectOption(label="Block Member", emoji="🚫", value="block", description="Ban and disconnect member from room"),
-            discord.SelectOption(label="Unblock Member", emoji="✅", value="unblock", description="Unban member from room"),
-            discord.SelectOption(label="Waiting Room (Knock)", emoji="🚪", value="knock", description="Allow or disable doorbell requests"),
-            discord.SelectOption(label="Claim Ownership", emoji="👑", value="claim", description="Claim channel if host left the room"),
-            discord.SelectOption(label="Transfer Ownership", emoji="🔄", value="transfer", description="Transfer host to another member"),
-            discord.SelectOption(label="Delete Channel", emoji="🗑️", value="delete", description="Instantly delete this voice room"),
-            discord.SelectOption(label="Channel Info", emoji="ℹ️", value="info", description="View current room host, settings & stats"),
+            discord.SelectOption(label="Lock Channel", emoji=APP_EMOJIS["lock"], value="lock", description="Restrict connections to your room"),
+            discord.SelectOption(label="Unlock Channel", emoji=APP_EMOJIS["unlock"], value="unlock", description="Open connection to everyone"),
+            discord.SelectOption(label="Ghost Channel", emoji=APP_EMOJIS["ghost"], value="ghost", description="Hide room from server sidebar"),
+            discord.SelectOption(label="Reveal Channel", emoji=APP_EMOJIS["reveal"], value="reveal", description="Make room visible on sidebar"),
+            discord.SelectOption(label="Rename Channel", emoji=APP_EMOJIS["rename"], value="rename", description="Change channel name via popup modal"),
+            discord.SelectOption(label="Set Member Limit", emoji=APP_EMOJIS["limit"], value="limit", description="Set user capacity limit via modal"),
+            discord.SelectOption(label="Mute Member", emoji=APP_EMOJIS["mute"], value="mute", description="Server mute member in your room"),
+            discord.SelectOption(label="Unmute Member", emoji=APP_EMOJIS["unmute"], value="unmute", description="Unmute member in your room"),
+            discord.SelectOption(label="Trust Member", emoji=APP_EMOJIS["trust"], value="trust", description="Grant bypass access to a member"),
+            discord.SelectOption(label="Untrust Member", emoji=APP_EMOJIS["untrust"], value="untrust", description="Remove trusted status from a member"),
+            discord.SelectOption(label="Invite Member", emoji=APP_EMOJIS["invite"], value="invite", description="Send direct invite link to a member"),
+            discord.SelectOption(label="Kick Member", emoji=APP_EMOJIS["kick"], value="kick", description="Disconnect member from your room"),
+            discord.SelectOption(label="Block Member", emoji=APP_EMOJIS["block"], value="block", description="Ban and disconnect member from room"),
+            discord.SelectOption(label="Unblock Member", emoji=APP_EMOJIS["unblock"], value="unblock", description="Unban member from room"),
+            discord.SelectOption(label="Waiting Room (Knock)", emoji=APP_EMOJIS["knock"], value="knock", description="Allow or disable doorbell requests"),
+            discord.SelectOption(label="Claim Ownership", emoji=APP_EMOJIS["claim"], value="claim", description="Claim channel if host left the room"),
+            discord.SelectOption(label="Transfer Ownership", emoji=APP_EMOJIS["transfer"], value="transfer", description="Transfer host to another member"),
+            discord.SelectOption(label="Delete Channel", emoji=APP_EMOJIS["delete"], value="delete", description="Instantly delete this voice room"),
+            discord.SelectOption(label="Channel Info", emoji=APP_EMOJIS["info"], value="info", description="View current room host, settings & stats"),
         ]
         super().__init__(
             placeholder="Choose an action to control your room...",
@@ -800,25 +824,25 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             f"{title}\n"
             "Use the buttons below to manage your voice channel.\n\n"
             "**Control Buttons**\n"
-            "🔒 - `Lock` your voice channel\n"
-            "🔓 - `Unlock` your voice channel\n"
-            "👻 - `Hide` your voice channel\n"
-            "👁️ - `Reveal` your voice channel\n"
-            "✏️ - `Rename` your voice channel\n"
-            "👥 - `Limit` your voice channel user limit\n"
-            "🔇 - `Mute` a user\n"
-            "🔊 - `Unmute` a user\n"
-            "🤝 - `Trust` a user (VIP access)\n"
-            "👤 - `Untrust` a user\n"
-            "✉️ - `Invite` a user\n"
-            "👢 - `Kick` a user\n"
-            "🚫 - `Block` a user\n"
-            "✅ - `Unblock` a user\n"
-            "🚪 - `Knock` waiting room doorbell\n"
-            "👑 - `Claim` ownership\n"
-            "🔄 - `Transfer` ownership\n"
-            "ℹ️ - `Info` room stats\n"
-            "🗑️ - `Delete` temporary channel"
+            f"<:vc_lock:1553938960890339412> - `Lock` your voice channel\n"
+            f"<:vc_unlock:1553938974798651395> - `Unlock` your voice channel\n"
+            f"<:vc_ghost:1553938948907081749> - `Hide` your voice channel\n"
+            f"<:vc_reveal:1553938967186116739> - `Reveal` your voice channel\n"
+            f"<:vc_rename:1553938964799299627> - `Rename` your voice channel\n"
+            f"<:vc_limit:1553938959288107088> - `Limit` your voice channel user limit\n"
+            f"<:vc_mute:1553938963147001980> - `Mute` a user\n"
+            f"<:vc_unmute:1553938976782680225> - `Unmute` a user\n"
+            f"<:vc_trust:1553938971095072798> - `Trust` a user (VIP access)\n"
+            f"<:vc_untrust:1553938978338644108> - `Untrust` a user\n"
+            f"<:vc_invite:1553938952921284679> - `Invite` a user\n"
+            f"<:vc_kick:1553938955635003412> - `Kick` a user\n"
+            f"<:vc_block:1553938943433777233> - `Block` a user\n"
+            f"<:vc_unblock:1553938972986712194> - `Unblock` a user\n"
+            f"<:vc_knock:1553938957480370286> - `Knock` waiting room doorbell\n"
+            f"<:vc_claim:1553938945442840657> - `Claim` ownership\n"
+            f"<:vc_transfer:1553938969165824031> - `Transfer` ownership\n"
+            f"<:vc_info:1553938951012880487> - `Info` room stats\n"
+            f"<:vc_delete:1553938947271557190> - `Delete` temporary channel"
         )
 
         ctrl_select = VoiceControlSelect(self.cog)
@@ -837,11 +861,11 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         self.add_item(container)
 
         # Row 0: Privacy & Room Edit (5 square icon buttons)
-        btn_lock = discord.ui.Button(emoji="🔒", style=discord.ButtonStyle.secondary, custom_id="vc_btn_lock")
-        btn_unlock = discord.ui.Button(emoji="🔓", style=discord.ButtonStyle.secondary, custom_id="vc_btn_unlock")
-        btn_ghost = discord.ui.Button(emoji="👻", style=discord.ButtonStyle.secondary, custom_id="vc_btn_ghost")
-        btn_reveal = discord.ui.Button(emoji="👁️", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reveal")
-        btn_rename = discord.ui.Button(emoji="✏️", style=discord.ButtonStyle.secondary, custom_id="vc_btn_rename")
+        btn_lock = discord.ui.Button(emoji=APP_EMOJIS["lock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_lock")
+        btn_unlock = discord.ui.Button(emoji=APP_EMOJIS["unlock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_unlock")
+        btn_ghost = discord.ui.Button(emoji=APP_EMOJIS["ghost"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_ghost")
+        btn_reveal = discord.ui.Button(emoji=APP_EMOJIS["reveal"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_reveal")
+        btn_rename = discord.ui.Button(emoji=APP_EMOJIS["rename"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_rename")
 
         btn_lock.callback = self.lock_callback
         btn_unlock.callback = self.unlock_callback
@@ -853,11 +877,11 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         self.add_item(row0)
 
         # Row 1: Capacity, Audio & Trust (5 square icon buttons)
-        btn_limit = discord.ui.Button(emoji="👥", style=discord.ButtonStyle.secondary, custom_id="vc_btn_limit")
-        btn_mute = discord.ui.Button(emoji="🔇", style=discord.ButtonStyle.secondary, custom_id="vc_btn_mute")
-        btn_unmute = discord.ui.Button(emoji="🔊", style=discord.ButtonStyle.secondary, custom_id="vc_btn_unmute")
-        btn_trust = discord.ui.Button(emoji="🤝", style=discord.ButtonStyle.secondary, custom_id="vc_btn_trust")
-        btn_untrust = discord.ui.Button(emoji="👤", style=discord.ButtonStyle.secondary, custom_id="vc_btn_untrust")
+        btn_limit = discord.ui.Button(emoji=APP_EMOJIS["limit"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_limit")
+        btn_mute = discord.ui.Button(emoji=APP_EMOJIS["mute"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_mute")
+        btn_unmute = discord.ui.Button(emoji=APP_EMOJIS["unmute"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_unmute")
+        btn_trust = discord.ui.Button(emoji=APP_EMOJIS["trust"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_trust")
+        btn_untrust = discord.ui.Button(emoji=APP_EMOJIS["untrust"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_untrust")
 
         btn_limit.callback = self.limit_callback
         btn_mute.callback = self.mute_callback
@@ -869,11 +893,11 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         self.add_item(row1)
 
         # Row 2: Invite, Kick, Block & Waiting Room (5 square icon buttons)
-        btn_invite = discord.ui.Button(emoji="✉️", style=discord.ButtonStyle.secondary, custom_id="vc_btn_invite")
-        btn_kick = discord.ui.Button(emoji="👢", style=discord.ButtonStyle.secondary, custom_id="vc_btn_kick")
-        btn_block = discord.ui.Button(emoji="🚫", style=discord.ButtonStyle.secondary, custom_id="vc_btn_block")
-        btn_unblock = discord.ui.Button(emoji="✅", style=discord.ButtonStyle.secondary, custom_id="vc_btn_unblock")
-        btn_knock = discord.ui.Button(emoji="🚪", style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock_toggle")
+        btn_invite = discord.ui.Button(emoji=APP_EMOJIS["invite"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_invite")
+        btn_kick = discord.ui.Button(emoji=APP_EMOJIS["kick"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_kick")
+        btn_block = discord.ui.Button(emoji=APP_EMOJIS["block"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_block")
+        btn_unblock = discord.ui.Button(emoji=APP_EMOJIS["unblock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_unblock")
+        btn_knock = discord.ui.Button(emoji=APP_EMOJIS["knock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock_toggle")
 
         btn_invite.callback = self.invite_callback
         btn_kick.callback = self.kick_callback
@@ -885,10 +909,10 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         self.add_item(row2)
 
         # Row 3: Ownership, Stats & Deletion (4 square icon buttons)
-        btn_claim = discord.ui.Button(emoji="👑", style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim")
-        btn_transfer = discord.ui.Button(emoji="🔄", style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
-        btn_info = discord.ui.Button(emoji="ℹ️", style=discord.ButtonStyle.secondary, custom_id="vc_btn_info")
-        btn_delete = discord.ui.Button(emoji="🗑️", style=discord.ButtonStyle.secondary, custom_id="vc_btn_delete")
+        btn_claim = discord.ui.Button(emoji=APP_EMOJIS["claim"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim")
+        btn_transfer = discord.ui.Button(emoji=APP_EMOJIS["transfer"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
+        btn_info = discord.ui.Button(emoji=APP_EMOJIS["info"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_info")
+        btn_delete = discord.ui.Button(emoji=APP_EMOJIS["delete"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_delete")
 
         btn_claim.callback = self.claim_callback
         btn_transfer.callback = self.transfer_callback
@@ -1180,9 +1204,35 @@ class voice(commands.Cog):
         self.knock_settings = {}
 
     async def cog_load(self):
-        """Initialize database tables and register persistent views"""
+        """Initialize database tables, register views, and clean stale rooms"""
         await self.init_db()
         self.bot.add_view(VoiceControlLayoutView(self))
+        asyncio.create_task(self.cleanup_stale_channels())
+
+    async def cleanup_stale_channels(self):
+        """Sweep and delete any leftover empty temp channels on startup"""
+        await self.bot.wait_until_ready()
+        print("[VoiceClaw] Performing startup sweep of empty temporary channels...")
+        for guild in self.bot.guilds:
+            try:
+                guild_cfg = await self.get_guild_config(guild.id)
+                if not guild_cfg: continue
+                category_id = guild_cfg[3]
+                master_id = guild_cfg[2]
+                cat = guild.get_channel(category_id)
+                if cat and isinstance(cat, discord.CategoryChannel):
+                    for chan in cat.voice_channels:
+                        if chan.id != master_id and len(chan.members) == 0:
+                            owner = await self.get_channel_owner(chan.id)
+                            if owner:
+                                try:
+                                    await chan.delete(reason="VoiceClaw: Startup empty room cleanup")
+                                    print(f"[VoiceClaw] Cleaned empty room {chan.name} ({chan.id}) on startup")
+                                except Exception:
+                                    pass
+                                await self.delete_temp_channel_record(chan.id)
+            except Exception as e:
+                print(f"[VoiceClaw] Startup sweep error: {e}")
 
     # --- Asynchronous Database Utilities ---
     async def init_db(self):
@@ -1304,6 +1354,37 @@ class voice(commands.Cog):
 
                 self.cooldowns[member.id] = now
 
+                # If this member ALREADY has an active voice room, move them back to it
+                existing_chan_id = await self.get_owner_channel(member.id)
+                if existing_chan_id:
+                    existing_chan = guild.get_channel(existing_chan_id)
+                    if existing_chan and isinstance(existing_chan, discord.VoiceChannel):
+                        try:
+                            await member.move_to(existing_chan)
+                            print(f"[VoiceClaw] Moved {member.display_name} back to existing room {existing_chan.name}")
+                            return
+                        except Exception:
+                            pass
+                    else:
+                        await self.delete_temp_channel_record(existing_chan_id)
+
+                # Sweep any empty temporary channels in category before creating a new one
+                category = guild.get_channel(category_id)
+                if isinstance(category, discord.CategoryChannel):
+                    for c in category.voice_channels:
+                        if c.id != master_channel_id and len(c.members) == 0:
+                            is_temp = await self.get_channel_owner(c.id)
+                            if is_temp:
+                                try:
+                                    await c.delete(reason="VoiceClaw: Auto-cleanup empty temp room")
+                                    print(f"[VoiceClaw] Cleaned empty channel {c.name} ({c.id})")
+                                except Exception:
+                                    pass
+                                await self.delete_temp_channel_record(c.id)
+                                self.knock_settings.pop(c.id, None)
+                else:
+                    category = None
+
                 user_pref = await self.get_user_setting(member.id)
                 guild_pref = await self.get_guild_setting(guild.id)
 
@@ -1317,10 +1398,6 @@ class voice(commands.Cog):
                 if user_pref:
                     if user_pref[0]: chan_name = user_pref[0]
                     if user_pref[1] is not None: chan_limit = user_pref[1]
-
-                category = guild.get_channel(category_id)
-                if not isinstance(category, discord.CategoryChannel):
-                    category = None
 
                 print(f"[VoiceClaw] Creating temporary room '{chan_name}' for {member.display_name}...")
                 temp_channel = await guild.create_voice_channel(
