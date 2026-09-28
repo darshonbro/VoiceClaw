@@ -131,8 +131,85 @@ class SetupCustomModal(discord.ui.Modal, title="Custom Voice Setup"):
 
 
 # ==========================================
-# Discord UI Components v2 - Setup LayoutView
+# Discord UI Components v2 - Setup Select & LayoutView
 # ==========================================
+
+class SetupSelect(discord.ui.Select):
+    def __init__(self, cog, author_id: int):
+        options = [
+            discord.SelectOption(
+                label="✦  Quick Setup",
+                value="quick",
+                description="Automatically creates 'Voice Channels' category & join channel"
+            ),
+            discord.SelectOption(
+                label="◈  Custom Setup",
+                value="custom",
+                description="Configure custom category and channel names"
+            ),
+            discord.SelectOption(
+                label="✕  Cancel Setup",
+                value="cancel",
+                description="Abort and cancel this setup configuration"
+            )
+        ]
+        super().__init__(
+            placeholder="Select a setup configuration...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id="vc_setup_dropdown"
+        )
+        self.cog = cog
+        self.author_id = author_id
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.author_id and not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message("✕ Only the administrator who invoked setup can use these controls.", ephemeral=True)
+
+        selected = self.values[0]
+        if selected == "quick":
+            await interaction.response.defer()
+            guild = interaction.guild
+            try:
+                new_cat = await guild.create_category("Voice Channels")
+                new_chan = await guild.create_voice_channel("＋ Join to Create", category=new_cat)
+
+                async with aiosqlite.connect(DB_PATH) as db:
+                    await db.execute("DELETE FROM guild WHERE guildID = ?", (guild.id,))
+                    await db.execute('''
+                        INSERT INTO guild (guildID, ownerID, voiceChannelID, voiceCategoryID)
+                        VALUES (?, ?, ?, ?)
+                    ''', (guild.id, interaction.user.id, new_chan.id, new_cat.id))
+                    await db.commit()
+
+                success_view = discord.ui.LayoutView()
+                container = discord.ui.Container(
+                    discord.ui.TextDisplay(
+                        f"### ✦ Setup Complete\n"
+                        f"• **Category:** `{new_cat.name}`\n"
+                        f"• **Root Channel:** {new_chan.mention}\n\n"
+                        f"Join {new_chan.mention} to start your automated private room."
+                    ),
+                    accent_color=None
+                )
+                success_view.add_item(container)
+                await interaction.edit_original_response(view=success_view)
+            except Exception as e:
+                await interaction.followup.send(f"✕ Error creating channels: {e}", ephemeral=True)
+
+        elif selected == "custom":
+            await interaction.response.send_modal(SetupCustomModal(self.cog))
+
+        elif selected == "cancel":
+            cancel_view = discord.ui.LayoutView()
+            container = discord.ui.Container(
+                discord.ui.TextDisplay("### ✕ Setup Cancelled\nVoiceClaw setup has been cancelled."),
+                accent_color=None
+            )
+            cancel_view.add_item(container)
+            await interaction.response.edit_message(view=cancel_view)
+
 
 class SetupLayoutView(discord.ui.LayoutView):
     def __init__(self, cog, author_id: int):
@@ -151,16 +228,9 @@ class SetupLayoutView(discord.ui.LayoutView):
         )
         self.add_item(container)
 
-        # Clean Custom Aesthetic Icon Buttons (No default emojis)
-        btn_quick = discord.ui.Button(label="✦  Quick Setup", style=discord.ButtonStyle.success, custom_id="vc_setup_quick")
-        btn_custom = discord.ui.Button(label="◈  Custom Setup", style=discord.ButtonStyle.primary, custom_id="vc_setup_custom")
-        btn_cancel = discord.ui.Button(label="✕  Cancel", style=discord.ButtonStyle.secondary, custom_id="vc_setup_cancel")
-
-        btn_quick.callback = self.quick_setup_callback
-        btn_custom.callback = self.custom_setup_callback
-        btn_cancel.callback = self.cancel_callback
-
-        action_row = discord.ui.ActionRow(btn_quick, btn_custom, btn_cancel)
+        # Dropdown Select Menu instead of buttons
+        setup_select = SetupSelect(cog, author_id)
+        action_row = discord.ui.ActionRow(setup_select)
         self.add_item(action_row)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -168,48 +238,6 @@ class SetupLayoutView(discord.ui.LayoutView):
             await interaction.response.send_message("✕ Only the administrator who invoked setup can use these controls.", ephemeral=True)
             return False
         return True
-
-    async def quick_setup_callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-        guild = interaction.guild
-        try:
-            new_cat = await guild.create_category("Voice Channels")
-            new_chan = await guild.create_voice_channel("＋ Join to Create", category=new_cat)
-
-            async with aiosqlite.connect(DB_PATH) as db:
-                await db.execute("DELETE FROM guild WHERE guildID = ?", (guild.id,))
-                await db.execute('''
-                    INSERT INTO guild (guildID, ownerID, voiceChannelID, voiceCategoryID)
-                    VALUES (?, ?, ?, ?)
-                ''', (guild.id, interaction.user.id, new_chan.id, new_cat.id))
-                await db.commit()
-
-            success_view = discord.ui.LayoutView()
-            container = discord.ui.Container(
-                discord.ui.TextDisplay(
-                    f"### ✦ Setup Complete\n"
-                    f"• **Category:** `{new_cat.name}`\n"
-                    f"• **Root Channel:** {new_chan.mention}\n\n"
-                    f"Join {new_chan.mention} to start your automated private room."
-                ),
-                accent_color=None
-            )
-            success_view.add_item(container)
-            await interaction.edit_original_response(view=success_view)
-        except Exception as e:
-            await interaction.followup.send(f"✕ Error creating channels: {e}", ephemeral=True)
-
-    async def custom_setup_callback(self, interaction: discord.Interaction):
-        await interaction.response.send_modal(SetupCustomModal(self.cog))
-
-    async def cancel_callback(self, interaction: discord.Interaction):
-        cancel_view = discord.ui.LayoutView()
-        container = discord.ui.Container(
-            discord.ui.TextDisplay("### ✕ Setup Cancelled\nVoiceClaw setup has been cancelled."),
-            accent_color=None
-        )
-        cancel_view.add_item(container)
-        await interaction.response.edit_message(view=cancel_view)
 
 
 # ==========================================
