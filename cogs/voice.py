@@ -511,23 +511,266 @@ class TransferOwnerView(discord.ui.View):
 
 
 # ==========================================
+# Discord UI Components v2 - Advanced Access & Moderation Views
+# ==========================================
+
+class TrustUserSelect(discord.ui.UserSelect):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(placeholder="Select a member to grant VIP Trust...", min_values=1, max_values=1)
+        self.channel = channel
+
+    async def callback(self, interaction: discord.Interaction):
+        member = self.values[0]
+        if isinstance(member, discord.User):
+            member = interaction.guild.get_member(member.id)
+        if not member:
+            return await interaction.response.send_message("✕ Member not found.", ephemeral=True)
+
+        await self.channel.set_permissions(member, connect=True, view_channel=True, speak=True, stream=True)
+        await interaction.response.send_message(
+            f"👤+ **{member.mention}** is now a **Trusted Member**! They can bypass channel lock and join freely.",
+            ephemeral=True
+        )
+
+
+class TrustSelectView(discord.ui.View):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(timeout=60)
+        self.add_item(TrustUserSelect(channel))
+
+
+class UntrustUserSelect(discord.ui.UserSelect):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(placeholder="Select a member to remove Trust...", min_values=1, max_values=1)
+        self.channel = channel
+
+    async def callback(self, interaction: discord.Interaction):
+        member = self.values[0]
+        if isinstance(member, discord.User):
+            member = interaction.guild.get_member(member.id)
+        if not member:
+            return await interaction.response.send_message("✕ Member not found.", ephemeral=True)
+
+        await self.channel.set_permissions(member, overwrite=None)
+        await interaction.response.send_message(
+            f"👤- Removed trusted status from **{member.mention}**.",
+            ephemeral=True
+        )
+
+
+class UntrustSelectView(discord.ui.View):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(timeout=60)
+        self.add_item(UntrustUserSelect(channel))
+
+
+class BlockUserSelect(discord.ui.UserSelect):
+    def __init__(self, cog, channel: discord.VoiceChannel):
+        super().__init__(placeholder="Select a member to block & ban...", min_values=1, max_values=1)
+        self.cog = cog
+        self.channel = channel
+
+    async def callback(self, interaction: discord.Interaction):
+        member = self.values[0]
+        if isinstance(member, discord.User):
+            member = interaction.guild.get_member(member.id)
+        if not member:
+            return await interaction.response.send_message("✕ Member not found.", ephemeral=True)
+
+        if member in self.channel.members:
+            try:
+                await member.move_to(None)
+            except Exception:
+                pass
+
+        await self.channel.set_permissions(member, connect=False, view_channel=False)
+        await interaction.response.send_message(
+            f"🚫 **{member.mention}** has been **blocked** and banned from this room.",
+            ephemeral=True
+        )
+
+
+class BlockSelectView(discord.ui.View):
+    def __init__(self, cog, channel: discord.VoiceChannel):
+        super().__init__(timeout=60)
+        self.add_item(BlockUserSelect(cog, channel))
+
+
+class UnblockUserSelect(discord.ui.UserSelect):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(placeholder="Select a member to unblock...", min_values=1, max_values=1)
+        self.channel = channel
+
+    async def callback(self, interaction: discord.Interaction):
+        member = self.values[0]
+        if isinstance(member, discord.User):
+            member = interaction.guild.get_member(member.id)
+        if not member:
+            return await interaction.response.send_message("✕ Member not found.", ephemeral=True)
+
+        await self.channel.set_permissions(member, overwrite=None)
+        await interaction.response.send_message(
+            f"✓ **{member.mention}** has been **unblocked**.",
+            ephemeral=True
+        )
+
+
+class UnblockSelectView(discord.ui.View):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(timeout=60)
+        self.add_item(UnblockUserSelect(channel))
+
+
+class KickUserSelect(discord.ui.UserSelect):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(placeholder="Select a member to disconnect (kick)...", min_values=1, max_values=1)
+        self.channel = channel
+
+    async def callback(self, interaction: discord.Interaction):
+        member = self.values[0]
+        if isinstance(member, discord.User):
+            member = interaction.guild.get_member(member.id)
+        if not member:
+            return await interaction.response.send_message("✕ Member not found.", ephemeral=True)
+
+        if member not in self.channel.members:
+            return await interaction.response.send_message("✕ That member is not currently inside this room!", ephemeral=True)
+
+        try:
+            await member.move_to(None)
+            await interaction.response.send_message(f"⎋ Kicked **{member.mention}** from the voice channel.", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"✕ Could not kick member: {e}", ephemeral=True)
+
+
+class KickSelectView(discord.ui.View):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(timeout=60)
+        self.add_item(KickUserSelect(channel))
+
+
+class InviteUserSelect(discord.ui.UserSelect):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(placeholder="Select a friend to invite...", min_values=1, max_values=1)
+        self.channel = channel
+
+    async def callback(self, interaction: discord.Interaction):
+        member = self.values[0]
+        if isinstance(member, discord.User):
+            member = interaction.guild.get_member(member.id)
+        if not member:
+            return await interaction.response.send_message("✕ Member not found.", ephemeral=True)
+
+        try:
+            invite = await self.channel.create_invite(max_age=3600, max_uses=1, unique=True, reason=f"Invited by {interaction.user.name}")
+            await self.channel.set_permissions(member, connect=True, view_channel=True)
+
+            dm_sent = True
+            try:
+                await member.send(
+                    f"✉ **{interaction.user.display_name}** invited you to join their voice room **{self.channel.name}** in **{interaction.guild.name}**!\n🔗 {invite.url}"
+                )
+            except Exception:
+                dm_sent = False
+
+            if dm_sent:
+                await interaction.response.send_message(f"✉ Direct invitation sent to **{member.mention}**!", ephemeral=True)
+            else:
+                await interaction.response.send_message(
+                    f"✉ Invited **{member.mention}** (their DMs are closed). Share this direct link with them: {invite.url}",
+                    ephemeral=True
+                )
+        except Exception as e:
+            await interaction.response.send_message(f"✕ Failed to create invite: {e}", ephemeral=True)
+
+
+class InviteSelectView(discord.ui.View):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(timeout=60)
+        self.add_item(InviteUserSelect(channel))
+
+
+class MuteUserSelect(discord.ui.UserSelect):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(placeholder="Select a member to server mute...", min_values=1, max_values=1)
+        self.channel = channel
+
+    async def callback(self, interaction: discord.Interaction):
+        member = self.values[0]
+        if isinstance(member, discord.User):
+            member = interaction.guild.get_member(member.id)
+        if not member:
+            return await interaction.response.send_message("✕ Member not found.", ephemeral=True)
+
+        if member not in self.channel.members:
+            return await interaction.response.send_message("✕ That member is not currently inside this voice room!", ephemeral=True)
+
+        try:
+            await member.edit(mute=True, reason=f"Muted by room host {interaction.user.name}")
+            await interaction.response.send_message(f"🔇 Muted **{member.mention}** in this room.", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"✕ Could not mute member: {e}", ephemeral=True)
+
+
+class MuteSelectView(discord.ui.View):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(timeout=60)
+        self.add_item(MuteUserSelect(channel))
+
+
+class UnmuteUserSelect(discord.ui.UserSelect):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(placeholder="Select a member to unmute...", min_values=1, max_values=1)
+        self.channel = channel
+
+    async def callback(self, interaction: discord.Interaction):
+        member = self.values[0]
+        if isinstance(member, discord.User):
+            member = interaction.guild.get_member(member.id)
+        if not member:
+            return await interaction.response.send_message("✕ Member not found.", ephemeral=True)
+
+        if member not in self.channel.members:
+            return await interaction.response.send_message("✕ That member is not currently inside this voice room!", ephemeral=True)
+
+        try:
+            await member.edit(mute=False, reason=f"Unmuted by room host {interaction.user.name}")
+            await interaction.response.send_message(f"🔊 Unmuted **{member.mention}** in this room.", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"✕ Could not unmute member: {e}", ephemeral=True)
+
+
+class UnmuteSelectView(discord.ui.View):
+    def __init__(self, channel: discord.VoiceChannel):
+        super().__init__(timeout=60)
+        self.add_item(UnmuteUserSelect(channel))
+
+
+# ==========================================
 # Discord UI Components v2 - Voice Room LayoutView
 # ==========================================
 
 class VoiceControlSelect(discord.ui.Select):
     def __init__(self, cog):
         options = [
-            discord.SelectOption(label="⚿  Lock Channel", value="lock", description="Restrict connections to your room"),
-            discord.SelectOption(label="✧  Unlock Channel", value="unlock", description="Open connection to everyone"),
+            discord.SelectOption(label="✎  Rename Channel", value="rename", description="Change channel name via popup modal"),
+            discord.SelectOption(label="⌗  Set Member Limit", value="limit", description="Set user capacity limit via modal"),
+            discord.SelectOption(label="🔒  Lock Channel", value="lock", description="Restrict connections to your room"),
+            discord.SelectOption(label="🔓  Unlock Channel", value="unlock", description="Open connection to everyone"),
             discord.SelectOption(label="◈  Ghost Channel", value="ghost", description="Hide room from server sidebar"),
             discord.SelectOption(label="◇  Reveal Channel", value="reveal", description="Make room visible on sidebar"),
             discord.SelectOption(label="⌬  Toggle Knock Mode", value="knock", description="Allow or disable doorbell requests"),
-            discord.SelectOption(label="✎  Rename Channel", value="rename", description="Change channel name via popup modal"),
-            discord.SelectOption(label="⌗  Set Member Limit", value="limit", description="Set user capacity limit via modal"),
-            discord.SelectOption(label="♔  Claim Ownership", value="claim", description="Claim channel if host left the room"),
+            discord.SelectOption(label="👤+ Trust Member", value="trust", description="Grant bypass access to a member"),
+            discord.SelectOption(label="👤- Untrust Member", value="untrust", description="Remove trusted status from a member"),
+            discord.SelectOption(label="✉  Invite Member", value="invite", description="Send direct invite link to a member"),
+            discord.SelectOption(label="⎋  Kick Member", value="kick", description="Disconnect member from your room"),
+            discord.SelectOption(label="🔇  Mute Member", value="mute", description="Server mute member in your room"),
+            discord.SelectOption(label="🔊  Unmute Member", value="unmute", description="Unmute member in your room"),
+            discord.SelectOption(label="🚫  Block Member", value="block", description="Ban and disconnect member from room"),
+            discord.SelectOption(label="✓  Unblock Member", value="unblock", description="Unban member from room"),
+            discord.SelectOption(label="👑  Claim Ownership", value="claim", description="Claim channel if host left the room"),
             discord.SelectOption(label="⇄  Transfer Ownership", value="transfer", description="Transfer host to another member"),
-            discord.SelectOption(label="＋  Permit Member", value="permit", description="Grant access to a specific member"),
-            discord.SelectOption(label="✕  Reject Member", value="reject", description="Disconnect and banish a member"),
+            discord.SelectOption(label="🗑  Delete Channel", value="delete", description="Instantly delete this voice room"),
             discord.SelectOption(label="ℹ  Channel Info", value="info", description="View current room host, settings & stats"),
         ]
         super().__init__(
@@ -557,11 +800,18 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         clean_name = " ".join(member_name.split()) if member_name else "Member"
 
         if member_name:
+            items = []
+            if has_banner:
+                gallery = discord.ui.MediaGallery(discord.MediaGalleryItem("attachment://banner.jpg"))
+                items.append(gallery)
+
             section = discord.ui.Section(
-                discord.ui.TextDisplay(f"### VoiceClaw • {clean_name}'s Room\nSelect an action or use quick controls below."),
+                discord.ui.TextDisplay(f"### VoiceClaw • {clean_name}'s Room\nSelect an action from the menu or tap the quick controls below."),
                 accessory=discord.ui.Thumbnail(member_avatar_url or "https://cdn.discordapp.com/embed/avatars/0.png")
             )
-            container = discord.ui.Container(section, select_row, accent_color=None)
+            items.append(section)
+            items.append(select_row)
+            container = discord.ui.Container(*items, accent_color=None)
         else:
             items = []
             if has_banner:
@@ -578,79 +828,93 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
 
         self.add_item(container)
 
-        # Row 0: Privacy Controls (3 buttons - fits narrow VC text chats perfectly)
-        btn_lock = discord.ui.Button(label="⚿  Lock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_lock")
-        btn_unlock = discord.ui.Button(label="✧  Unlock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_unlock")
-        btn_ghost = discord.ui.Button(label="◈  Ghost", style=discord.ButtonStyle.secondary, custom_id="vc_btn_ghost")
+        # Row 0: Room Config & Privacy (5 buttons)
+        btn_rename = discord.ui.Button(label="✎ Name", style=discord.ButtonStyle.secondary, custom_id="vc_btn_rename")
+        btn_limit = discord.ui.Button(label="⌗ Limit", style=discord.ButtonStyle.secondary, custom_id="vc_btn_limit")
+        btn_lock = discord.ui.Button(label="🔒 Lock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_lock")
+        btn_unlock = discord.ui.Button(label="🔓 Unlock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_unlock")
+        btn_knock = discord.ui.Button(label="⌬ Knock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock_toggle")
 
-        btn_lock.callback = self.lock_callback
-        btn_unlock.callback = self.unlock_callback
-        btn_ghost.callback = self.ghost_callback
-
-        row0 = discord.ui.ActionRow(btn_lock, btn_unlock, btn_ghost)
-        self.add_item(row0)
-
-        # Row 1: Appearance & Capacity (3 buttons)
-        btn_reveal = discord.ui.Button(label="◇  Reveal", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reveal")
-        btn_rename = discord.ui.Button(label="✎  Rename", style=discord.ButtonStyle.secondary, custom_id="vc_btn_rename")
-        btn_limit = discord.ui.Button(label="⌗  Limit", style=discord.ButtonStyle.secondary, custom_id="vc_btn_limit")
-
-        btn_reveal.callback = self.reveal_callback
         btn_rename.callback = self.rename_callback
         btn_limit.callback = self.limit_callback
+        btn_lock.callback = self.lock_callback
+        btn_unlock.callback = self.unlock_callback
+        btn_knock.callback = self.knock_toggle_callback
 
-        row1 = discord.ui.ActionRow(btn_reveal, btn_rename, btn_limit)
+        row0 = discord.ui.ActionRow(btn_rename, btn_limit, btn_lock, btn_unlock, btn_knock)
+        self.add_item(row0)
+
+        # Row 1: Access & Invites (5 buttons)
+        btn_trust = discord.ui.Button(label="👤+ Trust", style=discord.ButtonStyle.secondary, custom_id="vc_btn_trust")
+        btn_untrust = discord.ui.Button(label="👤- Untrust", style=discord.ButtonStyle.secondary, custom_id="vc_btn_untrust")
+        btn_invite = discord.ui.Button(label="✉ Invite", style=discord.ButtonStyle.secondary, custom_id="vc_btn_invite")
+        btn_kick = discord.ui.Button(label="⎋ Kick", style=discord.ButtonStyle.secondary, custom_id="vc_btn_kick")
+        btn_ghost = discord.ui.Button(label="◈ Ghost", style=discord.ButtonStyle.secondary, custom_id="vc_btn_ghost")
+
+        btn_trust.callback = self.trust_callback
+        btn_untrust.callback = self.untrust_callback
+        btn_invite.callback = self.invite_callback
+        btn_kick.callback = self.kick_callback
+        btn_ghost.callback = self.ghost_callback
+
+        row1 = discord.ui.ActionRow(btn_trust, btn_untrust, btn_invite, btn_kick, btn_ghost)
         self.add_item(row1)
 
-        # Row 2: Ownership & Knocking (3 buttons)
-        btn_claim = discord.ui.Button(label="♔  Claim", style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim")
-        btn_transfer = discord.ui.Button(label="⇄  Transfer", style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
-        btn_knock = discord.ui.Button(label="⌬  Knock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock_toggle")
+        # Row 2: Moderation & Audio (5 buttons)
+        btn_block = discord.ui.Button(label="🚫 Block", style=discord.ButtonStyle.secondary, custom_id="vc_btn_block")
+        btn_unblock = discord.ui.Button(label="✓ Unblock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_unblock")
+        btn_mute = discord.ui.Button(label="🔇 Mute", style=discord.ButtonStyle.secondary, custom_id="vc_btn_mute")
+        btn_unmute = discord.ui.Button(label="🔊 Unmute", style=discord.ButtonStyle.secondary, custom_id="vc_btn_unmute")
+        btn_delete = discord.ui.Button(label="🗑 Delete", style=discord.ButtonStyle.secondary, custom_id="vc_btn_delete")
+
+        btn_block.callback = self.block_callback
+        btn_unblock.callback = self.unblock_callback
+        btn_mute.callback = self.mute_callback
+        btn_unmute.callback = self.unmute_callback
+        btn_delete.callback = self.delete_callback
+
+        row2 = discord.ui.ActionRow(btn_block, btn_unblock, btn_mute, btn_unmute, btn_delete)
+        self.add_item(row2)
+
+        # Row 3: Ownership & Room Stats (4 buttons)
+        btn_claim = discord.ui.Button(label="👑 Claim", style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim")
+        btn_transfer = discord.ui.Button(label="⇄ Transfer", style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
+        btn_reveal = discord.ui.Button(label="◇ Reveal", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reveal")
+        btn_info = discord.ui.Button(label="ℹ Info", style=discord.ButtonStyle.secondary, custom_id="vc_btn_info")
 
         btn_claim.callback = self.claim_callback
         btn_transfer.callback = self.transfer_callback
-        btn_knock.callback = self.knock_toggle_callback
-
-        row2 = discord.ui.ActionRow(btn_claim, btn_transfer, btn_knock)
-        self.add_item(row2)
-
-        # Row 3: Access & Information (3 buttons)
-        btn_permit = discord.ui.Button(label="＋  Permit", style=discord.ButtonStyle.secondary, custom_id="vc_btn_permit")
-        btn_reject = discord.ui.Button(label="✕  Reject", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reject")
-        btn_info = discord.ui.Button(label="ℹ  Info", style=discord.ButtonStyle.secondary, custom_id="vc_btn_info")
-
-        btn_permit.callback = self.permit_callback
-        btn_reject.callback = self.reject_callback
+        btn_reveal.callback = self.reveal_callback
         btn_info.callback = self.info_callback
 
-        row3 = discord.ui.ActionRow(btn_permit, btn_reject, btn_info)
+        row3 = discord.ui.ActionRow(btn_claim, btn_transfer, btn_reveal, btn_info)
         self.add_item(row3)
 
     async def dispatch_action(self, interaction: discord.Interaction, action: str):
-        if action == "lock":
-            await self.lock_callback(interaction)
-        elif action == "unlock":
-            await self.unlock_callback(interaction)
-        elif action == "ghost":
-            await self.ghost_callback(interaction)
-        elif action == "reveal":
-            await self.reveal_callback(interaction)
-        elif action == "knock":
-            await self.knock_toggle_callback(interaction)
-        elif action == "rename":
-            await self.rename_callback(interaction)
-        elif action == "limit":
-            await self.limit_callback(interaction)
-        elif action == "claim":
-            await self.claim_callback(interaction)
-        elif action == "transfer":
-            await self.transfer_callback(interaction)
-        elif action == "permit":
-            await self.permit_callback(interaction)
-        elif action == "reject":
-            await self.reject_callback(interaction)
-        elif action == "info":
-            await self.info_callback(interaction)
+        mapping = {
+            "lock": self.lock_callback,
+            "unlock": self.unlock_callback,
+            "ghost": self.ghost_callback,
+            "reveal": self.reveal_callback,
+            "knock": self.knock_toggle_callback,
+            "rename": self.rename_callback,
+            "limit": self.limit_callback,
+            "trust": self.trust_callback,
+            "untrust": self.untrust_callback,
+            "invite": self.invite_callback,
+            "kick": self.kick_callback,
+            "mute": self.mute_callback,
+            "unmute": self.unmute_callback,
+            "block": self.block_callback,
+            "unblock": self.unblock_callback,
+            "claim": self.claim_callback,
+            "transfer": self.transfer_callback,
+            "delete": self.delete_callback,
+            "info": self.info_callback,
+        }
+        handler = mapping.get(action)
+        if handler:
+            await handler(interaction)
 
     async def _get_voice_context(self, interaction: discord.Interaction):
         user = interaction.user
@@ -674,7 +938,7 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can lock this channel.", ephemeral=True)
 
         await channel.set_permissions(interaction.guild.default_role, connect=False)
-        await interaction.response.send_message("⚿ **Channel locked!** Unauthorized members cannot connect (they can still knock).", ephemeral=True)
+        await interaction.response.send_message("🔒 **Channel locked!** Unauthorized members cannot connect (they can still knock).", ephemeral=True)
 
     async def unlock_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
@@ -683,7 +947,7 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can unlock this channel.", ephemeral=True)
 
         await channel.set_permissions(interaction.guild.default_role, connect=True)
-        await interaction.response.send_message("✧ **Channel unlocked!** Public connection allowed.", ephemeral=True)
+        await interaction.response.send_message("🔓 **Channel unlocked!** Public connection allowed.", ephemeral=True)
 
     async def ghost_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
@@ -692,7 +956,7 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can ghost this channel.", ephemeral=True)
 
         await channel.set_permissions(interaction.guild.default_role, view_channel=False, connect=False)
-        await interaction.response.send_message("◈ **Ghost Mode Activated!** The room is completely invisible to @everyone.", ephemeral=True)
+        await interaction.response.send_message("◈ **Ghost Mode Activated!** The room is hidden from @everyone.", ephemeral=True)
 
     async def reveal_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
@@ -701,13 +965,13 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can reveal this channel.", ephemeral=True)
 
         await channel.set_permissions(interaction.guild.default_role, view_channel=True)
-        await interaction.response.send_message("◇ **Channel revealed!** Visible on the channel list again.", ephemeral=True)
+        await interaction.response.send_message("◇ **Channel revealed!** Visible on the sidebar again.", ephemeral=True)
 
     async def knock_toggle_callback(self, interaction: discord.Interaction):
         user = interaction.user
         voice_state = user.voice
 
-        # 1. If user is currently host of an active channel: manage their room's doorbell
+        # If user is host of an active channel: manage room's doorbell
         if voice_state and voice_state.channel:
             owner_id = await self.cog.get_channel_owner(voice_state.channel.id)
             if owner_id == user.id:
@@ -722,7 +986,7 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
                     ephemeral=True
                 )
 
-        # 2. If user is outside (or not a host): allow them to knock on an active locked channel
+        # Outside user: allow knocking on an active locked channel
         async with aiosqlite.connect(DB_PATH) as db:
             async with db.execute("SELECT voiceID, userID FROM voiceChannel") as cursor:
                 rows = await cursor.fetchall()
@@ -763,6 +1027,70 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
 
         await interaction.response.send_modal(ChannelLimitModal(self.cog, channel))
 
+    async def trust_callback(self, interaction: discord.Interaction):
+        channel, owner_id = await self._get_voice_context(interaction)
+        if not channel: return
+        if interaction.user.id != owner_id:
+            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can manage trusted members.", ephemeral=True)
+
+        await interaction.response.send_message("Select a member to grant VIP Trust (bypass lock & ghost):", view=TrustSelectView(channel), ephemeral=True)
+
+    async def untrust_callback(self, interaction: discord.Interaction):
+        channel, owner_id = await self._get_voice_context(interaction)
+        if not channel: return
+        if interaction.user.id != owner_id:
+            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can manage trusted members.", ephemeral=True)
+
+        await interaction.response.send_message("Select a member to remove Trust status from:", view=UntrustSelectView(channel), ephemeral=True)
+
+    async def invite_callback(self, interaction: discord.Interaction):
+        channel, owner_id = await self._get_voice_context(interaction)
+        if not channel: return
+        if interaction.user.id != owner_id:
+            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can send invites.", ephemeral=True)
+
+        await interaction.response.send_message("Select a member to invite to this room:", view=InviteSelectView(channel), ephemeral=True)
+
+    async def kick_callback(self, interaction: discord.Interaction):
+        channel, owner_id = await self._get_voice_context(interaction)
+        if not channel: return
+        if interaction.user.id != owner_id:
+            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can kick members.", ephemeral=True)
+
+        await interaction.response.send_message("Select a member inside this room to kick:", view=KickSelectView(channel), ephemeral=True)
+
+    async def mute_callback(self, interaction: discord.Interaction):
+        channel, owner_id = await self._get_voice_context(interaction)
+        if not channel: return
+        if interaction.user.id != owner_id:
+            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can mute members.", ephemeral=True)
+
+        await interaction.response.send_message("Select a member inside this room to server mute:", view=MuteSelectView(channel), ephemeral=True)
+
+    async def unmute_callback(self, interaction: discord.Interaction):
+        channel, owner_id = await self._get_voice_context(interaction)
+        if not channel: return
+        if interaction.user.id != owner_id:
+            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can unmute members.", ephemeral=True)
+
+        await interaction.response.send_message("Select a member inside this room to unmute:", view=UnmuteSelectView(channel), ephemeral=True)
+
+    async def block_callback(self, interaction: discord.Interaction):
+        channel, owner_id = await self._get_voice_context(interaction)
+        if not channel: return
+        if interaction.user.id != owner_id:
+            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can block members.", ephemeral=True)
+
+        await interaction.response.send_message("Select a member to block & ban from this room:", view=BlockSelectView(self.cog, channel), ephemeral=True)
+
+    async def unblock_callback(self, interaction: discord.Interaction):
+        channel, owner_id = await self._get_voice_context(interaction)
+        if not channel: return
+        if interaction.user.id != owner_id:
+            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can unblock members.", ephemeral=True)
+
+        await interaction.response.send_message("Select a member to unblock:", view=UnblockSelectView(channel), ephemeral=True)
+
     async def claim_callback(self, interaction: discord.Interaction):
         user = interaction.user
         voice_state = user.voice
@@ -783,7 +1111,7 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
 
         await self.cog.set_channel_owner(channel.id, user.id)
         await channel.set_permissions(user, connect=True, view_channel=True, read_messages=True, manage_channels=True)
-        await interaction.response.send_message(f"♔ **Congratulations!** You are now the new owner of {channel.name}.", ephemeral=False)
+        await interaction.response.send_message(f"👑 **Congratulations!** You are now the new owner of {channel.name}.", ephemeral=False)
 
     async def transfer_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
@@ -793,21 +1121,19 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
 
         await interaction.response.send_message("Select a room member to pass channel ownership to:", view=TransferOwnerView(self.cog, channel), ephemeral=True)
 
-    async def permit_callback(self, interaction: discord.Interaction):
+    async def delete_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
         if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can permit members.", ephemeral=True)
+            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can delete this room.", ephemeral=True)
 
-        await interaction.response.send_message("Select a member to grant access to your channel:", view=PermitSelectView(channel), ephemeral=True)
-
-    async def reject_callback(self, interaction: discord.Interaction):
-        channel, owner_id = await self._get_voice_context(interaction)
-        if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can reject members.", ephemeral=True)
-
-        await interaction.response.send_message("Select a member to disconnect and deny access:", view=RejectSelectView(self.cog, channel), ephemeral=True)
+        await interaction.response.send_message("🗑 **Deleting voice room...**", ephemeral=True)
+        await self.cog.delete_temp_channel_record(channel.id)
+        self.cog.knock_settings.pop(channel.id, None)
+        try:
+            await channel.delete(reason=f"Deleted by channel host {interaction.user.name}")
+        except Exception:
+            pass
 
     async def info_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
@@ -1003,9 +1329,14 @@ class voice(commands.Cog):
                 self.knock_settings[temp_channel.id] = True
                 print(f"[VoiceClaw] Moved {member.display_name} to {temp_channel.name} ({temp_channel.id})")
 
-                # Send Minimalist Discord Components v2 LayoutView (No blue line, clean icons)
-                ctrl_view = VoiceControlLayoutView(self, member.display_avatar.url, member.display_name)
-                await temp_channel.send(view=ctrl_view)
+                # Send Minimalist Discord Components v2 LayoutView (No blue line, clean icons, with Icon Guide)
+                has_banner = os.path.exists(BANNER_PATH)
+                ctrl_view = VoiceControlLayoutView(self, member.display_avatar.url, member.display_name, has_banner=has_banner)
+                if has_banner:
+                    file = discord.File(BANNER_PATH, filename="banner.jpg")
+                    await temp_channel.send(file=file, view=ctrl_view)
+                else:
+                    await temp_channel.send(view=ctrl_view)
 
             # 2. Member Left a Temporary Channel
             if before.channel and before.channel.id != master_channel_id:
