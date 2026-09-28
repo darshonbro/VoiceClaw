@@ -221,17 +221,16 @@ class SetupLayoutView(discord.ui.LayoutView):
         gallery_item = discord.MediaGalleryItem("attachment://banner.jpg")
         gallery = discord.ui.MediaGallery(gallery_item)
 
+        # Dropdown Select Menu placed directly INSIDE the Components v2 Container under the image
+        setup_select = SetupSelect(cog, author_id)
+        action_row = discord.ui.ActionRow(setup_select)
+
         container = discord.ui.Container(
             gallery,
-            discord.ui.TextDisplay("### VoiceClaw • Dynamic Voice Engine\nConfigure your server's automated temporary voice channels."),
+            action_row,
             accent_color=None
         )
         self.add_item(container)
-
-        # Dropdown Select Menu instead of buttons
-        setup_select = SetupSelect(cog, author_id)
-        action_row = discord.ui.ActionRow(setup_select)
-        self.add_item(action_row)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id and not interaction.user.guild_permissions.administrator:
