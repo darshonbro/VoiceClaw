@@ -438,20 +438,52 @@ class TransferOwnerView(discord.ui.View):
 # Discord UI Components v2 - Voice Room LayoutView
 # ==========================================
 
+class VoiceControlSelect(discord.ui.Select):
+    def __init__(self, cog):
+        options = [
+            discord.SelectOption(label="⚿  Lock Channel", value="lock", description="Restrict connections to your room"),
+            discord.SelectOption(label="✧  Unlock Channel", value="unlock", description="Open connection to everyone"),
+            discord.SelectOption(label="◈  Ghost Channel", value="ghost", description="Hide room from server sidebar"),
+            discord.SelectOption(label="◇  Reveal Channel", value="reveal", description="Make room visible on sidebar"),
+            discord.SelectOption(label="⌬  Toggle Knock Mode", value="knock", description="Allow or disable doorbell requests"),
+            discord.SelectOption(label="✎  Rename Channel", value="rename", description="Change channel name via popup modal"),
+            discord.SelectOption(label="⌗  Set Member Limit", value="limit", description="Set user capacity limit via modal"),
+            discord.SelectOption(label="♔  Claim Ownership", value="claim", description="Claim channel if host left the room"),
+            discord.SelectOption(label="⇄  Transfer Ownership", value="transfer", description="Transfer host to another member"),
+            discord.SelectOption(label="＋  Permit Member", value="permit", description="Grant access to a specific member"),
+            discord.SelectOption(label="✕  Reject Member", value="reject", description="Disconnect and banish a member"),
+            discord.SelectOption(label="ℹ  Channel Info", value="info", description="View current room host, settings & stats"),
+        ]
+        super().__init__(
+            placeholder="Choose an action to control your room...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id="vc_control_dropdown"
+        )
+        self.cog = cog
+
+    async def callback(self, interaction: discord.Interaction):
+        val = self.values[0]
+        if hasattr(self.view, "dispatch_action"):
+            await self.view.dispatch_action(interaction, val)
+
+
 class VoiceControlLayoutView(discord.ui.LayoutView):
     def __init__(self, cog, member_avatar_url: str = None, member_name: str = None, has_banner: bool = False):
         super().__init__(timeout=None)
         self.cog = cog
 
-        # Pure Components v2 Minimalist Card (No blue border!)
+        # Pure Components v2 Minimalist Card with Embedded Dropdown
+        ctrl_select = VoiceControlSelect(self.cog)
+        select_row = discord.ui.ActionRow(ctrl_select)
+
         if member_name:
-            container = discord.ui.Container(
-                discord.ui.Section(
-                    discord.ui.TextDisplay(f"### VoiceClaw • {member_name}'s Room\nConfigure your channel privacy, limits and access below."),
-                    accessory=discord.ui.Thumbnail(member_avatar_url or "https://cdn.discordapp.com/embed/avatars/0.png")
-                ),
-                accent_color=None
+            section = discord.ui.Section(
+                discord.ui.TextDisplay(f"### VoiceClaw • {member_name}'s Room\nSelect an action or use quick controls below."),
+                accessory=discord.ui.Thumbnail(member_avatar_url or "https://cdn.discordapp.com/embed/avatars/0.png")
             )
+            container = discord.ui.Container(section, select_row, accent_color=None)
         else:
             items = []
             if has_banner:
@@ -459,33 +491,21 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
                 items.append(gallery)
 
             text_desc = discord.ui.TextDisplay(
-                "### VoiceClaw Interface\n"
-                "Use the buttons below to manage your temporary voice channel.\n\n"
-                "**Control Buttons:**\n"
-                "• `⚿ Lock` • Lock voice channel (restrict joins)\n"
-                "• `✧ Unlock` • Unlock voice channel (allow joins)\n"
-                "• `◈ Ghost` • Hide channel from server sidebar\n"
-                "• `◇ Reveal` • Reveal channel on server sidebar\n"
-                "• `⌬ Knock` • Toggle doorbell requests for locked room\n"
-                "• `✎ Rename` • Rename your voice channel\n"
-                "• `⌗ Limit` • Set room participant limit\n"
-                "• `♔ Claim` • Claim channel ownership\n"
-                "• `⇄ Transfer` • Transfer room host\n"
-                "• `＋ Permit` • Permit a user to join\n"
-                "• `✕ Reject` • Disconnect & block a user\n"
-                "• `ℹ Info` • View current room status"
+                "### VoiceClaw • Control Center\n"
+                "Select an action or use the quick controls below to manage your room."
             )
             items.append(text_desc)
+            items.append(select_row)
             container = discord.ui.Container(*items, accent_color=None)
 
         self.add_item(container)
 
-        # Row 0: Privacy & Knocking Controls (Aesthetic Custom Glyphs)
-        btn_lock = discord.ui.Button(label="⚿  Lock", style=discord.ButtonStyle.danger, custom_id="vc_btn_lock")
-        btn_unlock = discord.ui.Button(label="✧  Unlock", style=discord.ButtonStyle.success, custom_id="vc_btn_unlock")
+        # Quick Control Buttons: Sleek Dark Monochrome (Zero red/green buttons!)
+        btn_lock = discord.ui.Button(label="⚿  Lock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_lock")
+        btn_unlock = discord.ui.Button(label="✧  Unlock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_unlock")
         btn_ghost = discord.ui.Button(label="◈  Ghost", style=discord.ButtonStyle.secondary, custom_id="vc_btn_ghost")
         btn_reveal = discord.ui.Button(label="◇  Reveal", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reveal")
-        btn_knock = discord.ui.Button(label="⌬  Knock", style=discord.ButtonStyle.primary, custom_id="vc_btn_knock_toggle")
+        btn_knock = discord.ui.Button(label="⌬  Knock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock_toggle")
 
         btn_lock.callback = self.lock_callback
         btn_unlock.callback = self.unlock_callback
@@ -496,31 +516,46 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         row0 = discord.ui.ActionRow(btn_lock, btn_unlock, btn_ghost, btn_reveal, btn_knock)
         self.add_item(row0)
 
-        # Row 1: Customization & Ownership
-        btn_rename = discord.ui.Button(label="✎  Rename", style=discord.ButtonStyle.primary, custom_id="vc_btn_rename")
-        btn_limit = discord.ui.Button(label="⌗  Limit", style=discord.ButtonStyle.primary, custom_id="vc_btn_limit")
-        btn_claim = discord.ui.Button(label="♔  Claim", style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim")
-        btn_transfer = discord.ui.Button(label="⇄  Transfer", style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
+        btn_rename = discord.ui.Button(label="✎  Rename", style=discord.ButtonStyle.secondary, custom_id="vc_btn_rename")
+        btn_limit = discord.ui.Button(label="⌗  Limit", style=discord.ButtonStyle.secondary, custom_id="vc_btn_limit")
+        btn_permit = discord.ui.Button(label="＋  Permit", style=discord.ButtonStyle.secondary, custom_id="vc_btn_permit")
+        btn_reject = discord.ui.Button(label="✕  Reject", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reject")
+        btn_info = discord.ui.Button(label="ℹ  Info", style=discord.ButtonStyle.secondary, custom_id="vc_btn_info")
 
         btn_rename.callback = self.rename_callback
         btn_limit.callback = self.limit_callback
-        btn_claim.callback = self.claim_callback
-        btn_transfer.callback = self.transfer_callback
-
-        row1 = discord.ui.ActionRow(btn_rename, btn_limit, btn_claim, btn_transfer)
-        self.add_item(row1)
-
-        # Row 2: Access & Info
-        btn_permit = discord.ui.Button(label="＋  Permit", style=discord.ButtonStyle.success, custom_id="vc_btn_permit")
-        btn_reject = discord.ui.Button(label="✕  Reject", style=discord.ButtonStyle.danger, custom_id="vc_btn_reject")
-        btn_info = discord.ui.Button(label="ℹ  Info", style=discord.ButtonStyle.secondary, custom_id="vc_btn_info")
-
         btn_permit.callback = self.permit_callback
         btn_reject.callback = self.reject_callback
         btn_info.callback = self.info_callback
 
-        row2 = discord.ui.ActionRow(btn_permit, btn_reject, btn_info)
-        self.add_item(row2)
+        row1 = discord.ui.ActionRow(btn_rename, btn_limit, btn_permit, btn_reject, btn_info)
+        self.add_item(row1)
+
+    async def dispatch_action(self, interaction: discord.Interaction, action: str):
+        if action == "lock":
+            await self.lock_callback(interaction)
+        elif action == "unlock":
+            await self.unlock_callback(interaction)
+        elif action == "ghost":
+            await self.ghost_callback(interaction)
+        elif action == "reveal":
+            await self.reveal_callback(interaction)
+        elif action == "knock":
+            await self.knock_toggle_callback(interaction)
+        elif action == "rename":
+            await self.rename_callback(interaction)
+        elif action == "limit":
+            await self.limit_callback(interaction)
+        elif action == "claim":
+            await self.claim_callback(interaction)
+        elif action == "transfer":
+            await self.transfer_callback(interaction)
+        elif action == "permit":
+            await self.permit_callback(interaction)
+        elif action == "reject":
+            await self.reject_callback(interaction)
+        elif action == "info":
+            await self.info_callback(interaction)
 
     async def _get_voice_context(self, interaction: discord.Interaction):
         user = interaction.user
