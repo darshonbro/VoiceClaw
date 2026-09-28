@@ -221,12 +221,16 @@ class SetupLayoutView(discord.ui.LayoutView):
         gallery_item = discord.MediaGalleryItem("attachment://banner.jpg")
         gallery = discord.ui.MediaGallery(gallery_item)
 
-        # Dropdown Select Menu placed directly INSIDE the Components v2 Container under the image
+        # Header description above the dropdown
+        header_text = discord.ui.TextDisplay("### VoiceClaw • Dynamic Voice Engine\nConfigure your server's automated temporary voice channels.")
+
+        # Dropdown Select Menu placed directly INSIDE the Components v2 Container under the text
         setup_select = SetupSelect(cog, author_id)
         action_row = discord.ui.ActionRow(setup_select)
 
         container = discord.ui.Container(
             gallery,
+            header_text,
             action_row,
             accent_color=None
         )
