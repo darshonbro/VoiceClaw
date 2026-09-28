@@ -280,6 +280,81 @@ class SetupLayoutView(discord.ui.LayoutView):
 # Discord UI Components v2 - Knock Doorbell Views
 # ==========================================
 
+class KnockChannelSelect(discord.ui.Select):
+    def __init__(self, cog, channels_data):
+        options = []
+        for chan, owner_id in channels_data[:25]:
+            options.append(discord.SelectOption(
+                label=f"⌬  {chan.name[:50]}",
+                value=str(chan.id),
+                description=f"Host ID: {owner_id}"
+            ))
+        super().__init__(
+            placeholder="Select a room to knock on...",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+        self.cog = cog
+
+    async def callback(self, interaction: discord.Interaction):
+        chan_id = int(self.values[0])
+        target_channel = interaction.guild.get_channel(chan_id)
+        if not target_channel:
+            return await interaction.response.send_message("✕ That channel no longer exists.", ephemeral=True)
+
+        owner_id = await self.cog.get_channel_owner(chan_id)
+        if not owner_id:
+            return await interaction.response.send_message("✕ Host not found for this channel.", ephemeral=True)
+
+        if not self.cog.knock_settings.get(chan_id, True):
+            return await interaction.response.send_message("✕ This room has Knock Mode set to **Do Not Disturb**.", ephemeral=True)
+
+        # Send Doorbell alert to host in the channel
+        doorbell_view = KnockResponseView(self.cog, target_channel, interaction.user, owner_id)
+        await target_channel.send(content=f"<@{owner_id}>", view=doorbell_view)
+        await interaction.response.send_message(
+            f"⌬ **Doorbell Ring Sent!**\nKnocked on **{target_channel.name}** for host <@{owner_id}>. Waiting for them to allow entry...",
+            ephemeral=True
+        )
+
+
+class KnockChannelSelectView(discord.ui.View):
+    def __init__(self, cog, channels_data):
+        super().__init__(timeout=60)
+        self.add_item(KnockChannelSelect(cog, channels_data))
+
+
+class HostKnockSettingsView(discord.ui.View):
+    def __init__(self, cog, channel: discord.VoiceChannel):
+        super().__init__(timeout=60)
+        self.cog = cog
+        self.channel = channel
+
+        btn_enable = discord.ui.Button(label="✦  Enable Knock", style=discord.ButtonStyle.secondary, custom_id="vc_hknock_enable")
+        btn_disable = discord.ui.Button(label="✕  Mute (Do Not Disturb)", style=discord.ButtonStyle.secondary, custom_id="vc_hknock_disable")
+
+        btn_enable.callback = self.enable_callback
+        btn_disable.callback = self.disable_callback
+
+        self.add_item(btn_enable)
+        self.add_item(btn_disable)
+
+    async def enable_callback(self, interaction: discord.Interaction):
+        self.cog.knock_settings[self.channel.id] = True
+        await interaction.response.send_message(
+            "⌬ **Knock Mode: ENABLED**\nMembers who cannot join can now knock to request entry.",
+            ephemeral=True
+        )
+
+    async def disable_callback(self, interaction: discord.Interaction):
+        self.cog.knock_settings[self.channel.id] = False
+        await interaction.response.send_message(
+            "✕ **Knock Mode: MUTED (Do Not Disturb)**\nKnock requests are silenced for this room.",
+            ephemeral=True
+        )
+
+
 class KnockResponseView(discord.ui.LayoutView):
     def __init__(self, cog, channel: discord.VoiceChannel, requester: discord.Member, owner_id: int):
         super().__init__(timeout=120)
@@ -610,19 +685,48 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         await interaction.response.send_message("◇ **Channel revealed!** Visible on the channel list again.", ephemeral=True)
 
     async def knock_toggle_callback(self, interaction: discord.Interaction):
-        channel, owner_id = await self._get_voice_context(interaction)
-        if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can change knock settings.", ephemeral=True)
+        user = interaction.user
+        voice_state = user.voice
 
-        current_status = self.cog.knock_settings.get(channel.id, True)
-        new_status = not current_status
-        self.cog.knock_settings[channel.id] = new_status
+        # 1. If user is currently host of an active channel: manage their room's doorbell
+        if voice_state and voice_state.channel:
+            owner_id = await self.cog.get_channel_owner(voice_state.channel.id)
+            if owner_id == user.id:
+                status = "ENABLED (Doorbell Active)" if self.cog.knock_settings.get(voice_state.channel.id, True) else "MUTED (Do Not Disturb)"
+                view = HostKnockSettingsView(self.cog, voice_state.channel)
+                return await interaction.response.send_message(
+                    f"### ⌬ Knock Doorbell Settings\n"
+                    f"• **Room:** `{voice_state.channel.name}`\n"
+                    f"• **Current Status:** `{status}`\n\n"
+                    f"When enabled, friends outside can knock to request entry into your room.",
+                    view=view,
+                    ephemeral=True
+                )
 
-        if new_status:
-            await interaction.response.send_message("⌬ **Knock Mode: ENABLED**\nFriends outside can knock (`.knock`) to request entry.", ephemeral=True)
-        else:
-            await interaction.response.send_message("✕ **Knock Mode: MUTED (Do Not Disturb)**\nKnock requests are disabled.", ephemeral=True)
+        # 2. If user is outside (or not a host): allow them to knock on an active locked channel
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT voiceID, userID FROM voiceChannel") as cursor:
+                rows = await cursor.fetchall()
+
+        valid_channels = []
+        for voice_id, owner_id in rows:
+            chan = interaction.guild.get_channel(voice_id)
+            if chan and isinstance(chan, discord.VoiceChannel):
+                if not voice_state or voice_state.channel.id != chan.id:
+                    valid_channels.append((chan, owner_id))
+
+        if not valid_channels:
+            return await interaction.response.send_message(
+                "✕ There are no active private rooms to knock on right now.",
+                ephemeral=True
+            )
+
+        view = KnockChannelSelectView(self.cog, valid_channels)
+        await interaction.response.send_message(
+            "### ⌬ Request to Join (Knock)\nSelect which private voice room you would like to knock on:",
+            view=view,
+            ephemeral=True
+        )
 
     async def rename_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
