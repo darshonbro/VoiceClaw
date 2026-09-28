@@ -104,14 +104,29 @@ class SetupCustomModal(discord.ui.Modal, title="Custom Voice Setup"):
 
         try:
             new_cat = await guild.create_category(cat_name)
+            interface_chan = await guild.create_text_channel(
+                "interface",
+                category=new_cat,
+                topic="VoiceClaw Temporary Voice Channel Control Interface"
+            )
+            await interface_chan.set_permissions(guild.default_role, read_messages=True, send_messages=False, read_message_history=True)
+            await interface_chan.set_permissions(guild.me, read_messages=True, send_messages=True, manage_channels=True)
+
             new_chan = await guild.create_voice_channel(chan_name, category=new_cat)
+
+            ctrl_view = VoiceControlLayoutView(self.cog, has_banner=os.path.exists(BANNER_PATH))
+            if os.path.exists(BANNER_PATH):
+                file = discord.File(BANNER_PATH, filename="banner.jpg")
+                await interface_chan.send(file=file, view=ctrl_view)
+            else:
+                await interface_chan.send(view=ctrl_view)
 
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute("DELETE FROM guild WHERE guildID = ?", (guild.id,))
                 await db.execute('''
-                    INSERT INTO guild (guildID, ownerID, voiceChannelID, voiceCategoryID)
-                    VALUES (?, ?, ?, ?)
-                ''', (guild.id, interaction.user.id, new_chan.id, new_cat.id))
+                    INSERT INTO guild (guildID, ownerID, voiceChannelID, voiceCategoryID, interfaceChannelID)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (guild.id, interaction.user.id, new_chan.id, new_cat.id, interface_chan.id))
                 await db.commit()
 
             complete_view = discord.ui.LayoutView()
@@ -119,8 +134,9 @@ class SetupCustomModal(discord.ui.Modal, title="Custom Voice Setup"):
                 discord.ui.TextDisplay(
                     f"### ✦ Setup Complete\n"
                     f"• **Category:** `{new_cat.name}`\n"
+                    f"• **Interface:** {interface_chan.mention}\n"
                     f"• **Join Channel:** {new_chan.mention}\n\n"
-                    f"Join {new_chan.mention} to launch your private room."
+                    f"Join {new_chan.mention} to start your room, and control it from {interface_chan.mention}!"
                 ),
                 accent_color=None
             )
@@ -173,14 +189,29 @@ class SetupSelect(discord.ui.Select):
             guild = interaction.guild
             try:
                 new_cat = await guild.create_category("Voice Channels")
+                interface_chan = await guild.create_text_channel(
+                    "interface",
+                    category=new_cat,
+                    topic="VoiceClaw Temporary Voice Channel Control Interface"
+                )
+                await interface_chan.set_permissions(guild.default_role, read_messages=True, send_messages=False, read_message_history=True)
+                await interface_chan.set_permissions(guild.me, read_messages=True, send_messages=True, manage_channels=True)
+
                 new_chan = await guild.create_voice_channel("＋ Join to Create", category=new_cat)
+
+                ctrl_view = VoiceControlLayoutView(self.cog, has_banner=os.path.exists(BANNER_PATH))
+                if os.path.exists(BANNER_PATH):
+                    file = discord.File(BANNER_PATH, filename="banner.jpg")
+                    await interface_chan.send(file=file, view=ctrl_view)
+                else:
+                    await interface_chan.send(view=ctrl_view)
 
                 async with aiosqlite.connect(DB_PATH) as db:
                     await db.execute("DELETE FROM guild WHERE guildID = ?", (guild.id,))
                     await db.execute('''
-                        INSERT INTO guild (guildID, ownerID, voiceChannelID, voiceCategoryID)
-                        VALUES (?, ?, ?, ?)
-                    ''', (guild.id, interaction.user.id, new_chan.id, new_cat.id))
+                        INSERT INTO guild (guildID, ownerID, voiceChannelID, voiceCategoryID, interfaceChannelID)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (guild.id, interaction.user.id, new_chan.id, new_cat.id, interface_chan.id))
                     await db.commit()
 
                 success_view = discord.ui.LayoutView()
@@ -188,8 +219,9 @@ class SetupSelect(discord.ui.Select):
                     discord.ui.TextDisplay(
                         f"### ✦ Setup Complete\n"
                         f"• **Category:** `{new_cat.name}`\n"
+                        f"• **Interface:** {interface_chan.mention}\n"
                         f"• **Root Channel:** {new_chan.mention}\n\n"
-                        f"Join {new_chan.mention} to start your automated private room."
+                        f"Join {new_chan.mention} to start your private room, and control it from {interface_chan.mention}."
                     ),
                     accent_color=None
                 )
@@ -407,18 +439,45 @@ class TransferOwnerView(discord.ui.View):
 # ==========================================
 
 class VoiceControlLayoutView(discord.ui.LayoutView):
-    def __init__(self, cog, member_avatar_url: str = "https://cdn.discordapp.com/embed/avatars/0.png", member_name: str = "Member"):
+    def __init__(self, cog, member_avatar_url: str = None, member_name: str = None, has_banner: bool = False):
         super().__init__(timeout=None)
         self.cog = cog
 
         # Pure Components v2 Minimalist Card (No blue border!)
-        container = discord.ui.Container(
-            discord.ui.Section(
-                discord.ui.TextDisplay(f"### VoiceClaw • {member_name}'s Room\nConfigure your channel privacy, limits and access below."),
-                accessory=discord.ui.Thumbnail(member_avatar_url)
-            ),
-            accent_color=None
-        )
+        if member_name:
+            container = discord.ui.Container(
+                discord.ui.Section(
+                    discord.ui.TextDisplay(f"### VoiceClaw • {member_name}'s Room\nConfigure your channel privacy, limits and access below."),
+                    accessory=discord.ui.Thumbnail(member_avatar_url or "https://cdn.discordapp.com/embed/avatars/0.png")
+                ),
+                accent_color=None
+            )
+        else:
+            items = []
+            if has_banner:
+                gallery = discord.ui.MediaGallery(discord.MediaGalleryItem("attachment://banner.jpg"))
+                items.append(gallery)
+
+            text_desc = discord.ui.TextDisplay(
+                "### VoiceClaw Interface\n"
+                "Use the buttons below to manage your temporary voice channel.\n\n"
+                "**Control Buttons:**\n"
+                "• `⚿ Lock` • Lock voice channel (restrict joins)\n"
+                "• `✧ Unlock` • Unlock voice channel (allow joins)\n"
+                "• `◈ Ghost` • Hide channel from server sidebar\n"
+                "• `◇ Reveal` • Reveal channel on server sidebar\n"
+                "• `⌬ Knock` • Toggle doorbell requests for locked room\n"
+                "• `✎ Rename` • Rename your voice channel\n"
+                "• `⌗ Limit` • Set room participant limit\n"
+                "• `♔ Claim` • Claim channel ownership\n"
+                "• `⇄ Transfer` • Transfer room host\n"
+                "• `＋ Permit` • Permit a user to join\n"
+                "• `✕ Reject` • Disconnect & block a user\n"
+                "• `ℹ Info` • View current room status"
+            )
+            items.append(text_desc)
+            container = discord.ui.Container(*items, accent_color=None)
+
         self.add_item(container)
 
         # Row 0: Privacy & Knocking Controls (Aesthetic Custom Glyphs)
@@ -646,9 +705,14 @@ class voice(commands.Cog):
                     guildID INTEGER PRIMARY KEY,
                     ownerID INTEGER,
                     voiceChannelID INTEGER,
-                    voiceCategoryID INTEGER
+                    voiceCategoryID INTEGER,
+                    interfaceChannelID INTEGER
                 )
             ''')
+            try:
+                await db.execute("ALTER TABLE guild ADD COLUMN interfaceChannelID INTEGER")
+            except Exception:
+                pass
             await db.execute('''
                 CREATE TABLE IF NOT EXISTS userSettings (
                     userID INTEGER PRIMARY KEY,
@@ -671,7 +735,7 @@ class voice(commands.Cog):
 
     async def get_guild_config(self, guild_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
-            async with db.execute("SELECT guildID, ownerID, voiceChannelID, voiceCategoryID FROM guild WHERE guildID = ?", (guild_id,)) as cursor:
+            async with db.execute("SELECT guildID, ownerID, voiceChannelID, voiceCategoryID, interfaceChannelID FROM guild WHERE guildID = ?", (guild_id,)) as cursor:
                 return await cursor.fetchone()
 
     async def get_channel_owner(self, voice_id: int):
@@ -858,11 +922,42 @@ class voice(commands.Cog):
         else:
             await ctx.send(view=view)
 
-    @voice_cmd.command(name="panel")
-    async def panel_cmd(self, ctx):
-        """Send the VoiceClaw Control Center directly using Components v2"""
-        view = VoiceControlLayoutView(self, ctx.author.display_avatar.url, ctx.author.display_name)
-        await ctx.send(view=view)
+    @voice_cmd.command(name="interface", aliases=["panel"])
+    @commands.has_permissions(administrator=True)
+    async def interface_cmd(self, ctx):
+        """Deploy or refresh the VoiceClaw Interface panel directly"""
+        guild = ctx.guild
+        guild_cfg = await self.get_guild_config(guild.id)
+
+        target_chan = ctx.channel
+        if guild_cfg and len(guild_cfg) > 3 and guild_cfg[3]:
+            cat = guild.get_channel(guild_cfg[3])
+            if cat and isinstance(cat, discord.CategoryChannel):
+                existing = discord.utils.get(cat.text_channels, name="interface")
+                if existing:
+                    target_chan = existing
+                else:
+                    target_chan = await guild.create_text_channel(
+                        "interface",
+                        category=cat,
+                        topic="VoiceClaw Temporary Voice Channel Control Interface"
+                    )
+                    await target_chan.set_permissions(guild.default_role, read_messages=True, send_messages=False, read_message_history=True)
+                    await target_chan.set_permissions(guild.me, read_messages=True, send_messages=True, manage_channels=True)
+
+                    async with aiosqlite.connect(DB_PATH) as db:
+                        await db.execute("UPDATE guild SET interfaceChannelID = ? WHERE guildID = ?", (target_chan.id, guild.id))
+                        await db.commit()
+
+        ctrl_view = VoiceControlLayoutView(self, has_banner=os.path.exists(BANNER_PATH))
+        if os.path.exists(BANNER_PATH):
+            file = discord.File(BANNER_PATH, filename="banner.jpg")
+            await target_chan.send(file=file, view=ctrl_view)
+        else:
+            await target_chan.send(view=ctrl_view)
+
+        if target_chan.id != ctx.channel.id:
+            await ctx.send(f"✦ VoiceClaw Interface deployed to {target_chan.mention}!", delete_after=10)
 
     @commands.command(name="help")
     async def help_cmd(self, ctx):
