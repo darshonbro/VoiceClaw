@@ -1,6 +1,7 @@
 import asyncio
 import os
 import time
+import traceback
 import aiosqlite
 import discord
 from discord import app_commands
@@ -829,43 +830,41 @@ class voice(commands.Cog):
         if member.bot:
             return
 
-        guild = member.guild
-        guild_cfg = await self.get_guild_config(guild.id)
-        if not guild_cfg:
-            return
-
-        _, _, master_channel_id, category_id = guild_cfg
-
-        # 1. User Joined the "Join to Create" Master Channel
-        if after.channel and after.channel.id == master_channel_id:
-            now = asyncio.get_event_loop().time()
-            if member.id in self.cooldowns and (now - self.cooldowns[member.id]) < 15:
-                try:
-                    await member.send("✕ You're creating voice channels too fast! Please wait 15 seconds.")
-                except Exception:
-                    pass
+        try:
+            guild = member.guild
+            guild_cfg = await self.get_guild_config(guild.id)
+            if not guild_cfg:
                 return
 
-            self.cooldowns[member.id] = now
+            master_channel_id = guild_cfg[2]
+            category_id = guild_cfg[3]
 
-            user_pref = await self.get_user_setting(member.id)
-            guild_pref = await self.get_guild_setting(guild.id)
+            # 1. User Joined the "Join to Create" Master Channel
+            if after.channel and after.channel.id == master_channel_id:
+                now = asyncio.get_event_loop().time()
+                if member.id in self.cooldowns and (now - self.cooldowns[member.id]) < 4:
+                    return
 
-            chan_name = f"{member.display_name}'s Room"
-            chan_limit = 0
+                self.cooldowns[member.id] = now
 
-            if guild_pref:
-                chan_limit = guild_pref[1]
+                user_pref = await self.get_user_setting(member.id)
+                guild_pref = await self.get_guild_setting(guild.id)
 
-            if user_pref:
-                if user_pref[0]: chan_name = user_pref[0]
-                if user_pref[1] is not None: chan_limit = user_pref[1]
+                chan_name = f"{member.display_name}'s Room"
+                chan_limit = 0
 
-            category = guild.get_channel(category_id)
-            if not isinstance(category, discord.CategoryChannel):
-                category = None
+                if guild_pref:
+                    chan_limit = guild_pref[1]
 
-            try:
+                if user_pref:
+                    if user_pref[0]: chan_name = user_pref[0]
+                    if user_pref[1] is not None: chan_limit = user_pref[1]
+
+                category = guild.get_channel(category_id)
+                if not isinstance(category, discord.CategoryChannel):
+                    category = None
+
+                print(f"[VoiceClaw] Creating temporary room '{chan_name}' for {member.display_name}...")
                 temp_channel = await guild.create_voice_channel(
                     name=chan_name,
                     category=category,
@@ -878,26 +877,29 @@ class voice(commands.Cog):
                 await member.move_to(temp_channel)
                 await self.register_temp_channel(member.id, temp_channel.id)
                 self.knock_settings[temp_channel.id] = True
+                print(f"[VoiceClaw] Moved {member.display_name} to {temp_channel.name} ({temp_channel.id})")
 
                 # Send Minimalist Discord Components v2 LayoutView (No blue line, clean icons)
                 ctrl_view = VoiceControlLayoutView(self, member.display_avatar.url, member.display_name)
                 await temp_channel.send(view=ctrl_view)
 
-            except Exception as e:
-                print(f"[VoiceClaw Error] Failed to create channel: {e}")
+            # 2. Member Left a Temporary Channel
+            if before.channel and before.channel.id != master_channel_id:
+                chan_id = before.channel.id
+                owner_id = await self.get_channel_owner(chan_id)
+                if owner_id:
+                    if len(before.channel.members) == 0:
+                        try:
+                            await before.channel.delete(reason="VoiceClaw: Temporary channel empty")
+                            print(f"[VoiceClaw] Cleaned up empty temporary channel {chan_id}")
+                        except Exception:
+                            pass
+                        await self.delete_temp_channel_record(chan_id)
+                        self.knock_settings.pop(chan_id, None)
 
-        # 2. Member Left a Temporary Channel
-        if before.channel and before.channel.id != master_channel_id:
-            chan_id = before.channel.id
-            owner_id = await self.get_channel_owner(chan_id)
-            if owner_id:
-                if len(before.channel.members) == 0:
-                    try:
-                        await before.channel.delete(reason="VoiceClaw: Temporary channel empty")
-                    except Exception:
-                        pass
-                    await self.delete_temp_channel_record(chan_id)
-                    self.knock_settings.pop(chan_id, None)
+        except Exception as e:
+            print(f"[VoiceClaw Error] on_voice_state_update failed: {e}")
+            traceback.print_exc()
 
     # --- Knock / Request to Join Command ---
     @commands.command(name="knock")
