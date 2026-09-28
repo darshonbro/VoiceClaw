@@ -764,12 +764,12 @@ class VoiceControlSelect(discord.ui.Select):
             discord.SelectOption(label="Trust Member", emoji="🤝", value="trust", description="Grant bypass access to a member"),
             discord.SelectOption(label="Untrust Member", emoji="👤", value="untrust", description="Remove trusted status from a member"),
             discord.SelectOption(label="Invite Member", emoji="✉️", value="invite", description="Send direct invite link to a member"),
-            discord.SelectOption(label="Kick Member", emoji="⎋", value="kick", description="Disconnect member from your room"),
+            discord.SelectOption(label="Kick Member", emoji="👢", value="kick", description="Disconnect member from your room"),
             discord.SelectOption(label="Block Member", emoji="🚫", value="block", description="Ban and disconnect member from room"),
-            discord.SelectOption(label="Unblock Member", emoji="✓", value="unblock", description="Unban member from room"),
+            discord.SelectOption(label="Unblock Member", emoji="✅", value="unblock", description="Unban member from room"),
             discord.SelectOption(label="Waiting Room (Knock)", emoji="🚪", value="knock", description="Allow or disable doorbell requests"),
             discord.SelectOption(label="Claim Ownership", emoji="👑", value="claim", description="Claim channel if host left the room"),
-            discord.SelectOption(label="Transfer Ownership", emoji="⇄", value="transfer", description="Transfer host to another member"),
+            discord.SelectOption(label="Transfer Ownership", emoji="🔄", value="transfer", description="Transfer host to another member"),
             discord.SelectOption(label="Delete Channel", emoji="🗑️", value="delete", description="Instantly delete this voice room"),
             discord.SelectOption(label="Channel Info", emoji="ℹ️", value="info", description="View current room host, settings & stats"),
         ]
@@ -811,12 +811,12 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             "🤝 - `Trust` a user (VIP access)\n"
             "👤 - `Untrust` a user\n"
             "✉️ - `Invite` a user\n"
-            "⎋ - `Kick` a user\n"
+            "👢 - `Kick` a user\n"
             "🚫 - `Block` a user\n"
-            "✓ - `Unblock` a user\n"
+            "✅ - `Unblock` a user\n"
             "🚪 - `Knock` waiting room doorbell\n"
             "👑 - `Claim` ownership\n"
-            "⇄ - `Transfer` ownership\n"
+            "🔄 - `Transfer` ownership\n"
             "ℹ️ - `Info` room stats\n"
             "🗑️ - `Delete` temporary channel"
         )
@@ -870,9 +870,9 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
 
         # Row 2: Invite, Kick, Block & Waiting Room (5 square icon buttons)
         btn_invite = discord.ui.Button(emoji="✉️", style=discord.ButtonStyle.secondary, custom_id="vc_btn_invite")
-        btn_kick = discord.ui.Button(emoji="⎋", style=discord.ButtonStyle.secondary, custom_id="vc_btn_kick")
+        btn_kick = discord.ui.Button(emoji="👢", style=discord.ButtonStyle.secondary, custom_id="vc_btn_kick")
         btn_block = discord.ui.Button(emoji="🚫", style=discord.ButtonStyle.secondary, custom_id="vc_btn_block")
-        btn_unblock = discord.ui.Button(emoji="✓", style=discord.ButtonStyle.secondary, custom_id="vc_btn_unblock")
+        btn_unblock = discord.ui.Button(emoji="✅", style=discord.ButtonStyle.secondary, custom_id="vc_btn_unblock")
         btn_knock = discord.ui.Button(emoji="🚪", style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock_toggle")
 
         btn_invite.callback = self.invite_callback
@@ -886,7 +886,7 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
 
         # Row 3: Ownership, Stats & Deletion (4 square icon buttons)
         btn_claim = discord.ui.Button(emoji="👑", style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim")
-        btn_transfer = discord.ui.Button(emoji="⇄", style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
+        btn_transfer = discord.ui.Button(emoji="🔄", style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
         btn_info = discord.ui.Button(emoji="ℹ️", style=discord.ButtonStyle.secondary, custom_id="vc_btn_info")
         btn_delete = discord.ui.Button(emoji="🗑️", style=discord.ButtonStyle.secondary, custom_id="vc_btn_delete")
 
