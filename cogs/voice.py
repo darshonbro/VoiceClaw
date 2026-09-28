@@ -576,36 +576,47 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
 
         self.add_item(container)
 
-        # Quick Control Buttons: Sleek Dark Monochrome (Zero red/green buttons!)
+        # Row 0: Privacy Controls (4 buttons)
         btn_lock = discord.ui.Button(label="⚿  Lock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_lock")
         btn_unlock = discord.ui.Button(label="✧  Unlock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_unlock")
         btn_ghost = discord.ui.Button(label="◈  Ghost", style=discord.ButtonStyle.secondary, custom_id="vc_btn_ghost")
         btn_reveal = discord.ui.Button(label="◇  Reveal", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reveal")
-        btn_knock = discord.ui.Button(label="⌬  Knock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock_toggle")
 
         btn_lock.callback = self.lock_callback
         btn_unlock.callback = self.unlock_callback
         btn_ghost.callback = self.ghost_callback
         btn_reveal.callback = self.reveal_callback
-        btn_knock.callback = self.knock_toggle_callback
 
-        row0 = discord.ui.ActionRow(btn_lock, btn_unlock, btn_ghost, btn_reveal, btn_knock)
+        row0 = discord.ui.ActionRow(btn_lock, btn_unlock, btn_ghost, btn_reveal)
         self.add_item(row0)
 
+        # Row 1: Channel Settings & Ownership Controls (4 buttons)
         btn_rename = discord.ui.Button(label="✎  Rename", style=discord.ButtonStyle.secondary, custom_id="vc_btn_rename")
         btn_limit = discord.ui.Button(label="⌗  Limit", style=discord.ButtonStyle.secondary, custom_id="vc_btn_limit")
-        btn_permit = discord.ui.Button(label="＋  Permit", style=discord.ButtonStyle.secondary, custom_id="vc_btn_permit")
-        btn_reject = discord.ui.Button(label="✕  Reject", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reject")
-        btn_info = discord.ui.Button(label="ℹ  Info", style=discord.ButtonStyle.secondary, custom_id="vc_btn_info")
+        btn_claim = discord.ui.Button(label="♔  Claim", style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim")
+        btn_transfer = discord.ui.Button(label="⇄  Transfer", style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
 
         btn_rename.callback = self.rename_callback
         btn_limit.callback = self.limit_callback
+        btn_claim.callback = self.claim_callback
+        btn_transfer.callback = self.transfer_callback
+
+        row1 = discord.ui.ActionRow(btn_rename, btn_limit, btn_claim, btn_transfer)
+        self.add_item(row1)
+
+        # Row 2: Access & Interaction Controls (4 buttons)
+        btn_permit = discord.ui.Button(label="＋  Permit", style=discord.ButtonStyle.secondary, custom_id="vc_btn_permit")
+        btn_reject = discord.ui.Button(label="✕  Reject", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reject")
+        btn_knock = discord.ui.Button(label="⌬  Knock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock_toggle")
+        btn_info = discord.ui.Button(label="ℹ  Info", style=discord.ButtonStyle.secondary, custom_id="vc_btn_info")
+
         btn_permit.callback = self.permit_callback
         btn_reject.callback = self.reject_callback
+        btn_knock.callback = self.knock_toggle_callback
         btn_info.callback = self.info_callback
 
-        row1 = discord.ui.ActionRow(btn_rename, btn_limit, btn_permit, btn_reject, btn_info)
-        self.add_item(row1)
+        row2 = discord.ui.ActionRow(btn_permit, btn_reject, btn_knock, btn_info)
+        self.add_item(row2)
 
     async def dispatch_action(self, interaction: discord.Interaction, action: str):
         if action == "lock":
