@@ -16,6 +16,12 @@ ENV/
 # Database files
 *.db-journal
 *.db-wal
+database.db
+voiceChannel.db
 
 # Vercel
 .vercel
+
+# Test / Scratch files
+test_*
+.agents/
