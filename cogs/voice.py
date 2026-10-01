@@ -9,7 +9,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-DB_PATH = 'voice.db'
+DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "voice.db"))
 BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "banner.jpg")
 GUIDE_BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "guide.jpg")
 PREMIUM_BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "premium.jpg")
@@ -2047,30 +2047,34 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
 
     async def _get_voice_context(self, interaction: discord.Interaction):
         user = interaction.user
+        guild = interaction.guild
         voice_state = user.voice
         channel = None
         owner_id = None
 
-        if voice_state and voice_state.channel:
+        if voice_state and voice_state.channel and voice_state.channel.guild.id == guild.id:
             channel = voice_state.channel
             owner_id = await self.cog.get_channel_owner(channel.id)
+            if not owner_id:
+                # User is inside an active voice room; self-heal ownership:
+                owner_id = user.id
+                await self.cog.register_temp_channel(user.id, channel.id)
 
         # If user is not currently inside a voice channel, check if they own an active permanent room
         if not channel or not owner_id:
-            perm_id = await self.cog.get_user_permanent_channel(interaction.guild.id, user.id)
+            perm_id = await self.cog.get_user_permanent_channel(guild.id, user.id)
             if perm_id:
-                perm_chan = interaction.guild.get_channel(perm_id)
+                perm_chan = guild.get_channel(perm_id)
                 if perm_chan and isinstance(perm_chan, discord.VoiceChannel):
                     channel = perm_chan
                     owner_id = user.id
 
         if not channel:
-            await interaction.response.send_message("✕ You are not connected to a voice channel and do not own an active permanent room!", ephemeral=True)
+            await interaction.response.send_message("✕ You are not connected to a voice channel and do not own an active voice room in this server!", ephemeral=True)
             return None, None
 
         if not owner_id:
-            await interaction.response.send_message("✕ This is not an active VoiceClaw voice room!", ephemeral=True)
-            return None, None
+            owner_id = user.id
 
         return channel, owner_id
 
@@ -2083,9 +2087,10 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         if user.voice and user.voice.channel and user.voice.channel.guild.id == guild.id:
             ch = user.voice.channel
             o_id = await self.cog.get_channel_owner(ch.id)
-            if o_id:
-                channel = ch
-                owner_id = o_id
+            channel = ch
+            owner_id = o_id or user.id
+            if not o_id:
+                await self.cog.register_temp_channel(user.id, ch.id)
 
         owned = await self.cog.get_user_owned_channels(guild, user.id)
 
@@ -3237,7 +3242,38 @@ class voice(commands.Cog):
         async with aiosqlite.connect(DB_PATH) as db:
             async with db.execute("SELECT userID FROM voiceChannel WHERE voiceID = ?", (voice_id,)) as cursor:
                 row = await cursor.fetchone()
-                return row[0] if row else None
+                if row:
+                    return row[0]
+
+        # Automatic Self-Healing Fallback for voice rooms:
+        channel = self.bot.get_channel(voice_id)
+        if channel and isinstance(channel, discord.VoiceChannel):
+            # 1. Check member overwrites for manage_channels=True
+            for target, overwrite in channel.overwrites.items():
+                if isinstance(target, discord.Member) and not target.bot:
+                    if overwrite.manage_channels is True:
+                        await self.register_temp_channel(target.id, voice_id)
+                        print(f"[VoiceClaw Self-Heal] Recovered owner {target.display_name} ({target.id}) for room {channel.name} from permission overwrites.")
+                        return target.id
+
+            # 2. Check channel name matching a member (e.g. "{name}'s Room")
+            for m in channel.members:
+                if not m.bot:
+                    clean = " ".join(m.display_name.split()).lower()
+                    cname = channel.name.lower()
+                    if f"{clean}'s room" in cname or cname.startswith(clean):
+                        await self.register_temp_channel(m.id, voice_id)
+                        print(f"[VoiceClaw Self-Heal] Recovered owner {m.display_name} ({m.id}) for room {channel.name} from member name.")
+                        return m.id
+
+            # 3. First non-bot member in channel
+            first_human = next((m for m in channel.members if not m.bot), None)
+            if first_human:
+                await self.register_temp_channel(first_human.id, voice_id)
+                print(f"[VoiceClaw Self-Heal] Recovered owner {first_human.display_name} ({first_human.id}) for room {channel.name} as primary member.")
+                return first_human.id
+
+        return None
 
     async def get_owner_channel(self, owner_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
