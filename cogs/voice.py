@@ -2048,26 +2048,45 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
     async def _get_voice_context(self, interaction: discord.Interaction):
         user = interaction.user
         guild = interaction.guild
-        voice_state = user.voice
         channel = None
         owner_id = None
 
+        # 1. Resolve voice state from guild member cache
+        member = guild.get_member(user.id) if guild else None
+        if not member and isinstance(user, discord.Member):
+            member = user
+
+        voice_state = member.voice if member else getattr(user, "voice", None)
         if voice_state and voice_state.channel and voice_state.channel.guild.id == guild.id:
             channel = voice_state.channel
+
+        # 2. Resilient voice detection fallback: check voice channel member lists
+        if not channel and guild:
+            for vc in guild.voice_channels:
+                if any(m.id == user.id for m in vc.members):
+                    channel = vc
+                    break
+
+        if channel:
             owner_id = await self.cog.get_channel_owner(channel.id)
             if not owner_id:
                 # User is inside an active voice room; self-heal ownership:
                 owner_id = user.id
                 await self.cog.register_temp_channel(user.id, channel.id)
 
-        # If user is not currently inside a voice channel, check if they own an active permanent room
+        # 3. If user is not currently inside a voice channel, check owned channels in this server
         if not channel or not owner_id:
-            perm_id = await self.cog.get_user_permanent_channel(guild.id, user.id)
-            if perm_id:
-                perm_chan = guild.get_channel(perm_id)
-                if perm_chan and isinstance(perm_chan, discord.VoiceChannel):
-                    channel = perm_chan
-                    owner_id = user.id
+            owned = await self.cog.get_user_owned_channels(guild, user.id)
+            if len(owned) == 1:
+                channel = owned[0]
+                owner_id = user.id
+            elif not channel:
+                perm_id = await self.cog.get_user_permanent_channel(guild.id, user.id)
+                if perm_id:
+                    perm_chan = guild.get_channel(perm_id)
+                    if perm_chan and isinstance(perm_chan, discord.VoiceChannel):
+                        channel = perm_chan
+                        owner_id = user.id
 
         if not channel:
             await interaction.response.send_message("✕ You are not connected to a voice channel and do not own an active voice room in this server!", ephemeral=True)
@@ -2084,22 +2103,33 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         channel = None
         owner_id = None
 
-        if user.voice and user.voice.channel and user.voice.channel.guild.id == guild.id:
-            ch = user.voice.channel
-            o_id = await self.cog.get_channel_owner(ch.id)
-            channel = ch
+        # 1. Resolve voice state from guild member cache
+        member = guild.get_member(user.id) if guild else None
+        if not member and isinstance(user, discord.Member):
+            member = user
+
+        voice_state = member.voice if member else getattr(user, "voice", None)
+        if voice_state and voice_state.channel and voice_state.channel.guild.id == guild.id:
+            channel = voice_state.channel
+
+        # 2. Resilient voice detection fallback
+        if not channel and guild:
+            for vc in guild.voice_channels:
+                if any(m.id == user.id for m in vc.members):
+                    channel = vc
+                    break
+
+        if channel:
+            o_id = await self.cog.get_channel_owner(channel.id)
+            channel = channel
             owner_id = o_id or user.id
             if not o_id:
-                await self.cog.register_temp_channel(user.id, ch.id)
+                await self.cog.register_temp_channel(user.id, channel.id)
 
         owned = await self.cog.get_user_owned_channels(guild, user.id)
 
-        # If user is in a channel they own, use it directly
-        if channel and owner_id == user.id:
-            return channel, owner_id, owned
-
-        # If user is inside someone else's room (e.g. for claiming or info)
-        if channel and owner_id != user.id:
+        # If user is in a channel, use it directly (whether host or guest)
+        if channel:
             return channel, owner_id, owned
 
         # If user is outside voice:
@@ -3190,7 +3220,7 @@ class voice(commands.Cog):
             chan = guild.get_channel(v_id)
             if chan and isinstance(chan, discord.VoiceChannel):
                 valid_channels.append(chan)
-            else:
+            elif not self.bot.get_channel(v_id):
                 await self.delete_temp_channel_record(v_id)
         return valid_channels
 
@@ -3205,7 +3235,7 @@ class voice(commands.Cog):
             if chan and isinstance(chan, discord.VoiceChannel):
                 if chan not in valid_channels:
                     valid_channels.append(chan)
-            else:
+            elif not self.bot.get_channel(v_id):
                 await self.delete_temp_channel_record(v_id)
         return valid_channels
 
@@ -4171,8 +4201,8 @@ class voice(commands.Cog):
         channel = voice_state.channel
         owner_id = await self.get_channel_owner(channel.id)
         if not owner_id:
-            await ctx.send("✕ This is not an active VoiceClaw temporary room!", ephemeral=True)
-            return None, None
+            owner_id = ctx.author.id
+            await self.register_temp_channel(ctx.author.id, channel.id)
 
         if ctx.author.id != owner_id and not ctx.author.guild_permissions.administrator:
             await ctx.send(f"✕ Only the room host (<@{owner_id}>) can use this command.", ephemeral=True)
@@ -4194,7 +4224,8 @@ class voice(commands.Cog):
         channel = voice_state.channel
         owner_id = await self.get_channel_owner(channel.id)
         if not owner_id:
-            return await ctx.send("✕ You are not in a VoiceClaw temporary channel!", ephemeral=True)
+            owner_id = ctx.author.id
+            await self.register_temp_channel(ctx.author.id, channel.id)
 
         owner = ctx.guild.get_member(owner_id)
         owner_name = owner.mention if owner else f"User ID: {owner_id}"
