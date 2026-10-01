@@ -3605,15 +3605,12 @@ class voice(commands.Cog):
         if m.author != self.bot.user:
             return False
         if m.components:
-            for comp in m.components:
-                c_name = type(comp).__name__
-                if "Container" in c_name or "LayoutView" in c_name:
-                    return True
-                for child in getattr(comp, "children", []):
-                    cid = getattr(child, "custom_id", "") or ""
-                    if cid.startswith("vc_") or cid.startswith("setup_") or "Container" in type(child).__name__:
-                        return True
-        return False
+            return True
+        if m.attachments:
+            return True
+        if m.embeds:
+            return True
+        return True
 
     async def is_interface_channel(self, channel: discord.TextChannel) -> bool:
         if not channel or not isinstance(channel, discord.TextChannel):
@@ -3717,17 +3714,31 @@ class voice(commands.Cog):
                     chan = guild.get_channel(chan_id)
                     if chan and isinstance(chan, discord.TextChannel):
                         try:
-                            await chan.purge(limit=50, check=lambda m: not self.is_control_panel_message(m))
-                        except Exception:
-                            pass
+                            # Fetch messages in reverse chronological order (newest first)
+                            messages = []
+                            async for m in chan.history(limit=50):
+                                messages.append(m)
 
-                        try:
-                            has_panel = False
-                            async for m in chan.history(limit=5):
-                                if self.is_control_panel_message(m):
-                                    has_panel = True
-                                    break
-                            if not has_panel:
+                            keep_panel = None
+                            for m in messages:
+                                if m.author == self.bot.user:
+                                    if keep_panel is None and self.is_control_panel_message(m):
+                                        # Keep the newest/bottom control panel
+                                        keep_panel = m
+                                    else:
+                                        # Delete all older panels and bot messages
+                                        try:
+                                            await m.delete()
+                                        except Exception:
+                                            pass
+                                elif not m.pinned:
+                                    # Delete stray user messages in interface channel
+                                    try:
+                                        await m.delete()
+                                    except Exception:
+                                        pass
+
+                            if not keep_panel:
                                 banner_url = await self.get_guild_banner_url(guild.id)
                                 has_banner = os.path.exists(BANNER_PATH) if not banner_url else False
                                 ctrl_view = VoiceControlLayoutView(self, has_banner=has_banner, banner_url=banner_url)
@@ -3738,9 +3749,11 @@ class voice(commands.Cog):
                                     await chan.send(file=file, view=ctrl_view)
                                 else:
                                     await chan.send(view=ctrl_view)
-                                print(f"[VoiceClaw] Restored control panel in #{chan.name} ({chan.id})")
+                                print(f"[VoiceClaw] Restored single control panel in #{chan.name} ({chan.id})")
+                            else:
+                                print(f"[VoiceClaw] Retained single active panel in #{chan.name} ({chan.id}), pruned older duplicate panels.")
                         except Exception as e:
-                            print(f"[VoiceClaw] Failed to ensure panel in #{chan.name}: {e}")
+                            print(f"[VoiceClaw] Failed cleanup in #{chan.name}: {e}")
         except Exception:
             pass
 
@@ -4714,7 +4727,12 @@ class voice(commands.Cog):
             await db.commit()
 
         try:
-            await target_chan.purge(limit=25, check=lambda m: m.author == self.bot.user)
+            async for m in target_chan.history(limit=50):
+                if m.author == self.bot.user or not m.pinned:
+                    try:
+                        await m.delete()
+                    except Exception:
+                        pass
         except Exception:
             pass
 
@@ -5102,7 +5120,12 @@ class voice(commands.Cog):
                 pass
 
         try:
-            await target_chan.purge(limit=25, check=lambda m: m.author == self.bot.user)
+            async for m in target_chan.history(limit=50):
+                if m.author == self.bot.user or not m.pinned:
+                    try:
+                        await m.delete()
+                    except Exception:
+                        pass
         except Exception:
             pass
 
