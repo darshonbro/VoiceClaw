@@ -26,3 +26,7 @@ voiceChannel.db
 test_*
 .agents/
 *_backup.*
+vps_deploy.json
+vps_deploy.py
+.vps*
+*credentials*
