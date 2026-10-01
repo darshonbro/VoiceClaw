@@ -25,3 +25,4 @@ voiceChannel.db
 # Test / Scratch files
 test_*
 .agents/
+*_backup.*

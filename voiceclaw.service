@@ -1,0 +1,15 @@
+[Unit]
+Description=VoiceClaw Discord Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/VoiceClaw
+ExecStart=/root/VoiceClaw/venv/bin/python3 /root/VoiceClaw/voicecreate.py
+Restart=always
+RestartSec=5
+EnvironmentFile=/root/VoiceClaw/.env
+
+[Install]
+WantedBy=multi-user.target
