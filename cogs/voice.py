@@ -3903,8 +3903,8 @@ class voice(commands.Cog):
                 )
 
             # 2. User Joined the "Create Permanent VC" Master Channel
-            perm_channel_id = guild_cfg[7] if len(guild_cfg) > 7 else None
-            perm_category_id = guild_cfg[6] if len(guild_cfg) > 6 else None
+            perm_channel_id = guild_cfg[7] if guild_cfg and len(guild_cfg) > 7 else None
+            perm_category_id = guild_cfg[6] if guild_cfg and len(guild_cfg) > 6 else None
             if after.channel and perm_channel_id and after.channel.id == perm_channel_id:
                 loop_now = asyncio.get_event_loop().time()
                 if member.id in self.cooldowns and (loop_now - self.cooldowns[member.id]) < 4:
