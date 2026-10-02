@@ -3817,7 +3817,20 @@ class voice(commands.Cog):
                                     await chan.send(view=ctrl_view)
                                 print(f"[VoiceClaw] Restored single control panel in #{chan.name} ({chan.id})")
                             else:
-                                print(f"[VoiceClaw] Retained single active panel in #{chan.name} ({chan.id}), pruned older duplicate panels.")
+                                banner_url = await self.get_guild_banner_url(guild.id)
+                                has_banner = os.path.exists(BANNER_PATH) if not banner_url else False
+                                ctrl_view = VoiceControlLayoutView(self, has_banner=has_banner, banner_url=banner_url)
+                                try:
+                                    if banner_url:
+                                        await keep_panel.edit(attachments=[], view=ctrl_view)
+                                    elif has_banner:
+                                        file = discord.File(BANNER_PATH, filename="banner.jpg")
+                                        await keep_panel.edit(attachments=[file], view=ctrl_view)
+                                    else:
+                                        await keep_panel.edit(attachments=[], view=ctrl_view)
+                                except Exception:
+                                    pass
+                                print(f"[VoiceClaw] Retained and updated active panel in #{chan.name} ({chan.id}) with latest banner.")
                         except Exception as e:
                             print(f"[VoiceClaw] Failed cleanup in #{chan.name}: {e}")
         except Exception:
