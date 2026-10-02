@@ -1928,52 +1928,52 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         else:
             container_children.append(discord.ui.TextDisplay(f"{title}\n{subtitle}"))
 
-        # Row 0: Quick Setup & Privacy (5 icon buttons)
-        btn_rename = discord.ui.Button(emoji=APP_EMOJIS["rename"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_rename")
-        btn_limit = discord.ui.Button(emoji=APP_EMOJIS["limit"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_limit")
-        btn_lock = discord.ui.Button(emoji=APP_EMOJIS["lock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_lock")
-        btn_unlock = discord.ui.Button(emoji=APP_EMOJIS["unlock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_unlock")
-        btn_privacy = discord.ui.Button(emoji=APP_EMOJIS["privacy"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_privacy")
+        # Row 0: Privacy, Settings, Region, Members, Host
+        btn_privacy = discord.ui.Button(emoji=APP_EMOJIS["privacy"], label="Privacy", style=discord.ButtonStyle.secondary, custom_id="vc_btn_privacy")
+        btn_settings = discord.ui.Button(emoji=APP_EMOJIS["settings"], label="Settings", style=discord.ButtonStyle.secondary, custom_id="vc_btn_settings")
+        btn_region = discord.ui.Button(emoji=APP_EMOJIS["region"], label="Region", style=discord.ButtonStyle.secondary, custom_id="vc_btn_region")
+        btn_members = discord.ui.Button(emoji=APP_EMOJIS["members"], label="Members", style=discord.ButtonStyle.secondary, custom_id="vc_btn_members")
+        btn_host = discord.ui.Button(emoji=APP_EMOJIS["host"], label="Host", style=discord.ButtonStyle.secondary, custom_id="vc_btn_host")
 
-        btn_rename.callback = self.rename_callback
-        btn_limit.callback = self.limit_callback
-        btn_lock.callback = self.lock_callback
-        btn_unlock.callback = self.unlock_callback
         btn_privacy.callback = self.privacy_callback
-
-        row0 = discord.ui.ActionRow(btn_rename, btn_limit, btn_lock, btn_unlock, btn_privacy)
-        container_children.append(row0)
-
-        # Row 1: Audio, Connections & Trust (5 icon buttons)
-        btn_trust = discord.ui.Button(emoji=APP_EMOJIS["trust"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_trust")
-        btn_untrust = discord.ui.Button(emoji=APP_EMOJIS["untrust"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_untrust")
-        btn_settings = discord.ui.Button(emoji=APP_EMOJIS["settings"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_settings")
-        btn_region = discord.ui.Button(emoji=APP_EMOJIS["region"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_region")
-        btn_knock = discord.ui.Button(emoji=APP_EMOJIS["knock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock")
-
-        btn_trust.callback = self.trust_callback
-        btn_untrust.callback = self.untrust_callback
         btn_settings.callback = self.settings_callback
         btn_region.callback = self.region_callback
-        btn_knock.callback = self.knock_toggle_callback
+        btn_members.callback = self.members_callback
+        btn_host.callback = self.host_callback
 
-        row1 = discord.ui.ActionRow(btn_trust, btn_untrust, btn_settings, btn_region, btn_knock)
+        row0 = discord.ui.ActionRow(btn_privacy, btn_settings, btn_region, btn_members, btn_host)
+        container_children.append(row0)
+
+        # Row 1: Delete, Lock, Unlock, Ghost, Reveal
+        btn_delete = discord.ui.Button(emoji=APP_EMOJIS["delete"], label="Delete", style=discord.ButtonStyle.secondary, custom_id="vc_btn_delete")
+        btn_lock = discord.ui.Button(emoji=APP_EMOJIS["lock"], label="Lock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_lock")
+        btn_unlock = discord.ui.Button(emoji=APP_EMOJIS["unlock"], label="Unlock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_unlock")
+        btn_ghost = discord.ui.Button(emoji=APP_EMOJIS["ghost"], label="Ghost", style=discord.ButtonStyle.secondary, custom_id="vc_btn_ghost")
+        btn_reveal = discord.ui.Button(emoji=APP_EMOJIS["reveal"], label="Reveal", style=discord.ButtonStyle.secondary, custom_id="vc_btn_reveal")
+
+        btn_delete.callback = self.delete_callback
+        btn_lock.callback = self.lock_callback
+        btn_unlock.callback = self.unlock_callback
+        btn_ghost.callback = self.ghost_callback
+        btn_reveal.callback = self.reveal_callback
+
+        row1 = discord.ui.ActionRow(btn_delete, btn_lock, btn_unlock, btn_ghost, btn_reveal)
         container_children.append(row1)
 
-        # Row 2: Member Moderation & Room Ownership (5 icon buttons)
-        btn_kick = discord.ui.Button(emoji=APP_EMOJIS["kick"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_kick")
-        btn_block = discord.ui.Button(emoji=APP_EMOJIS["block"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_block")
-        btn_claim = discord.ui.Button(emoji=APP_EMOJIS["claim"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim")
-        btn_transfer = discord.ui.Button(emoji=APP_EMOJIS["transfer"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
-        btn_delete = discord.ui.Button(emoji=APP_EMOJIS["delete"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_delete")
+        # Row 2: Knock, Rename, Limit, Trust, Untrust
+        btn_knock = discord.ui.Button(emoji=APP_EMOJIS["knock"], label="Knock", style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock")
+        btn_rename = discord.ui.Button(emoji=APP_EMOJIS["rename"], label="Rename", style=discord.ButtonStyle.secondary, custom_id="vc_btn_rename")
+        btn_limit = discord.ui.Button(emoji=APP_EMOJIS["limit"], label="Limit", style=discord.ButtonStyle.secondary, custom_id="vc_btn_limit")
+        btn_trust = discord.ui.Button(emoji=APP_EMOJIS["trust"], label="Trust", style=discord.ButtonStyle.secondary, custom_id="vc_btn_trust")
+        btn_untrust = discord.ui.Button(emoji=APP_EMOJIS["untrust"], label="Untrust", style=discord.ButtonStyle.secondary, custom_id="vc_btn_untrust")
 
-        btn_kick.callback = self.kick_callback
-        btn_block.callback = self.block_callback
-        btn_claim.callback = self.claim_callback
-        btn_transfer.callback = self.transfer_callback
-        btn_delete.callback = self.delete_callback
+        btn_knock.callback = self.knock_toggle_callback
+        btn_rename.callback = self.rename_callback
+        btn_limit.callback = self.limit_callback
+        btn_trust.callback = self.trust_callback
+        btn_untrust.callback = self.untrust_callback
 
-        row2 = discord.ui.ActionRow(btn_kick, btn_block, btn_claim, btn_transfer, btn_delete)
+        row2 = discord.ui.ActionRow(btn_knock, btn_rename, btn_limit, btn_trust, btn_untrust)
         container_children.append(row2)
 
         # 3. Unified borderless V2 Container
