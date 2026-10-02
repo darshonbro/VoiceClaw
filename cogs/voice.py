@@ -1908,17 +1908,7 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
 
         container_children = []
 
-        # 1. MediaGallery Banner FIRST at the very top
-        if self.banner_url:
-            container_children.append(
-                discord.ui.MediaGallery(discord.MediaGalleryItem(self.banner_url))
-            )
-        elif self.has_banner:
-            container_children.append(
-                discord.ui.MediaGallery(discord.MediaGalleryItem("attachment://banner.jpg"))
-            )
-
-        # 2. Minimal, clean text header
+        # 1. Minimal, clean text header FIRST at the very top
         if member_avatar_url:
             section = discord.ui.Section(
                 discord.ui.TextDisplay(f"{title}\n{subtitle}"),
@@ -1927,6 +1917,16 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             container_children.append(section)
         else:
             container_children.append(discord.ui.TextDisplay(f"{title}\n{subtitle}"))
+
+        # 2. MediaGallery Banner BELOW the text
+        if self.banner_url:
+            container_children.append(
+                discord.ui.MediaGallery(discord.MediaGalleryItem(self.banner_url))
+            )
+        elif self.has_banner:
+            container_children.append(
+                discord.ui.MediaGallery(discord.MediaGalleryItem("attachment://banner.jpg"))
+            )
 
         # Row 0: Privacy, Settings, Region, Members, Host (Uniform Square Icons)
         btn_privacy = discord.ui.Button(emoji=APP_EMOJIS["privacy"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_privacy")
