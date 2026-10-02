@@ -771,13 +771,15 @@ class KnockChannelSelect(discord.ui.Select):
     def __init__(self, cog, channels_data):
         options = []
         for chan, owner_id in channels_data[:25]:
+            host = chan.guild.get_member(owner_id) if chan.guild else None
+            host_name = host.display_name if host else f"Host: {owner_id}"
             options.append(discord.SelectOption(
-                label=f"⌬  {chan.name[:50]}",
+                label=f"🚪 {chan.name[:50]}",
                 value=str(chan.id),
-                description=f"Host ID: {owner_id}"
+                description=f"Host: {host_name} • {len(chan.members)} connected"
             ))
         super().__init__(
-            placeholder="Select a room to knock on...",
+            placeholder="Select a room to ring doorbell (knock)...",
             min_values=1,
             max_values=1,
             options=options
@@ -792,15 +794,20 @@ class KnockChannelSelect(discord.ui.Select):
 
         owner_id = await self.cog.get_channel_owner(chan_id)
         if not owner_id:
-            return await interaction.response.send_message("✕ Host not found for this channel.", ephemeral=True)
+            first_human = next((m for m in target_channel.members if not m.bot), None)
+            if first_human:
+                owner_id = first_human.id
+                await self.cog.register_temp_channel(first_human.id, chan_id)
+            else:
+                return await interaction.response.send_message("✕ Host not found for this channel.", ephemeral=True)
 
         if not self.cog.knock_settings.get(chan_id, True):
             return await interaction.response.send_message("✕ This room has Knock Mode set to **Do Not Disturb**.", ephemeral=True)
 
         doorbell_view = KnockResponseView(self.cog, target_channel, interaction.user, owner_id)
-        await target_channel.send(content=f"<@{owner_id}>", view=doorbell_view)
+        await target_channel.send(content=f"🔔 <@{owner_id}>", view=doorbell_view)
         await interaction.response.send_message(
-            f"⌬ **Doorbell Ring Sent!**\nKnocked on **{target_channel.name}** for host <@{owner_id}>. Waiting for them to allow entry...",
+            f"🔔 **Doorbell Ring Sent!**\nKnocked on **{target_channel.name}** for host <@{owner_id}>. Waiting for them to allow entry...",
             ephemeral=True
         )
 
@@ -828,17 +835,36 @@ class HostKnockSettingsView(discord.ui.View):
 
     async def enable_callback(self, interaction: discord.Interaction):
         self.cog.knock_settings[self.channel.id] = True
-        await interaction.response.send_message(
-            "⌬ **Knock Mode: ENABLED**\nMembers who cannot join can now knock to request entry.",
-            ephemeral=True
+        view = discord.ui.LayoutView()
+        container = discord.ui.Container(
+            discord.ui.TextDisplay(
+                f"### 🔔 Knock Doorbell: ENABLED\n"
+                f"• **Room:** `{self.channel.name}`\n"
+                f"• **Doorbell Status:** `Active`\n\n"
+                f"**📌 এটি কীভাবে কাজ করবে?**\n"
+                f"1. **রুম লক করুন (🔒):** আপনার ভয়েস রুমটি লক (`.lock` বা 🔒 বাটন) করে রাখুন যাতে অনুমতি ছাড়া সরাসরি কেউ ঢুকতে না পারে।\n"
+                f"2. **বাইরের মেম্বারদের নক করতে বলুন:** বাইরের কোনো মেম্বার আপনার রুমে আসতে চাইলে `#interface` প্যানেলের **Knock (🔔)** বাটন চাপবে অথবা `.knock` লিখবে।\n"
+                f"3. **অনুমতি দিন:** সাথে সাথে আপনার এই টেক্সট চ্যাটে কলিং বেল আসবে। আপনি **[✦ Allow Entry]** চাপলেই বট তাকে রুমে টেনে নিয়ে আসবে!"
+            ),
+            accent_color=None
         )
+        view.add_item(container)
+        await interaction.response.send_message(view=view, ephemeral=True)
 
     async def disable_callback(self, interaction: discord.Interaction):
         self.cog.knock_settings[self.channel.id] = False
-        await interaction.response.send_message(
-            "✕ **Knock Mode: MUTED (Do Not Disturb)**\nKnock requests are silenced for this room.",
-            ephemeral=True
+        view = discord.ui.LayoutView()
+        container = discord.ui.Container(
+            discord.ui.TextDisplay(
+                f"### 🔕 Knock Doorbell: MUTED (Do Not Disturb)\n"
+                f"• **Room:** `{self.channel.name}`\n"
+                f"• **Doorbell Status:** `Muted`\n\n"
+                f"বাইরের কেউ এখন এই রুমে কলিং বেল (Knock) পাঠাতে পারবে না।"
+            ),
+            accent_color=None
         )
+        view.add_item(container)
+        await interaction.response.send_message(view=view, ephemeral=True)
 
 
 class KnockResponseView(discord.ui.LayoutView):
@@ -854,7 +880,9 @@ class KnockResponseView(discord.ui.LayoutView):
                 discord.ui.TextDisplay(
                     f"### 🚪 Doorbell Alert\n"
                     f"**{requester.display_name}** ({requester.mention}) is requesting to enter this room.\n"
-                    f"**Host:** <@{owner_id}>"
+                    f"• **Host:** <@{owner_id}>\n"
+                    f"• **User:** {requester.mention}\n\n"
+                    f"Click **Allow Entry** to unlock permissions and pull them into the room."
                 ),
                 accessory=discord.ui.Thumbnail(requester.display_avatar.url)
             ),
@@ -872,7 +900,8 @@ class KnockResponseView(discord.ui.LayoutView):
         self.add_item(row)
 
     async def allow_callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.owner_id:
+        is_admin = interaction.user.guild_permissions.administrator
+        if interaction.user.id != self.owner_id and not is_admin:
             return await interaction.response.send_message("✕ Only the channel host can respond to knock requests.", ephemeral=True)
 
         await self.channel.set_permissions(self.requester, connect=True, view_channel=True, read_messages=True)
@@ -893,8 +922,14 @@ class KnockResponseView(discord.ui.LayoutView):
         resp_view.add_item(c)
         await interaction.response.edit_message(view=resp_view)
 
+        try:
+            await self.requester.send(f"🎉 Your knock request for **{self.channel.name}** was **accepted** by {interaction.user.display_name}! You can now join the room.")
+        except Exception:
+            pass
+
     async def decline_callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.owner_id:
+        is_admin = interaction.user.guild_permissions.administrator
+        if interaction.user.id != self.owner_id and not is_admin:
             return await interaction.response.send_message("✕ Only the channel host can respond to knock requests.", ephemeral=True)
 
         resp_view = discord.ui.LayoutView()
@@ -904,6 +939,11 @@ class KnockResponseView(discord.ui.LayoutView):
         )
         resp_view.add_item(c)
         await interaction.response.edit_message(view=resp_view)
+
+        try:
+            await self.requester.send(f"✕ Your knock request for **{self.channel.name}** was declined by the host.")
+        except Exception:
+            pass
 
 
 # ==========================================
@@ -5444,7 +5484,24 @@ class voice(commands.Cog):
                     owner_id = oid
 
         if not target_channel:
-            return await ctx.send("❓ Please mention the room host or a member inside the room! (e.g. `/knock @Host` or `.knock @Host`)", ephemeral=True)
+            async with aiosqlite.connect(DB_PATH) as db:
+                async with db.execute("SELECT voiceID, userID FROM voiceChannel") as cursor:
+                    rows = await cursor.fetchall()
+            valid_channels = []
+            voice_state = user.voice
+            for v_id, o_id in rows:
+                c = ctx.guild.get_channel(v_id)
+                if c and isinstance(c, discord.VoiceChannel):
+                    if not voice_state or voice_state.channel.id != c.id:
+                        valid_channels.append((c, o_id))
+            if valid_channels:
+                view = KnockChannelSelectView(self, valid_channels)
+                return await ctx.send(
+                    "### 🚪 Request to Join (Knock Doorbell)\nSelect which private voice room you would like to knock on:",
+                    view=view,
+                    ephemeral=True
+                )
+            return await ctx.send("✕ There are no active private rooms to knock on right now.", ephemeral=True)
 
         if user in target_channel.members:
             return await ctx.send("ℹ You are already inside that voice channel!", ephemeral=True)
@@ -5455,8 +5512,8 @@ class voice(commands.Cog):
         self.knock_cooldowns[user.id] = now
 
         doorbell_view = KnockResponseView(self, target_channel, user, owner_id)
-        await target_channel.send(content=f"<@{owner_id}>", view=doorbell_view)
-        await ctx.send(f"⌬ Knock sent to **{target_channel.name}**! Waiting for host response...", ephemeral=True)
+        await target_channel.send(content=f"🔔 <@{owner_id}>", view=doorbell_view)
+        await ctx.send(f"🔔 **Doorbell Ring Sent!** Knocked on **{target_channel.name}** for host <@{owner_id}>. Waiting for host response...", ephemeral=True)
 
     @commands.hybrid_command(name="leaderboard", aliases=["top"], description="View top active voice chatter rankings in the server")
     async def leaderboard_cmd(self, ctx: commands.Context):
