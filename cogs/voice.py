@@ -924,19 +924,32 @@ RTC_REGIONS_MAP = {
     "Brazil": "brazil"
 }
 
+def format_rtc_region(val: typing.Optional[str]) -> str:
+    if not val:
+        return "Automatic"
+    val_lower = val.lower()
+    for name, code in RTC_REGIONS_MAP.items():
+        if code and code.lower() == val_lower:
+            return name
+    return val.capitalize()
+
 class RegionSelect(discord.ui.Select):
     def __init__(self, cog, channel: discord.VoiceChannel):
+        current_region = getattr(channel, "rtc_region", None)
+        curr_norm = current_region.lower() if current_region else "auto"
+
         options = [
-            discord.SelectOption(label="Automatic (Default)", value="auto", description="Discord automatically selects optimal region"),
-            discord.SelectOption(label="Singapore", value="singapore", description="Lowest ping for South & Southeast Asia"),
-            discord.SelectOption(label="India", value="india", description="Optimized for Indian subcontinent"),
-            discord.SelectOption(label="Hong Kong", value="hongkong", description="East Asia low-latency"),
-            discord.SelectOption(label="Rotterdam", value="rotterdam", description="Europe primary datacenter"),
-            discord.SelectOption(label="US-Central", value="us-central", description="North America central"),
-            discord.SelectOption(label="US-East", value="us-east", description="North America east coast"),
-            discord.SelectOption(label="US-West", value="us-west", description="North America west coast"),
-            discord.SelectOption(label="Sydney", value="sydney", description="Oceania & Australia"),
-            discord.SelectOption(label="Japan", value="japan", description="Tokyo datacenter")
+            discord.SelectOption(label="Automatic (Default)", value="auto", description="Discord automatically selects optimal region", default=(curr_norm == "auto")),
+            discord.SelectOption(label="Singapore", value="singapore", description="Lowest ping for South & Southeast Asia", default=(curr_norm == "singapore")),
+            discord.SelectOption(label="India", value="india", description="Optimized for Indian subcontinent", default=(curr_norm == "india")),
+            discord.SelectOption(label="Hong Kong", value="hongkong", description="East Asia low-latency", default=(curr_norm == "hongkong")),
+            discord.SelectOption(label="Rotterdam", value="rotterdam", description="Europe primary datacenter", default=(curr_norm == "rotterdam")),
+            discord.SelectOption(label="US-Central", value="us-central", description="North America central", default=(curr_norm == "us-central")),
+            discord.SelectOption(label="US-East", value="us-east", description="North America east coast", default=(curr_norm == "us-east")),
+            discord.SelectOption(label="US-West", value="us-west", description="North America west coast", default=(curr_norm == "us-west")),
+            discord.SelectOption(label="Sydney", value="sydney", description="Oceania & Australia", default=(curr_norm == "sydney")),
+            discord.SelectOption(label="Japan", value="japan", description="Tokyo datacenter", default=(curr_norm == "japan")),
+            discord.SelectOption(label="Brazil", value="brazil", description="South America datacenter", default=(curr_norm == "brazil")),
         ]
         super().__init__(placeholder="Select Voice RTC Server Region...", min_values=1, max_values=1, options=options)
         self.cog = cog
@@ -944,20 +957,44 @@ class RegionSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         owner_id = await self.cog.get_channel_owner(self.channel.id)
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message("✕ Only the room host can change the voice region.", ephemeral=True)
+        is_admin = interaction.user.guild_permissions.administrator
+        if not owner_id:
+            owner_id = interaction.user.id
+            await self.cog.register_temp_channel(interaction.user.id, self.channel.id)
+
+        if interaction.user.id != owner_id and not is_admin:
+            return await interaction.response.send_message(
+                f"✕ Only the room host (<@{owner_id}>) can change the voice region.",
+                ephemeral=True
+            )
 
         selected = self.values[0]
         region_val = None if selected == "auto" else selected
-        region_label = "Automatic" if region_val is None else selected.capitalize()
+        region_label = format_rtc_region(region_val)
 
         try:
-            await self.channel.edit(rtc_region=region_val)
-            await interaction.response.send_message(f"🌐 Voice server region set to **{region_label}**!", ephemeral=True)
+            guild_chan = interaction.guild.get_channel(self.channel.id)
+            target = guild_chan or self.channel
+            new_chan = await target.edit(rtc_region=region_val)
+            self.channel = new_chan
+
+            view = discord.ui.LayoutView()
+            container = discord.ui.Container(
+                discord.ui.TextDisplay(
+                    f"### 🌐 Voice Region Updated\n"
+                    f"• **Channel:** `{new_chan.name}`\n"
+                    f"• **Active RTC Server:** **{region_label}**\n\n"
+                    f"*(Active voice sessions will route to `{region_label}`. Reconnect to voice if ping does not reflect immediately in your voice debug stats.)*"
+                ),
+                accent_color=None
+            )
+            view.add_item(container)
+            await interaction.response.send_message(view=view, ephemeral=True)
+
             await self.cog.log_voice_event(
                 interaction.guild,
                 title="🌐 Room Region Changed",
-                description=f"Host {interaction.user.mention} switched RTC region of `{self.channel.name}` to **{region_label}**.",
+                description=f"Host {interaction.user.mention} switched RTC region of `{new_chan.name}` to **{region_label}**.",
                 color=0x5865F2
             )
         except Exception as e:
@@ -1545,6 +1582,7 @@ class SettingsSelect(discord.ui.Select):
             discord.SelectOption(label="Rename Channel", emoji=APP_EMOJIS["rename"], value="rename", description="Change room name via popup modal"),
             discord.SelectOption(label="Member Limit", emoji=APP_EMOJIS["limit"], value="limit", description="Set user capacity (0 = Unlimited)"),
             discord.SelectOption(label="Audio Bitrate", emoji=APP_EMOJIS["bitrate"], value="bitrate", description="Adjust audio quality in kbps"),
+            discord.SelectOption(label="Voice Region", emoji=APP_EMOJIS["region"], value="region", description="Switch RTC datacenter for lower ping"),
             discord.SelectOption(label="Soundboard & Video", emoji=APP_EMOJIS["privacy"], value="permissions", description="Toggle screen share & soundboard permissions"),
             discord.SelectOption(label="Room Presets", emoji=APP_EMOJIS["settings"], value="preset", description="Save or load customized room profiles"),
             discord.SelectOption(label="Discord Activities", emoji=APP_EMOJIS["activity"], value="activity", description="Launch Watch Together & Party Games"),
@@ -1560,8 +1598,9 @@ class SettingsSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         val = self.values[0]
         owner_id = await self.cog.get_channel_owner(self.channel.id)
-        if val in ["rename", "limit", "bitrate", "permissions", "preset"]:
-            if owner_id and interaction.user.id != owner_id:
+        is_admin = interaction.user.guild_permissions.administrator
+        if val in ["rename", "limit", "bitrate", "region", "permissions", "preset"]:
+            if owner_id and interaction.user.id != owner_id and not is_admin:
                 return await interaction.response.send_message(f"✕ Only the room host (<@{owner_id}>) can modify room settings.", ephemeral=True)
 
         if val == "rename":
@@ -1575,6 +1614,14 @@ class SettingsSelect(discord.ui.Select):
             await interaction.response.send_modal(ChannelLimitModal(self.cog, self.channel))
         elif val == "bitrate":
             await interaction.response.send_modal(ChannelBitrateModal(self.cog, self.channel))
+        elif val == "region":
+            curr = format_rtc_region(self.channel.rtc_region)
+            view = RegionSelectView(self.cog, self.channel)
+            await interaction.response.send_message(
+                f"### 🌐 Voice Region Selector • `{self.channel.name}` (Current: **{curr}**)\nSelect an optimal RTC voice datacenter:",
+                view=view,
+                ephemeral=True
+            )
         elif val == "permissions":
             view = PermissionsControlView(self.cog, self.channel)
             await interaction.response.send_message("🛡️ Configure Soundboard and Video / Screen sharing permissions:", view=view, ephemeral=True)
@@ -1697,7 +1744,7 @@ class HostActionSelect(discord.ui.Select):
             owner_name = owner.mention if owner else (f"<@{owner_id}>" if owner_id else "None")
             limit_text = "Unlimited" if self.channel.user_limit == 0 else f"{len(self.channel.members)}/{self.channel.user_limit}"
             knock_mode = "Enabled" if self.cog.knock_settings.get(self.channel.id, True) else "Muted"
-            region_str = self.channel.rtc_region.capitalize() if self.channel.rtc_region else "Automatic"
+            region_str = format_rtc_region(self.channel.rtc_region)
             is_perm = await self.cog.is_channel_permanent(self.channel.id)
             room_type = "Permanent (Never auto-deletes)" if is_perm else "Temporary (Auto-deletes when empty)"
 
@@ -2337,11 +2384,12 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             )
         if not channel:
             return await interaction.response.send_message("✕ You are not connected to a voice channel and do not own an active voice room in this server!", ephemeral=True)
-        if owner_id and interaction.user.id != owner_id:
+        if owner_id and interaction.user.id != owner_id and not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can change the voice region.", ephemeral=True)
 
+        curr = format_rtc_region(channel.rtc_region)
         await interaction.response.send_message(
-            f"🌐 Select optimal RTC voice server region for lower ping (`{channel.name}`):",
+            f"🌐 **Voice Region Selector** • `{channel.name}` (Current: **{curr}**)\nSelect optimal RTC voice server region for lower ping:",
             view=RegionSelectView(self.cog, channel),
             ephemeral=True
         )
@@ -2512,7 +2560,7 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         owner_name = owner.mention if owner else f"User ID: {owner_id}"
         limit_text = "Unlimited" if channel.user_limit == 0 else f"{len(channel.members)}/{channel.user_limit}"
         knock_mode = "Enabled" if self.cog.knock_settings.get(channel.id, True) else "Muted"
-        region_str = channel.rtc_region.capitalize() if channel.rtc_region else "Automatic"
+        region_str = format_rtc_region(channel.rtc_region)
         is_perm = await self.cog.is_channel_permanent(channel.id)
         room_type = "Permanent (Never auto-deletes)" if is_perm else "Temporary (Auto-deletes when empty)"
 
@@ -4244,7 +4292,7 @@ class voice(commands.Cog):
         owner_name = owner.mention if owner else f"User ID: {owner_id}"
         limit_text = "Unlimited" if channel.user_limit == 0 else f"{len(channel.members)}/{channel.user_limit}"
         knock_mode = "Enabled" if self.knock_settings.get(channel.id, True) else "Muted"
-        region_str = channel.rtc_region.capitalize() if channel.rtc_region else "Automatic"
+        region_str = format_rtc_region(channel.rtc_region)
 
         desc = (
             f"• **Host:** {owner_name}\n"
@@ -4477,15 +4525,33 @@ class voice(commands.Cog):
 
     @voice_group.command(name="region", description="Switch RTC datacenter region to optimize voice ping")
     @app_commands.describe(region="Voice server region")
-    async def v_region(self, ctx: commands.Context, region: typing.Literal[
+    async def v_region(self, ctx: commands.Context, region: typing.Optional[typing.Literal[
         "Automatic", "Singapore", "India", "Hong Kong", "Rotterdam", "US-Central", "US-East", "US-West", "Sydney", "Japan", "Brazil"
-    ]):
+    ]] = None):
         channel, owner_id = await self._require_channel_host(ctx)
         if not channel: return
+        if not region:
+            curr = format_rtc_region(channel.rtc_region)
+            return await ctx.send(
+                f"🌐 **Voice Region Selector** • `{channel.name}` (Current: **{curr}**)\nSelect optimal RTC datacenter:",
+                view=RegionSelectView(self, channel),
+                ephemeral=True
+            )
         region_val = RTC_REGIONS_MAP.get(region)
         try:
-            await channel.edit(rtc_region=region_val)
-            await ctx.send(f"🌐 Voice server region set to **{region}**!", ephemeral=True)
+            new_chan = await channel.edit(rtc_region=region_val)
+            view = discord.ui.LayoutView()
+            container = discord.ui.Container(
+                discord.ui.TextDisplay(
+                    f"### 🌐 Voice Region Updated\n"
+                    f"• **Channel:** `{new_chan.name}`\n"
+                    f"• **Active RTC Server:** **{region}**\n\n"
+                    f"*(Active voice sessions will route to `{region}`. Reconnect to voice if ping does not reflect immediately in your voice debug stats.)*"
+                ),
+                accent_color=None
+            )
+            view.add_item(container)
+            await ctx.send(view=view, ephemeral=True)
             await self.log_voice_event(
                 ctx.guild,
                 title="🌐 Room Region Changed",
@@ -5561,15 +5627,65 @@ class voice(commands.Cog):
         await self.v_bitrate(ctx, kbps=kbps)
 
     @commands.command(name="region")
-    async def p_region_alias(self, ctx, region: str):
-        matched = None
-        for k in RTC_REGIONS_MAP.keys():
-            if k.lower() == region.lower():
-                matched = k
-                break
+    async def p_region_alias(self, ctx, *, region: typing.Optional[str] = None):
+        channel, owner_id = await self._require_channel_host(ctx)
+        if not channel:
+            return
+
+        if not region:
+            curr = format_rtc_region(channel.rtc_region)
+            return await ctx.send(
+                f"🌐 **Voice Region Selector** • `{channel.name}` (Current: **{curr}**)\nSelect optimal RTC datacenter:",
+                view=RegionSelectView(self, channel),
+                ephemeral=True
+            )
+
+        norm = region.strip().lower()
+        alias_map = {
+            "auto": "Automatic",
+            "automatic": "Automatic",
+            "default": "Automatic",
+            "singapore": "Singapore",
+            "sg": "Singapore",
+            "sing": "Singapore",
+            "india": "India",
+            "in": "India",
+            "ind": "India",
+            "hongkong": "Hong Kong",
+            "hong kong": "Hong Kong",
+            "hk": "Hong Kong",
+            "rotterdam": "Rotterdam",
+            "rot": "Rotterdam",
+            "eu": "Rotterdam",
+            "europe": "Rotterdam",
+            "us-central": "US-Central",
+            "usc": "US-Central",
+            "central": "US-Central",
+            "us-east": "US-East",
+            "use": "US-East",
+            "east": "US-East",
+            "us-west": "US-West",
+            "usw": "US-West",
+            "west": "US-West",
+            "sydney": "Sydney",
+            "syd": "Sydney",
+            "aus": "Sydney",
+            "australia": "Sydney",
+            "japan": "Japan",
+            "jp": "Japan",
+            "tokyo": "Japan",
+            "brazil": "Brazil",
+            "br": "Brazil"
+        }
+        matched = alias_map.get(norm)
+        if not matched:
+            for k in RTC_REGIONS_MAP.keys():
+                if k.lower() == norm:
+                    matched = k
+                    break
         if not matched:
             regions_list = ", ".join(RTC_REGIONS_MAP.keys())
-            return await ctx.send(f"✕ Invalid region. Available: `{regions_list}`")
+            return await ctx.send(f"✕ Invalid region `{region}`. Available: `{regions_list}`")
         await self.v_region(ctx, region=matched)
 
     @commands.command(name="activity")
