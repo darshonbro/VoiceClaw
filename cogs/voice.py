@@ -2941,6 +2941,7 @@ class voice(commands.Cog):
         self.afk_tracker = {}
         self.panel_cooldowns = {}
         self.rename_history = {}
+        self._reverting_channel_ids = set()
 
     def check_channel_rename_ratelimit(self, channel_id: int) -> typing.Optional[int]:
         """Checks Discord's 2-renames per 10-minutes rule. Returns remaining wait seconds if rate limited, else None."""
@@ -3521,6 +3522,11 @@ class voice(commands.Cog):
             async with db.execute("SELECT hubID, guildID, categoryID, joinChannelID, interfaceChannelID, fixedName, userLimit, lockName FROM voiceHubs WHERE joinChannelID = ?", (join_channel_id,)) as cursor:
                 return await cursor.fetchone()
 
+    async def get_voice_hub_by_category(self, category_id: int):
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT hubID, guildID, categoryID, joinChannelID, interfaceChannelID, fixedName, userLimit, lockName FROM voiceHubs WHERE categoryID = ?", (category_id,)) as cursor:
+                return await cursor.fetchone()
+
     async def get_guild_hubs(self, guild_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
             async with db.execute("SELECT hubID, guildID, categoryID, joinChannelID, interfaceChannelID, fixedName, userLimit, lockName FROM voiceHubs WHERE guildID = ?", (guild_id,)) as cursor:
@@ -4023,6 +4029,63 @@ class voice(commands.Cog):
                     await message.delete()
                 except Exception:
                     pass
+
+    # --- Listener: Automatically restore fixed name for Themed Hub voice channels ---
+    @commands.Cog.listener()
+    async def on_guild_channel_update(self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
+        if not isinstance(after, discord.VoiceChannel):
+            return
+
+        # Only react when channel name is actually changed
+        if before.name == after.name:
+            return
+
+        # Must be in a category
+        if not after.category_id:
+            return
+
+        # Avoid recursion while bot is actively restoring name
+        if after.id in self._reverting_channel_ids:
+            return
+
+        try:
+            hub = await self.get_voice_hub_by_category(after.category_id)
+            if not hub:
+                return
+
+            hub_id, guild_id, cat_id, join_id, interface_id, fixed_name, user_limit, lock_name = hub
+
+            if not lock_name or not fixed_name:
+                return
+
+            # Do not force join channel name so admins can customize join channel title
+            if after.id == join_id:
+                return
+
+            if after.name == fixed_name:
+                return
+
+            self._reverting_channel_ids.add(after.id)
+            try:
+                await after.edit(name=fixed_name, reason="VoiceClaw: Enforcing fixed name for themed hub room")
+                print(f"[VoiceClaw] Restored fixed name '{fixed_name}' for voice room {after.id} in {after.guild.name} (renamed from '{after.name}')")
+
+                await self.log_voice_event(
+                    after.guild,
+                    title="✦ Fixed Channel Name Restored",
+                    description=f"Room {after.mention} was renamed to `{after.name}`.\nVoiceClaw automatically restored the fixed hub room name to **`{fixed_name}`**.",
+                    color=None
+                )
+            except discord.Forbidden:
+                print(f"[VoiceClaw Error] Missing permissions to restore fixed name on channel {after.id} in {after.guild.name}")
+            except discord.HTTPException as e:
+                print(f"[VoiceClaw Error] HTTP error restoring fixed name on channel {after.id}: {e}")
+            finally:
+                await asyncio.sleep(2)
+                self._reverting_channel_ids.discard(after.id)
+
+        except Exception as e:
+            print(f"[VoiceClaw Error] on_guild_channel_update exception: {e}")
 
     # --- Listener: Voice State Updates & Time Tracking ---
     @commands.Cog.listener()
