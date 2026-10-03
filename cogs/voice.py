@@ -2290,6 +2290,14 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         channel = None
         owner_id = None
 
+        # 0. Check if interaction occurred directly inside a managed Voice Channel
+        if isinstance(interaction.channel, discord.VoiceChannel):
+            c_owner = await self.cog.get_channel_owner(interaction.channel.id)
+            if c_owner:
+                channel = interaction.channel
+                owner_id = c_owner
+                return channel, owner_id
+
         # 1. Resolve voice state from guild member cache
         member = guild.get_member(user.id) if guild else None
         if not member and isinstance(user, discord.Member):
@@ -2704,23 +2712,50 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         guild = interaction.guild
         user = interaction.user
 
-        if not await self.cog.can_delete_voice_channel(guild, user):
-            return await interaction.response.send_message(
-                "✕ **Voice channel manual deletion is restricted on this server.**\n"
-                "Only the **Server Owner** and **Whitelisted Members/Roles** can manually delete voice rooms.\n"
-                "*(Your channel will automatically delete when everyone leaves).* ",
-                ephemeral=True
-            )
+        # 0. Check if button was clicked inside a Voice Channel text chat
+        target_channel = None
+        if isinstance(interaction.channel, discord.VoiceChannel):
+            c_owner = await self.cog.get_channel_owner(interaction.channel.id)
+            if c_owner:
+                target_channel = interaction.channel
 
+        # 1. Check if user is currently inside a managed voice room
+        if not target_channel:
+            voice_state = user.voice if isinstance(user, discord.Member) else None
+            curr_chan = voice_state.channel if voice_state and voice_state.channel and voice_state.channel.guild.id == guild.id else None
+            if curr_chan:
+                curr_owner = await self.cog.get_channel_owner(curr_chan.id)
+                if curr_owner:
+                    target_channel = curr_chan
+
+        if target_channel:
+            curr_owner = await self.cog.get_channel_owner(target_channel.id)
+            if curr_owner:
+                # Channel host or server owner/whitelisted admin can delete
+                if user.id != curr_owner and not await self.cog.can_delete_voice_channel(guild, user):
+                    return await interaction.response.send_message(f"✕ Only the Voice Channel Owner (<@{curr_owner}>) can delete this voice room.", ephemeral=True)
+
+                chan_name = target_channel.name
+                await interaction.response.send_message(f"🗑 **Deleting voice room `{chan_name}`...**", ephemeral=True)
+                await self.cog.delete_temp_channel_record(target_channel.id)
+                self.cog.knock_settings.pop(target_channel.id, None)
+                self.cog.afk_tracker.pop(target_channel.id, None)
+                try:
+                    await target_channel.delete(reason=f"Deleted by room owner {user.name}")
+                except Exception:
+                    pass
+                await self.cog.log_voice_event(
+                    guild,
+                    title="🗑 Room Deleted",
+                    description=f"Host {user.mention} deleted room `{chan_name}`.",
+                    color=0xED4245
+                )
+                return
+
+        # 2. If not currently in voice, look up rooms owned by the user
         owned = await self.cog.get_user_owned_channels(guild, user.id)
-        if user.voice and user.voice.channel:
-            curr_chan = user.voice.channel
-            curr_owner = await self.cog.get_channel_owner(curr_chan.id)
-            if curr_owner == user.id and curr_chan not in owned:
-                owned.append(curr_chan)
-
         if not owned:
-            return await interaction.response.send_message("✕ You do not own any active voice rooms in this server.", ephemeral=True)
+            return await interaction.response.send_message("✕ You are not connected to a voice channel and do not own an active voice room in this server!", ephemeral=True)
 
         if len(owned) == 1:
             target = owned[0]
@@ -5343,20 +5378,21 @@ class voice(commands.Cog):
     async def v_delete(self, ctx: commands.Context):
         channel, owner_id = await self._require_channel_host(ctx)
         if not channel: return
-        if not await self.can_delete_voice_channel(ctx.guild, ctx.author):
-            return await ctx.send(
-                "✕ **Voice channel deletion via command is restricted on this server.**\n"
-                "Only the **Server Owner** and **Whitelisted Members/Roles** can manually delete voice rooms.\n"
-                "*(Your channel will automatically delete when everyone leaves).* ",
-                ephemeral=True
-            )
-        await ctx.send("🗑 **Deleting voice room...**", ephemeral=True)
+        chan_name = channel.name
+        await ctx.send(f"🗑 **Deleting voice room `{chan_name}`...**", ephemeral=True)
         await self.delete_temp_channel_record(channel.id)
         self.knock_settings.pop(channel.id, None)
+        self.afk_tracker.pop(channel.id, None)
         try:
             await channel.delete(reason=f"Deleted by channel host {ctx.author.name}")
         except Exception:
             pass
+        await self.log_voice_event(
+            ctx.guild,
+            title="🗑 Room Deleted",
+            description=f"Host {ctx.author.mention} deleted room `{chan_name}`.",
+            color=0xED4245
+        )
 
     # ==========================================
     # VC DELETION WHITELIST & POLICY (/vcwhitelist)
