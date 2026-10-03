@@ -4186,6 +4186,16 @@ class voice(commands.Cog):
             perm_category_id = guild_cfg[6] if guild_cfg and len(guild_cfg) > 6 else None
 
             # 1. User Joined the "Join to Create" Master Channel
+            # Self-healing: if channel ID changed or recreated in the registered category
+            if after.channel and category_id and after.channel.category_id == category_id:
+                if any(k in after.channel.name.lower() for k in ["create", "join"]) or after.channel.name.startswith(("+", "＋")):
+                    if after.channel.id != master_channel_id:
+                        print(f"[VoiceClaw Self-Healing] Auto-updating stale master_channel_id {master_channel_id} -> {after.channel.id}")
+                        master_channel_id = after.channel.id
+                        async with aiosqlite.connect(DB_PATH) as db:
+                            await db.execute('UPDATE guild SET voiceChannelID = ? WHERE guildID = ?', (master_channel_id, guild.id))
+                            await db.commit()
+
             if after.channel and master_channel_id and after.channel.id == master_channel_id:
                 loop_now = asyncio.get_event_loop().time()
                 if member.id in self.cooldowns and (loop_now - self.cooldowns[member.id]) < 4:
@@ -4300,6 +4310,17 @@ class voice(commands.Cog):
             # 2. User Joined the "Create Permanent VC" Master Channel
             perm_channel_id = guild_cfg[7] if guild_cfg and len(guild_cfg) > 7 else None
             perm_category_id = guild_cfg[6] if guild_cfg and len(guild_cfg) > 6 else None
+
+            # Self-healing: if channel ID changed or recreated in the permanent category
+            if after.channel and perm_category_id and after.channel.category_id == perm_category_id:
+                if any(k in after.channel.name.lower() for k in ["create", "join", "permanent"]) or after.channel.name.startswith(("+", "＋")):
+                    if after.channel.id != perm_channel_id:
+                        print(f"[VoiceClaw Self-Healing] Auto-updating stale perm_channel_id {perm_channel_id} -> {after.channel.id}")
+                        perm_channel_id = after.channel.id
+                        async with aiosqlite.connect(DB_PATH) as db:
+                            await db.execute('UPDATE guild SET permChannelID = ? WHERE guildID = ?', (perm_channel_id, guild.id))
+                            await db.commit()
+
             if after.channel and perm_channel_id and after.channel.id == perm_channel_id:
                 loop_now = asyncio.get_event_loop().time()
                 if member.id in self.cooldowns and (loop_now - self.cooldowns[member.id]) < 4:
@@ -4383,6 +4404,37 @@ class voice(commands.Cog):
             # 3. User Joined a Fixed-Name Themed Hub Channel
             if after.channel:
                 hub = await self.get_voice_hub(after.channel.id)
+                # Self-healing: if hub join channel ID changed or was recreated
+                if not hub and after.channel.category_id:
+                    cat_hub = await self.get_voice_hub_by_category(after.channel.category_id)
+                    if cat_hub:
+                        hub_id = cat_hub[0]
+                        print(f"[VoiceClaw Self-Healing] Auto-updating hub {hub_id} joinChannelID {cat_hub[3]} -> {after.channel.id}")
+                        async with aiosqlite.connect(DB_PATH) as db:
+                            await db.execute("UPDATE voiceHubs SET joinChannelID = ? WHERE hubID = ?", (after.channel.id, hub_id))
+                            await db.commit()
+                        hub = await self.get_voice_hub(after.channel.id)
+                    elif after.channel.category:
+                        for ch in after.channel.category.text_channels:
+                            if ch.name.lower() == "interface" and ch.topic and "VoiceClaw Control Interface for " in ch.topic:
+                                try:
+                                    prefix = "VoiceClaw Control Interface for "
+                                    suffix = " Rooms"
+                                    start = ch.topic.find(prefix) + len(prefix)
+                                    end = ch.topic.find(suffix, start)
+                                    fixed_name = ch.topic[start:end] if end != -1 else ch.topic[start:].strip()
+                                    async with aiosqlite.connect(DB_PATH) as db:
+                                        async with db.execute("SELECT hubID FROM voiceHubs WHERE guildID = ? AND fixedName = ?", (guild.id, fixed_name)) as cur:
+                                            found = await cur.fetchone()
+                                            if found:
+                                                await db.execute("UPDATE voiceHubs SET categoryID = ?, joinChannelID = ?, interfaceChannelID = ? WHERE hubID = ?",
+                                                                 (after.channel.category_id, after.channel.id, ch.id, found[0]))
+                                                await db.commit()
+                                                hub = await self.get_voice_hub(after.channel.id)
+                                except Exception as e:
+                                    print(f"[VoiceClaw Self-Healing Error] {e}")
+                                break
+
                 if hub:
                     loop_now = asyncio.get_event_loop().time()
                     if member.id in self.cooldowns and (loop_now - self.cooldowns[member.id]) < 4:
