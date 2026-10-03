@@ -691,6 +691,75 @@ class HubSetupModal(discord.ui.Modal, title="Fixed-Name Themed Hub Setup"):
             await interaction.followup.send(f"✕ Hub creation failed: {e}", ephemeral=True)
 
 
+class DuoSetupModal(discord.ui.Modal, title="Configure Duo Voice System"):
+    def __init__(self, cog):
+        super().__init__()
+        self.cog = cog
+
+    duo_type = discord.ui.TextInput(
+        label="Duo Mode: all / temp / perm / fixed",
+        placeholder="all (Suite), temp (Dynamic), perm (24/7), or fixed (Fixed Name)",
+        default="all",
+        required=True,
+        max_length=15
+    )
+
+    category_name = discord.ui.TextInput(
+        label="Category Name (Optional)",
+        placeholder="Leave blank for 'Duo Voice Channels'",
+        default="Duo Voice Channels",
+        required=False,
+        max_length=64
+    )
+
+    interface_name = discord.ui.TextInput(
+        label="Interface Channel Name",
+        placeholder="duo-interface",
+        default="duo-interface",
+        required=False,
+        max_length=32
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
+            return await interaction.response.send_message(
+                f"✕ Only the server owner (<@{interaction.guild.owner_id}>) can complete VoiceClaw setup.",
+                ephemeral=True
+            )
+        await interaction.response.defer()
+        m_type = self.duo_type.value.strip().lower()
+        if m_type not in ["temp", "perm", "fixed", "all"]:
+            m_type = "all"
+        c_name = self.category_name.value.strip() or None
+        i_name = self.interface_name.value.strip() or "duo-interface"
+
+        try:
+            cat, iface, chans = await self.cog.perform_duo_setup(
+                guild=interaction.guild,
+                author_id=interaction.user.id,
+                duo_type=m_type,
+                category_name=c_name,
+                interface_name=i_name
+            )
+
+            chan_lines = "\n".join([f"• **{label}:** {ch.mention}" for label, ch in chans])
+            complete_view = discord.ui.LayoutView()
+            container = discord.ui.Container(
+                discord.ui.TextDisplay(
+                    f"### ✦ Duo Voice System Deployed\n"
+                    f"• **Category:** `{cat.name}`\n"
+                    f"• **Control Interface:** {iface.mention}\n"
+                    f"{chan_lines}\n\n"
+                    f"Members can now join to spawn 2-player Duo voice rooms with full interface panel controls!"
+                ),
+                accent_color=None
+            )
+            complete_view.add_item(container)
+            await interaction.followup.send(view=complete_view)
+        except Exception as e:
+            await interaction.followup.send(f"✕ Duo setup failed: {e}", ephemeral=True)
+
+
 # ==========================================
 # Discord UI Components v2 - Setup Select & LayoutView
 # ==========================================
@@ -715,6 +784,12 @@ class SetupSelect(discord.ui.Select):
                 emoji=APP_EMOJIS["setup_dual"],
                 value="dual",
                 description="Deploy both Temporary and Permanent voice categories"
+            ),
+            discord.SelectOption(
+                label="Duo 2-Player Systems",
+                emoji=APP_EMOJIS["setup_duo"],
+                value="duo",
+                description="Temporary, Permanent (24/7), or Fixed-Name Duo 2-player rooms"
             ),
             discord.SelectOption(
                 label="Fixed-Name Themed Hub",
@@ -758,6 +833,9 @@ class SetupSelect(discord.ui.Select):
 
         elif selected == "permanent_only":
             await interaction.response.send_modal(PermSetupModal(self.cog))
+
+        elif selected == "duo":
+            await interaction.response.send_modal(DuoSetupModal(self.cog))
 
         elif selected == "fixed_hub":
             await interaction.response.send_modal(HubSetupModal(self.cog))
@@ -1622,6 +1700,7 @@ APP_EMOJIS = {
     "setup_perm": discord.PartialEmoji(name="vc_setup_perm", id=1555808564176490546),
     "setup_dual": discord.PartialEmoji(name="vc_setup_dual", id=1555808570727989348),
     "setup_hub": discord.PartialEmoji(name="vc_setup_hub", id=1555808577439137842),
+    "setup_duo": discord.PartialEmoji(name="vc_setup_duo", id=1555812132300394506),
     "setup_custom": discord.PartialEmoji(name="vc_setup_custom", id=1555808584070340741),
     "setup_cancel": discord.PartialEmoji(name="vc_setup_cancel", id=1555808590697340958),
 }
@@ -3208,9 +3287,14 @@ class voice(commands.Cog):
                     interfaceChannelID INTEGER,
                     fixedName TEXT NOT NULL,
                     userLimit INTEGER DEFAULT 0,
-                    lockName INTEGER DEFAULT 1
+                    lockName INTEGER DEFAULT 1,
+                    isPermanent INTEGER DEFAULT 0
                 )
             ''')
+            try:
+                await db.execute("ALTER TABLE voiceHubs ADD COLUMN isPermanent INTEGER DEFAULT 0")
+            except Exception:
+                pass
             try:
                 await db.execute("ALTER TABLE guild ADD COLUMN permCategoryID INTEGER")
             except Exception:
@@ -3559,33 +3643,34 @@ class voice(commands.Cog):
                 row = await cursor.fetchone()
                 return bool(row and row[0])
 
-    async def create_voice_hub(self, guild_id: int, category_id: int, join_channel_id: int, interface_channel_id: typing.Optional[int], fixed_name: str, user_limit: int = 0, lock_name: int = 1):
+    async def create_voice_hub(self, guild_id: int, category_id: int, join_channel_id: int, interface_channel_id: typing.Optional[int], fixed_name: str, user_limit: int = 0, lock_name: int = 1, is_permanent: int = 0):
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute('''
-                INSERT INTO voiceHubs (guildID, categoryID, joinChannelID, interfaceChannelID, fixedName, userLimit, lockName)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO voiceHubs (guildID, categoryID, joinChannelID, interfaceChannelID, fixedName, userLimit, lockName, isPermanent)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(joinChannelID) DO UPDATE SET
                     categoryID = excluded.categoryID,
                     interfaceChannelID = excluded.interfaceChannelID,
                     fixedName = excluded.fixedName,
                     userLimit = excluded.userLimit,
-                    lockName = excluded.lockName
-            ''', (guild_id, category_id, join_channel_id, interface_channel_id, fixed_name, user_limit, lock_name))
+                    lockName = excluded.lockName,
+                    isPermanent = excluded.isPermanent
+            ''', (guild_id, category_id, join_channel_id, interface_channel_id, fixed_name, user_limit, lock_name, is_permanent))
             await db.commit()
 
     async def get_voice_hub(self, join_channel_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
-            async with db.execute("SELECT hubID, guildID, categoryID, joinChannelID, interfaceChannelID, fixedName, userLimit, lockName FROM voiceHubs WHERE joinChannelID = ?", (join_channel_id,)) as cursor:
+            async with db.execute("SELECT hubID, guildID, categoryID, joinChannelID, interfaceChannelID, fixedName, userLimit, lockName, isPermanent FROM voiceHubs WHERE joinChannelID = ?", (join_channel_id,)) as cursor:
                 return await cursor.fetchone()
 
     async def get_voice_hub_by_category(self, category_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
-            async with db.execute("SELECT hubID, guildID, categoryID, joinChannelID, interfaceChannelID, fixedName, userLimit, lockName FROM voiceHubs WHERE categoryID = ?", (category_id,)) as cursor:
+            async with db.execute("SELECT hubID, guildID, categoryID, joinChannelID, interfaceChannelID, fixedName, userLimit, lockName, isPermanent FROM voiceHubs WHERE categoryID = ?", (category_id,)) as cursor:
                 return await cursor.fetchone()
 
     async def get_guild_hubs(self, guild_id: int):
         async with aiosqlite.connect(DB_PATH) as db:
-            async with db.execute("SELECT hubID, guildID, categoryID, joinChannelID, interfaceChannelID, fixedName, userLimit, lockName FROM voiceHubs WHERE guildID = ?", (guild_id,)) as cursor:
+            async with db.execute("SELECT hubID, guildID, categoryID, joinChannelID, interfaceChannelID, fixedName, userLimit, lockName, isPermanent FROM voiceHubs WHERE guildID = ?", (guild_id,)) as cursor:
                 return await cursor.fetchall()
 
     async def delete_voice_hub(self, hub_id: int):
@@ -3693,6 +3778,165 @@ class voice(commands.Cog):
             await db.commit()
 
         return temp_cat, temp_chan, interface_chan, perm_cat, perm_chan, perm_interface
+
+    async def perform_duo_setup(
+        self,
+        guild: discord.Guild,
+        author_id: int,
+        duo_type: str = "all",
+        category_name: typing.Optional[str] = None,
+        interface_name: typing.Optional[str] = None
+    ):
+        """
+        Creates dedicated Duo 2-player voice systems:
+        - 'temp': Dynamic Temporary Duo ({User}'s Duo, limit 2, auto-deletes)
+        - 'perm': Permanent 24/7 Duo ({User}'s Duo, limit 2, never auto-deletes)
+        - 'fixed': Fixed-Name Duo (name locked to 'Duo', limit 2, auto-deletes)
+        - 'all': Complete Duo Suite (Creates category with all 3 Duo hubs + control interface)
+        """
+        raw_type = (duo_type or "all").lower().strip()
+        cat_name = (category_name or ("Duo Voice Channels" if raw_type == "all" else f"Duo Rooms ({raw_type.title()})")).strip()
+        raw_iface = (interface_name or "duo-interface").strip().lstrip("#")
+        i_name = raw_iface if raw_iface else "duo-interface"
+
+        # 1. Get or create category
+        duo_cat = None
+        for c in guild.categories:
+            if c.name.lower() == cat_name.lower():
+                duo_cat = c
+                break
+        if not duo_cat:
+            duo_cat = await guild.create_category(cat_name)
+
+        # 2. Get or create interface text channel
+        interface_chan = discord.utils.get(duo_cat.text_channels, name=i_name)
+        if not interface_chan:
+            interface_chan = await guild.create_text_channel(
+                i_name,
+                category=duo_cat,
+                topic="VoiceClaw 2-Player Duo Voice Control Interface"
+            )
+            await interface_chan.set_permissions(guild.default_role, read_messages=True, send_messages=False, read_message_history=True)
+            await interface_chan.set_permissions(guild.me, read_messages=True, send_messages=True, manage_channels=True)
+
+        has_banner = os.path.exists(BANNER_PATH)
+        ctrl_view = VoiceControlLayoutView(self, has_banner=has_banner)
+        try:
+            await interface_chan.purge(limit=25, check=lambda m: m.author == self.bot.user)
+        except Exception:
+            pass
+        if has_banner:
+            file = discord.File(BANNER_PATH, filename="banner.jpg")
+            await interface_chan.send(file=file, view=ctrl_view)
+        else:
+            await interface_chan.send(view=ctrl_view)
+
+        created_channels = []
+
+        if raw_type in ["temp", "temporary"]:
+            ch_name = "＋ Join Duo (Temp)"
+            join_chan = discord.utils.get(duo_cat.voice_channels, name=ch_name)
+            if not join_chan:
+                join_chan = await guild.create_voice_channel(ch_name, category=duo_cat, user_limit=2)
+            await self.create_voice_hub(
+                guild_id=guild.id,
+                category_id=duo_cat.id,
+                join_channel_id=join_chan.id,
+                interface_channel_id=interface_chan.id,
+                fixed_name="Duo",
+                user_limit=2,
+                lock_name=0,
+                is_permanent=0
+            )
+            created_channels.append(("Temporary Duo", join_chan))
+
+        elif raw_type in ["perm", "permanent", "24/7"]:
+            ch_name = "＋ Create Duo (24/7)"
+            join_chan = discord.utils.get(duo_cat.voice_channels, name=ch_name)
+            if not join_chan:
+                join_chan = await guild.create_voice_channel(ch_name, category=duo_cat, user_limit=2)
+            await self.create_voice_hub(
+                guild_id=guild.id,
+                category_id=duo_cat.id,
+                join_channel_id=join_chan.id,
+                interface_channel_id=interface_chan.id,
+                fixed_name="Duo",
+                user_limit=2,
+                lock_name=0,
+                is_permanent=1
+            )
+            created_channels.append(("Permanent 24/7 Duo", join_chan))
+
+        elif raw_type in ["fixed", "fix", "fixed_name"]:
+            ch_name = "＋ Join Fixed Duo"
+            join_chan = discord.utils.get(duo_cat.voice_channels, name=ch_name)
+            if not join_chan:
+                join_chan = await guild.create_voice_channel(ch_name, category=duo_cat, user_limit=2)
+            await self.create_voice_hub(
+                guild_id=guild.id,
+                category_id=duo_cat.id,
+                join_channel_id=join_chan.id,
+                interface_channel_id=interface_chan.id,
+                fixed_name="Duo",
+                user_limit=2,
+                lock_name=1,
+                is_permanent=0
+            )
+            created_channels.append(("Fixed-Name Duo", join_chan))
+
+        else:  # "all" or "suite"
+            # 1) Temp Duo
+            temp_name = "＋ Join Duo (Temp)"
+            temp_chan = discord.utils.get(duo_cat.voice_channels, name=temp_name)
+            if not temp_chan:
+                temp_chan = await guild.create_voice_channel(temp_name, category=duo_cat, user_limit=2)
+            await self.create_voice_hub(
+                guild_id=guild.id,
+                category_id=duo_cat.id,
+                join_channel_id=temp_chan.id,
+                interface_channel_id=interface_chan.id,
+                fixed_name="Duo",
+                user_limit=2,
+                lock_name=0,
+                is_permanent=0
+            )
+            created_channels.append(("Temporary Duo (Auto-Delete)", temp_chan))
+
+            # 2) Perm Duo
+            perm_name = "＋ Create Duo (24/7)"
+            perm_chan = discord.utils.get(duo_cat.voice_channels, name=perm_name)
+            if not perm_chan:
+                perm_chan = await guild.create_voice_channel(perm_name, category=duo_cat, user_limit=2)
+            await self.create_voice_hub(
+                guild_id=guild.id,
+                category_id=duo_cat.id,
+                join_channel_id=perm_chan.id,
+                interface_channel_id=interface_chan.id,
+                fixed_name="Duo",
+                user_limit=2,
+                lock_name=0,
+                is_permanent=1
+            )
+            created_channels.append(("Permanent Duo (24/7 Persistent)", perm_chan))
+
+            # 3) Fixed Duo
+            fixed_name = "＋ Join Fixed Duo"
+            fixed_chan = discord.utils.get(duo_cat.voice_channels, name=fixed_name)
+            if not fixed_chan:
+                fixed_chan = await guild.create_voice_channel(fixed_name, category=duo_cat, user_limit=2)
+            await self.create_voice_hub(
+                guild_id=guild.id,
+                category_id=duo_cat.id,
+                join_channel_id=fixed_chan.id,
+                interface_channel_id=interface_chan.id,
+                fixed_name="Duo",
+                user_limit=2,
+                lock_name=1,
+                is_permanent=0
+            )
+            created_channels.append(("Fixed-Name Duo (Locked Name 'Duo')", fixed_chan))
+
+        return duo_cat, interface_chan, created_channels
 
     async def perform_temp_setup(self, guild: discord.Guild, author_id: int, category_name: typing.Optional[str] = None, join_name: typing.Optional[str] = None, interface_name: typing.Optional[str] = None):
         """Creates only Temporary voice category, interface, and join channel with customizable names"""
@@ -4474,7 +4718,7 @@ class voice(commands.Cog):
                         return
                     self.cooldowns[member.id] = loop_now
 
-                    hub_id, h_guild_id, h_cat_id, h_join_id, h_interface_id, fixed_name, user_limit, lock_name = hub
+                    hub_id, h_guild_id, h_cat_id, h_join_id, h_interface_id, fixed_name, user_limit, lock_name, hub_is_perm = hub
 
                     # If this member ALREADY has an active voice room, move them back to it
                     existing_chan_id = await self.get_owner_channel(member.id)
@@ -4496,10 +4740,17 @@ class voice(commands.Cog):
                     else:
                         category = None
 
-                    chan_name = fixed_name
+                    if lock_name:
+                        chan_name = fixed_name
+                    else:
+                        clean_name = self.clean_channel_name(member.display_name)
+                        if "{user}" in fixed_name.lower():
+                            chan_name = fixed_name.replace("{user}", clean_name).replace("{User}", clean_name)
+                        else:
+                            chan_name = f"{clean_name}'s {fixed_name}"
                     chan_limit = user_limit if user_limit else 0
 
-                    print(f"[VoiceClaw] Creating fixed-name temporary room '{chan_name}' for {member.display_name}...")
+                    print(f"[VoiceClaw] Creating hub room '{chan_name}' (limit={chan_limit}, perm={hub_is_perm}, lock={lock_name}) for {member.display_name}...")
 
                     bot_user = self.bot.user
                     bot_member = guild.me or (guild.get_member(bot_user.id) if bot_user else None)
@@ -4540,7 +4791,7 @@ class voice(commands.Cog):
                                 pass
                             return
 
-                    await self.register_temp_channel(member.id, temp_channel.id, is_permanent=0, is_locked_name=lock_name)
+                    await self.register_temp_channel(member.id, temp_channel.id, is_permanent=(1 if hub_is_perm else 0), is_locked_name=lock_name)
                     self.knock_settings[temp_channel.id] = True
 
                     try:
@@ -4554,11 +4805,12 @@ class voice(commands.Cog):
                     except Exception as send_err:
                         print(f"[VoiceClaw Error] Failed to send interface message into {temp_channel.name}: {send_err}")
 
+                    room_kind = "24/7 Permanent" if hub_is_perm else ("Fixed-Name" if lock_name else "Temporary")
                     await self.log_voice_event(
                         guild,
-                        title="✦ Fixed-Name Themed Room Created",
-                        description=f"**Room:** `{chan_name}` ({temp_channel.mention})\n**Host:** {member.mention}\n**Fixed Name:** `Locked`",
-                        color=0x5865F2
+                        title=f"✦ {room_kind} Room Created",
+                        description=f"**Room:** `{chan_name}` ({temp_channel.mention})\n**Host:** {member.mention}\n**Limit:** `{chan_limit if chan_limit > 0 else 'Unlimited'}`",
+                        color=0xFEE75C if hub_is_perm else 0x5865F2
                     )
 
             # 4. Member Left a Voice Channel
@@ -5891,6 +6143,7 @@ class voice(commands.Cog):
         app_commands.Choice(name="🌀 Temporary Dynamic Voice (JTC)", value="temp"),
         app_commands.Choice(name="👑 Permanent 24/7 Voice Rooms", value="perm"),
         app_commands.Choice(name="🌟 Dual Setup (Both Temp & Perm)", value="dual"),
+        app_commands.Choice(name="👥 Duo 2-Player Systems (Temp / Perm / Fixed)", value="duo"),
         app_commands.Choice(name="🏷️ Fixed-Name Themed Hub", value="hub"),
     ])
     async def standalone_setup(self, ctx: commands.Context, mode: typing.Optional[str] = None):
@@ -5914,6 +6167,24 @@ class voice(commands.Cog):
                 return await ctx.interaction.response.send_modal(HubSetupModal(self))
             else:
                 return await ctx.send("Use `/hub create` to configure a Fixed-Name Themed Hub.", ephemeral=True)
+
+        if choice in ["duo", "duos", "duovc"]:
+            if ctx.interaction:
+                return await ctx.interaction.response.send_modal(DuoSetupModal(self))
+            else:
+                cat, iface, chans = await self.perform_duo_setup(ctx.guild, ctx.author.id, duo_type="all")
+                chan_lines = "\n".join([f"• **{label}:** {ch.mention}" for label, ch in chans])
+                desc = (
+                    f"• **Category:** `{cat.name}`\n"
+                    f"• **Control Interface:** {iface.mention}\n"
+                    f"{chan_lines}\n\n"
+                    f"Members can join any Duo hub to start a 2-player voice room!"
+                )
+                view = make_v2_card("✦ Duo 2-Player Systems Complete", desc, banner_filename="banner.jpg" if os.path.exists(BANNER_PATH) else None)
+                if os.path.exists(BANNER_PATH):
+                    file = discord.File(BANNER_PATH, filename="banner.jpg")
+                    return await ctx.send(file=file, view=view)
+                return await ctx.send(view=view)
 
         if ctx.interaction and not ctx.interaction.response.is_done():
             try:
@@ -5978,6 +6249,41 @@ class voice(commands.Cog):
                 return await ctx.send(file=file, view=view)
             else:
                 return await ctx.send(view=view)
+
+    @commands.hybrid_command(name="duo", description="Deploy Duo 2-player voice channels (Server Owner only)")
+    @commands.has_permissions(administrator=True)
+    @app_commands.describe(mode="Duo type: 'all' (Complete Suite), 'temp' (Dynamic), 'perm' (24/7), or 'fixed' (Fixed Name)")
+    @app_commands.choices(mode=[
+        app_commands.Choice(name="🌟 All 3 in One (Complete Duo Suite)", value="all"),
+        app_commands.Choice(name="🌀 Temporary Dynamic Duo (Limit 2)", value="temp"),
+        app_commands.Choice(name="👑 Permanent 24/7 Duo (Limit 2)", value="perm"),
+        app_commands.Choice(name="🏷️ Fixed-Name Duo (Locked 'Duo')", value="fixed"),
+    ])
+    async def duo_command(self, ctx: commands.Context, mode: typing.Optional[str] = "all"):
+        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
+            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
+            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can configure Duo channels.", ephemeral=True)
+
+        if ctx.interaction and not ctx.interaction.response.is_done():
+            try:
+                await ctx.defer()
+            except Exception:
+                pass
+
+        m_type = (mode or "all").lower().strip()
+        cat, iface, chans = await self.perform_duo_setup(ctx.guild, ctx.author.id, duo_type=m_type)
+        chan_lines = "\n".join([f"• **{label}:** {ch.mention}" for label, ch in chans])
+        desc = (
+            f"• **Category:** `{cat.name}`\n"
+            f"• **Control Interface:** {iface.mention}\n"
+            f"{chan_lines}\n\n"
+            f"Members can join any Duo hub to start a 2-player voice room!"
+        )
+        view = make_v2_card("✦ Duo 2-Player Systems Complete", desc, banner_filename="banner.jpg" if os.path.exists(BANNER_PATH) else None)
+        if os.path.exists(BANNER_PATH):
+            file = discord.File(BANNER_PATH, filename="banner.jpg")
+            return await ctx.send(file=file, view=view)
+        return await ctx.send(view=view)
 
     # ==========================================
     # STANDALONE PREFIX ALIAS SHORTCUTS (.lock, .unlock, etc.)
