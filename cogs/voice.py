@@ -1501,6 +1501,7 @@ APP_EMOJIS = {
     "activity": discord.PartialEmoji(name="vc_activity", id=1555103014132383794),
     "bitrate": discord.PartialEmoji(name="vc_bitrate", id=1555101565138894872),
     "block": discord.PartialEmoji(name="vc_block", id=1554955933187317763),
+    "chat": discord.PartialEmoji(name="vc_chat", id=1555755848515588227),
     "claim": discord.PartialEmoji(name="vc_claim", id=1554955937083564042),
     "delete": discord.PartialEmoji(name="vc_delete", id=1554955940325892096),
     "ghost": discord.PartialEmoji(name="vc_ghost", id=1554955943618420839),
@@ -2020,7 +2021,7 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         btn_limit = discord.ui.Button(emoji=APP_EMOJIS["limit"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_limit")
         btn_privacy = discord.ui.Button(emoji=APP_EMOJIS["privacy"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_privacy")
         btn_knock = discord.ui.Button(emoji=APP_EMOJIS["knock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock")
-        btn_chat = discord.ui.Button(emoji="💬", style=discord.ButtonStyle.secondary, custom_id="vc_btn_chat")
+        btn_chat = discord.ui.Button(emoji=APP_EMOJIS["chat"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_chat")
 
         btn_rename.callback = self.rename_callback
         btn_limit.callback = self.limit_callback
