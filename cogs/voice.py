@@ -3165,12 +3165,18 @@ class voice(commands.Cog):
         try:
             now = time.time()
             async with aiosqlite.connect(DB_PATH) as db:
-                async with db.execute("SELECT voiceID, userID FROM voiceChannel") as cursor:
+                async with db.execute("SELECT voiceID, userID, isPermanent FROM voiceChannel") as cursor:
                     active_rooms = await cursor.fetchall()
 
-            for voice_id, owner_id in active_rooms:
+            for voice_id, owner_id, is_perm in active_rooms:
                 chan = self.bot.get_channel(voice_id)
                 if not chan or not isinstance(chan, discord.VoiceChannel):
+                    continue
+
+                if await self.is_join_or_master_channel(chan.guild.id, chan.id):
+                    continue
+
+                if not await self.is_voiceclaw_category(chan.guild.id, chan.category_id):
                     continue
 
                 if len(chan.members) == 1:
@@ -3186,6 +3192,12 @@ class voice(commands.Cog):
                                 await member.send(f"💤 You were disconnected from **{chan.name}** due to being alone and deafened for 15+ minutes.")
                             except Exception:
                                 pass
+
+                            if is_perm:
+                                # Permanent rooms stay! Only the AFK user is disconnected.
+                                self.afk_tracker.pop(voice_id, None)
+                                continue
+
                             try:
                                 await chan.delete(reason="VoiceClaw: AFK Inactivity Timeout")
                             except Exception:
