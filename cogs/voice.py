@@ -699,32 +699,38 @@ class SetupSelect(discord.ui.Select):
     def __init__(self, cog, author_id: int):
         options = [
             discord.SelectOption(
-                label="🌀  Temporary Dynamic Voice (JTC)",
+                label="Temporary Dynamic Voice (JTC)",
+                emoji=APP_EMOJIS.get("interface", "🌀"),
                 value="quick",
                 description="Auto-deleting temporary voice rooms with #interface control panel"
             ),
             discord.SelectOption(
-                label="👑  Permanent 24/7 Voice Rooms",
+                label="Permanent 24/7 Voice Rooms",
+                emoji=APP_EMOJIS.get("permanent", "👑"),
                 value="permanent_only",
                 description="Persistent 24/7 voice channels with saved presets"
             ),
             discord.SelectOption(
-                label="🌟  Dual Setup (Temp + Permanent)",
+                label="Dual Setup (Temp + Permanent)",
+                emoji=APP_EMOJIS.get("overview", "🌟"),
                 value="dual",
                 description="Deploy both Temporary and Permanent voice categories"
             ),
             discord.SelectOption(
-                label="🏷️  Fixed-Name Themed Hub",
+                label="Fixed-Name Themed Hub",
+                emoji=APP_EMOJIS.get("hubs", "🏷️"),
                 value="fixed_hub",
                 description="Creates category with fixed-name Temp VCs (e.g. Gaming, Duo)"
             ),
             discord.SelectOption(
-                label="◈  Custom Setup Wizard",
+                label="Custom Setup Wizard",
+                emoji=APP_EMOJIS.get("settings", "◈"),
                 value="custom",
                 description="Configure custom category and channel names"
             ),
             discord.SelectOption(
-                label="✕  Cancel Setup",
+                label="Cancel Setup",
+                emoji=APP_EMOJIS.get("delete", "✕"),
                 value="cancel",
                 description="Abort and close this setup configuration"
             )
@@ -4186,15 +4192,31 @@ class voice(commands.Cog):
             perm_category_id = guild_cfg[6] if guild_cfg and len(guild_cfg) > 6 else None
 
             # 1. User Joined the "Join to Create" Master Channel
-            # Self-healing: if channel ID changed or recreated in the registered category
-            if after.channel and category_id and after.channel.category_id == category_id:
-                if any(k in after.channel.name.lower() for k in ["create", "join"]) or after.channel.name.startswith(("+", "＋")):
-                    if after.channel.id != master_channel_id:
-                        print(f"[VoiceClaw Self-Healing] Auto-updating stale master_channel_id {master_channel_id} -> {after.channel.id}")
-                        master_channel_id = after.channel.id
-                        async with aiosqlite.connect(DB_PATH) as db:
-                            await db.execute('UPDATE guild SET voiceChannelID = ? WHERE guildID = ?', (master_channel_id, guild.id))
-                            await db.commit()
+            is_temp_chan = await self.get_channel_owner(after.channel.id) if after.channel else None
+            is_create_name = after.channel and not is_temp_chan and (
+                any(k in after.channel.name.lower() for k in ["create", "join"]) or after.channel.name.startswith(("+", "＋"))
+            )
+
+            # Self-healing: if channel ID changed or recreated
+            if after.channel and is_create_name:
+                if category_id and after.channel.category_id == category_id and after.channel.id != master_channel_id:
+                    print(f"[VoiceClaw Self-Healing] Auto-updating stale master_channel_id {master_channel_id} -> {after.channel.id}")
+                    master_channel_id = after.channel.id
+                    async with aiosqlite.connect(DB_PATH) as db:
+                        await db.execute('UPDATE guild SET voiceChannelID = ? WHERE guildID = ?', (master_channel_id, guild.id))
+                        await db.commit()
+                elif after.channel.category:
+                    for ch in after.channel.category.text_channels:
+                        if ch.name.lower() == "interface" and (not ch.topic or "Temporary Voice" in ch.topic or ("VoiceClaw Control Interface" in ch.topic and "Rooms" not in ch.topic)):
+                            if after.channel.id != master_channel_id or after.channel.category_id != category_id:
+                                print(f"[VoiceClaw Self-Healing] Auto-linked main temporary category {after.channel.category.name} and channel {after.channel.name}")
+                                master_channel_id = after.channel.id
+                                category_id = after.channel.category_id
+                                async with aiosqlite.connect(DB_PATH) as db:
+                                    await db.execute('UPDATE guild SET voiceCategoryID = ?, voiceChannelID = ?, interfaceChannelID = ? WHERE guildID = ?',
+                                                     (category_id, master_channel_id, ch.id, guild.id))
+                                    await db.commit()
+                            break
 
             if after.channel and master_channel_id and after.channel.id == master_channel_id:
                 loop_now = asyncio.get_event_loop().time()
@@ -4404,8 +4426,13 @@ class voice(commands.Cog):
             # 3. User Joined a Fixed-Name Themed Hub Channel
             if after.channel:
                 hub = await self.get_voice_hub(after.channel.id)
-                # Self-healing: if hub join channel ID changed or was recreated
-                if not hub and after.channel.category_id:
+                is_temp_chan = await self.get_channel_owner(after.channel.id)
+                is_create_name = not is_temp_chan and (
+                    any(k in after.channel.name.lower() for k in ["create", "join"]) or after.channel.name.startswith(("+", "＋"))
+                )
+
+                # Self-healing: ONLY when user enters a channel meant for creation, NOT when joining a created room
+                if not hub and after.channel.category_id and is_create_name:
                     cat_hub = await self.get_voice_hub_by_category(after.channel.category_id)
                     if cat_hub:
                         hub_id = cat_hub[0]

@@ -18,6 +18,8 @@ ENV/
 *.db-wal
 database.db
 voiceChannel.db
+voice.db
+*.db
 
 # Vercel
 .vercel
