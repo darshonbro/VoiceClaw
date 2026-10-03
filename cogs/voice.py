@@ -49,6 +49,12 @@ class ChannelRenameModal(discord.ui.Modal, title="Rename Voice Channel"):
         self.channel = channel
 
     async def on_submit(self, interaction: discord.Interaction):
+        rem = self.cog.check_panel_cooldown(interaction.user.id, 3.0)
+        if rem > 0:
+            return await interaction.response.send_message(
+                f"⏳ **Please slow down!** Setting update is on cooldown (`{rem}`s) to prevent Discord rate limits.",
+                ephemeral=True
+            )
         if await self.cog.is_channel_locked_name(self.channel.id):
             return await interaction.response.send_message(
                 f"✕ This voice room has a locked name (`{self.channel.name}`) configured by server administration and cannot be renamed.",
@@ -126,6 +132,12 @@ class ChannelLimitModal(discord.ui.Modal, title="Set User Limit"):
         self.channel = channel
 
     async def on_submit(self, interaction: discord.Interaction):
+        rem = self.cog.check_panel_cooldown(interaction.user.id, 3.0)
+        if rem > 0:
+            return await interaction.response.send_message(
+                f"⏳ **Please slow down!** Setting update is on cooldown (`{rem}`s) to prevent Discord rate limits.",
+                ephemeral=True
+            )
         raw_val = self.limit_input.value.strip()
         is_reset = not bool(raw_val)
 
@@ -181,6 +193,12 @@ class ChannelBitrateModal(discord.ui.Modal, title="Adjust Audio Bitrate"):
         self.channel = channel
 
     async def on_submit(self, interaction: discord.Interaction):
+        rem = self.cog.check_panel_cooldown(interaction.user.id, 3.0)
+        if rem > 0:
+            return await interaction.response.send_message(
+                f"⏳ **Please slow down!** Setting update is on cooldown (`{rem}`s) to prevent Discord rate limits.",
+                ephemeral=True
+            )
         raw_val = self.bitrate_input.value.strip()
         is_reset = not bool(raw_val)
         max_kbps = interaction.guild.bitrate_limit // 1000
@@ -233,6 +251,12 @@ class PresetSaveModal(discord.ui.Modal, title="Save Room Preset"):
         self.channel = channel
 
     async def on_submit(self, interaction: discord.Interaction):
+        rem = self.cog.check_panel_cooldown(interaction.user.id, 3.0)
+        if rem > 0:
+            return await interaction.response.send_message(
+                f"⏳ **Please slow down!** Setting update is on cooldown (`{rem}`s) to prevent Discord rate limits.",
+                ephemeral=True
+            )
         p_name = self.name_input.value.strip()
         bitrate_kbps = self.channel.bitrate // 1000
         await self.cog.save_user_preset(
@@ -812,13 +836,31 @@ class KnockChannelSelect(discord.ui.Select):
         )
 
 
-class KnockChannelSelectView(discord.ui.View):
+class VoiceControlActionView(discord.ui.View):
+    def __init__(self, timeout: float = 60, cooldown: float = 3.0):
+        super().__init__(timeout=timeout)
+        self.cooldown = cooldown
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        cog = interaction.client.get_cog("voice")
+        if cog:
+            rem = cog.check_panel_cooldown(interaction.user.id, self.cooldown)
+            if rem > 0:
+                await interaction.response.send_message(
+                    f"⏳ **Please slow down!** Control action is on cooldown (`{rem}`s) to prevent Discord rate limits.",
+                    ephemeral=True
+                )
+                return False
+        return True
+
+
+class KnockChannelSelectView(VoiceControlActionView):
     def __init__(self, cog, channels_data):
         super().__init__(timeout=60)
         self.add_item(KnockChannelSelect(cog, channels_data))
 
 
-class HostKnockSettingsView(discord.ui.View):
+class HostKnockSettingsView(VoiceControlActionView):
     def __init__(self, cog, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.cog = cog
@@ -898,6 +940,16 @@ class KnockResponseView(discord.ui.LayoutView):
 
         row = discord.ui.ActionRow(btn_allow, btn_decline)
         self.add_item(row)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        rem = self.cog.check_panel_cooldown(interaction.user.id, 3.0)
+        if rem > 0:
+            await interaction.response.send_message(
+                f"⏳ **Please slow down!** Action is on cooldown (`{rem}`s) to prevent Discord rate limits.",
+                ephemeral=True
+            )
+            return False
+        return True
 
     async def allow_callback(self, interaction: discord.Interaction):
         is_admin = interaction.user.guild_permissions.administrator
@@ -1041,7 +1093,7 @@ class RegionSelect(discord.ui.Select):
             await interaction.response.send_message(f"✕ Failed to update region: {e}", ephemeral=True)
 
 
-class RegionSelectView(discord.ui.View):
+class RegionSelectView(VoiceControlActionView):
     def __init__(self, cog, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.add_item(RegionSelect(cog, channel))
@@ -1098,13 +1150,13 @@ class ActivitySelect(discord.ui.Select):
             await interaction.response.send_message(f"✕ Could not launch activity: {e}", ephemeral=True)
 
 
-class ActivitySelectView(discord.ui.View):
+class ActivitySelectView(VoiceControlActionView):
     def __init__(self, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.add_item(ActivitySelect(channel))
 
 
-class PermissionsControlView(discord.ui.View):
+class PermissionsControlView(VoiceControlActionView):
     def __init__(self, cog, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.cog = cog
@@ -1154,7 +1206,7 @@ class PermissionsControlView(discord.ui.View):
         await interaction.response.send_message("🚫 Screen sharing & video is now **MUTED** in this room.", ephemeral=True)
 
 
-class PresetManageView(discord.ui.View):
+class PresetManageView(VoiceControlActionView):
     def __init__(self, cog, channel: discord.VoiceChannel, user_presets: list):
         super().__init__(timeout=60)
         self.cog = cog
@@ -1231,7 +1283,7 @@ class PermitUserSelect(discord.ui.UserSelect):
         )
 
 
-class PermitSelectView(discord.ui.View):
+class PermitSelectView(VoiceControlActionView):
     def __init__(self, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.add_item(PermitUserSelect(channel))
@@ -1268,7 +1320,7 @@ class RejectUserSelect(discord.ui.UserSelect):
         )
 
 
-class RejectSelectView(discord.ui.View):
+class RejectSelectView(VoiceControlActionView):
     def __init__(self, cog, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.add_item(RejectUserSelect(cog, channel))
@@ -1298,7 +1350,7 @@ class TransferOwnerSelect(discord.ui.UserSelect):
         )
 
 
-class TransferOwnerView(discord.ui.View):
+class TransferOwnerView(VoiceControlActionView):
     def __init__(self, cog, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.add_item(TransferOwnerSelect(cog, channel))
@@ -1323,7 +1375,7 @@ class TrustUserSelect(discord.ui.UserSelect):
         )
 
 
-class TrustSelectView(discord.ui.View):
+class TrustSelectView(VoiceControlActionView):
     def __init__(self, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.add_item(TrustUserSelect(channel))
@@ -1348,7 +1400,7 @@ class UntrustUserSelect(discord.ui.UserSelect):
         )
 
 
-class UntrustSelectView(discord.ui.View):
+class UntrustSelectView(VoiceControlActionView):
     def __init__(self, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.add_item(UntrustUserSelect(channel))
@@ -1386,7 +1438,7 @@ class BlockUserSelect(discord.ui.UserSelect):
         )
 
 
-class BlockSelectView(discord.ui.View):
+class BlockSelectView(VoiceControlActionView):
     def __init__(self, cog, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.add_item(BlockUserSelect(cog, channel))
@@ -1411,7 +1463,7 @@ class UnblockUserSelect(discord.ui.UserSelect):
         )
 
 
-class UnblockSelectView(discord.ui.View):
+class UnblockSelectView(VoiceControlActionView):
     def __init__(self, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.add_item(UnblockUserSelect(channel))
@@ -1446,7 +1498,7 @@ class KickUserSelect(discord.ui.UserSelect):
             await interaction.response.send_message(f"✕ Could not kick member: {e}", ephemeral=True)
 
 
-class KickSelectView(discord.ui.View):
+class KickSelectView(VoiceControlActionView):
     def __init__(self, cog, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.add_item(KickUserSelect(cog, channel))
@@ -1487,7 +1539,7 @@ class InviteUserSelect(discord.ui.UserSelect):
             await interaction.response.send_message(f"✕ Failed to create invite: {e}", ephemeral=True)
 
 
-class InviteSelectView(discord.ui.View):
+class InviteSelectView(VoiceControlActionView):
     def __init__(self, channel: discord.VoiceChannel):
         super().__init__(timeout=60)
         self.add_item(InviteUserSelect(channel))
@@ -1599,7 +1651,7 @@ class PrivacySelect(discord.ui.Select):
             await self.cog.log_voice_event(guild, "💬 Voice Chat Opened", f"Host {interaction.user.mention} opened text chat in `{self.channel.name}`.", 0x5865F2)
 
 
-class PrivacyControlView(discord.ui.View):
+class PrivacyControlView(VoiceControlActionView):
     def __init__(self, cog, channel: discord.VoiceChannel):
         super().__init__(timeout=120)
         self.add_item(PrivacySelect(cog, channel))
@@ -1669,7 +1721,7 @@ class SettingsSelect(discord.ui.Select):
             await interaction.response.send_message("🎮 Select a Discord Game or Watch Together activity to launch:", view=view, ephemeral=True)
 
 
-class SettingsControlView(discord.ui.View):
+class SettingsControlView(VoiceControlActionView):
     def __init__(self, cog, channel: discord.VoiceChannel):
         super().__init__(timeout=120)
         self.add_item(SettingsSelect(cog, channel))
@@ -1715,7 +1767,7 @@ class MembersActionSelect(discord.ui.Select):
             await interaction.response.send_message("Select a member to unblock:", view=UnblockSelectView(self.channel), ephemeral=True)
 
 
-class MembersControlView(discord.ui.View):
+class MembersControlView(VoiceControlActionView):
     def __init__(self, cog, channel: discord.VoiceChannel):
         super().__init__(timeout=120)
         self.add_item(MembersActionSelect(cog, channel))
@@ -1797,7 +1849,7 @@ class HostActionSelect(discord.ui.Select):
             await interaction.response.send_message(view=info_view, ephemeral=True)
 
 
-class HostControlView(discord.ui.View):
+class HostControlView(VoiceControlActionView):
     def __init__(self, cog, channel: discord.VoiceChannel):
         super().__init__(timeout=120)
         self.add_item(HostActionSelect(cog, channel))
@@ -1849,7 +1901,7 @@ class DeleteChannelSelect(discord.ui.Select):
         )
 
 
-class DeleteChannelSelectView(discord.ui.View):
+class DeleteChannelSelectView(VoiceControlActionView):
     def __init__(self, cog, channels: typing.List[discord.VoiceChannel]):
         super().__init__(timeout=60)
         self.add_item(DeleteChannelSelect(cog, channels))
@@ -1922,7 +1974,7 @@ class RoomSelect(discord.ui.Select):
             )
 
 
-class RoomSelectForActionView(discord.ui.View):
+class RoomSelectForActionView(VoiceControlActionView):
     def __init__(self, cog, channels: typing.List[discord.VoiceChannel], action_type: str):
         super().__init__(timeout=60)
         self.add_item(RoomSelect(cog, channels, action_type))
@@ -2059,16 +2111,13 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         self.add_item(container)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        loop_now = asyncio.get_event_loop().time()
-        last_time = self.cog.panel_cooldowns.get(interaction.user.id, 0)
-        if (loop_now - last_time) < 1.5:
-            rem = round(1.5 - (loop_now - last_time), 1)
+        rem = self.cog.check_panel_cooldown(interaction.user.id, 3.0)
+        if rem > 0:
             await interaction.response.send_message(
-                f"⏳ Please slow down! Control panel is cooling down (`{rem}`s).",
+                f"⏳ **Please slow down!** Control panel is cooling down (`{rem}`s) to prevent Discord rate limits.",
                 ephemeral=True
             )
             return False
-        self.cog.panel_cooldowns[interaction.user.id] = loop_now
         return True
 
     async def refresh_callback(self, interaction: discord.Interaction):
@@ -2862,6 +2911,18 @@ class HelpLayoutView(discord.ui.LayoutView):
         )
         self.add_item(container)
 
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        cog = interaction.client.get_cog("voice")
+        if cog:
+            rem = cog.check_panel_cooldown(interaction.user.id, 2.0)
+            if rem > 0:
+                await interaction.response.send_message(
+                    f"⏳ **Please slow down!** Guide navigation is on cooldown (`{rem}`s).",
+                    ephemeral=True
+                )
+                return False
+        return True
+
     async def refresh_callback(self, interaction: discord.Interaction):
         new_view = HelpLayoutView(category=self.category)
         await interaction.response.edit_message(view=new_view)
@@ -2903,6 +2964,16 @@ class voice(commands.Cog):
         history = [t for t in history if now - t < 600]
         history.append(now)
         self.rename_history[channel_id] = history
+
+    def check_panel_cooldown(self, user_id: int, cooldown_seconds: float = 3.0) -> float:
+        """Returns remaining seconds if user is on cooldown, otherwise registers timestamp and returns 0."""
+        loop_now = asyncio.get_event_loop().time()
+        last = self.panel_cooldowns.get(user_id, 0)
+        diff = loop_now - last
+        if diff < cooldown_seconds:
+            return round(cooldown_seconds - diff, 1)
+        self.panel_cooldowns[user_id] = loop_now
+        return 0.0
 
     async def cog_load(self):
         """Initialize database tables, register views, sweep channels, and start background tasks"""
