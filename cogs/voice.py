@@ -700,37 +700,37 @@ class SetupSelect(discord.ui.Select):
         options = [
             discord.SelectOption(
                 label="Temporary Dynamic Voice (JTC)",
-                emoji=APP_EMOJIS.get("interface", "🌀"),
+                emoji=APP_EMOJIS["setup_jtc"],
                 value="quick",
                 description="Auto-deleting temporary voice rooms with #interface control panel"
             ),
             discord.SelectOption(
                 label="Permanent 24/7 Voice Rooms",
-                emoji=APP_EMOJIS.get("permanent", "👑"),
+                emoji=APP_EMOJIS["setup_perm"],
                 value="permanent_only",
                 description="Persistent 24/7 voice channels with saved presets"
             ),
             discord.SelectOption(
                 label="Dual Setup (Temp + Permanent)",
-                emoji=APP_EMOJIS.get("overview", "🌟"),
+                emoji=APP_EMOJIS["setup_dual"],
                 value="dual",
                 description="Deploy both Temporary and Permanent voice categories"
             ),
             discord.SelectOption(
                 label="Fixed-Name Themed Hub",
-                emoji=APP_EMOJIS.get("hubs", "🏷️"),
+                emoji=APP_EMOJIS["setup_hub"],
                 value="fixed_hub",
                 description="Creates category with fixed-name Temp VCs (e.g. Gaming, Duo)"
             ),
             discord.SelectOption(
                 label="Custom Setup Wizard",
-                emoji=APP_EMOJIS.get("settings", "◈"),
+                emoji=APP_EMOJIS["setup_custom"],
                 value="custom",
                 description="Configure custom category and channel names"
             ),
             discord.SelectOption(
                 label="Cancel Setup",
-                emoji=APP_EMOJIS.get("delete", "✕"),
+                emoji=APP_EMOJIS["setup_cancel"],
                 value="cancel",
                 description="Abort and close this setup configuration"
             )
@@ -1618,6 +1618,12 @@ APP_EMOJIS = {
     "unmute": discord.PartialEmoji(name="vc_unmute", id=1554956056667627640),
     "untrust": discord.PartialEmoji(name="vc_untrust", id=1555784457074642994),
     "video": discord.PartialEmoji(name="vc_video", id=1554956063994945618),
+    "setup_jtc": discord.PartialEmoji(name="vc_setup_jtc", id=1555808557620920360),
+    "setup_perm": discord.PartialEmoji(name="vc_setup_perm", id=1555808564176490546),
+    "setup_dual": discord.PartialEmoji(name="vc_setup_dual", id=1555808570727989348),
+    "setup_hub": discord.PartialEmoji(name="vc_setup_hub", id=1555808577439137842),
+    "setup_custom": discord.PartialEmoji(name="vc_setup_custom", id=1555808584070340741),
+    "setup_cancel": discord.PartialEmoji(name="vc_setup_cancel", id=1555808590697340958),
 }
 
 
