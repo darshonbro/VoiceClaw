@@ -14,6 +14,7 @@ BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "banner.jp
 GUIDE_BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "guide.jpg")
 PREMIUM_BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "premium.jpg")
 HUBS_BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "hubs.jpg")
+SETUP_BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "setup.jpg")
 
 def make_v2_card(title: str, text: str, banner_filename: typing.Optional[str] = None) -> discord.ui.LayoutView:
     """Create a minimalist Discord Components v2 LayoutView container with optional banner and NO side accent stripe"""
@@ -750,7 +751,10 @@ class SetupLayoutView(discord.ui.LayoutView):
         self.author_id = author_id
 
         container_children = []
-        if os.path.exists(BANNER_PATH):
+        if os.path.exists(SETUP_BANNER_PATH):
+            gallery_item = discord.MediaGalleryItem("attachment://setup.jpg")
+            container_children.append(discord.ui.MediaGallery(gallery_item))
+        elif os.path.exists(BANNER_PATH):
             gallery_item = discord.MediaGalleryItem("attachment://banner.jpg")
             container_children.append(discord.ui.MediaGallery(gallery_item))
 
@@ -5727,7 +5731,10 @@ class voice(commands.Cog):
         choice = (mode or "menu").lower().strip()
         if choice in ["menu", "wizard", "select"]:
             view = SetupLayoutView(self, ctx.author.id)
-            if os.path.exists(BANNER_PATH):
+            if os.path.exists(SETUP_BANNER_PATH):
+                file = discord.File(SETUP_BANNER_PATH, filename="setup.jpg")
+                return await ctx.send(file=file, view=view)
+            elif os.path.exists(BANNER_PATH):
                 file = discord.File(BANNER_PATH, filename="banner.jpg")
                 return await ctx.send(file=file, view=view)
             else:
@@ -5794,7 +5801,10 @@ class voice(commands.Cog):
 
         else:
             view = SetupLayoutView(self, ctx.author.id)
-            if os.path.exists(BANNER_PATH):
+            if os.path.exists(SETUP_BANNER_PATH):
+                file = discord.File(SETUP_BANNER_PATH, filename="setup.jpg")
+                return await ctx.send(file=file, view=view)
+            elif os.path.exists(BANNER_PATH):
                 file = discord.File(BANNER_PATH, filename="banner.jpg")
                 return await ctx.send(file=file, view=view)
             else:
