@@ -4498,20 +4498,6 @@ class voice(commands.Cog):
 
                 self.cooldowns[member.id] = loop_now
 
-                # If this member ALREADY has an active voice room, move them back to it
-                existing_chan_id = await self.get_owner_channel(member.id)
-                if existing_chan_id:
-                    existing_chan = guild.get_channel(existing_chan_id)
-                    if existing_chan and isinstance(existing_chan, discord.VoiceChannel):
-                        try:
-                            await member.move_to(existing_chan)
-                            print(f"[VoiceClaw] Moved {member.display_name} back to existing room {existing_chan.name}")
-                            return
-                        except Exception:
-                            pass
-                    else:
-                        await self.delete_temp_channel_record(existing_chan_id)
-
                 category = guild.get_channel(category_id)
                 if isinstance(category, discord.CategoryChannel):
                     asyncio.create_task(self.cleanup_empty_category_channels(category, master_channel_id))
@@ -4743,20 +4729,6 @@ class voice(commands.Cog):
 
                     hub_id, h_guild_id, h_cat_id, h_join_id, h_interface_id, fixed_name, user_limit, lock_name, hub_is_perm = hub
 
-                    # If this member ALREADY has an active voice room, move them back to it
-                    existing_chan_id = await self.get_owner_channel(member.id)
-                    if existing_chan_id:
-                        existing_chan = guild.get_channel(existing_chan_id)
-                        if existing_chan and isinstance(existing_chan, discord.VoiceChannel):
-                            try:
-                                await member.move_to(existing_chan)
-                                print(f"[VoiceClaw] Moved {member.display_name} back to existing room {existing_chan.name}")
-                                return
-                            except Exception:
-                                pass
-                        else:
-                            await self.delete_temp_channel_record(existing_chan_id)
-
                     category = guild.get_channel(h_cat_id)
                     if isinstance(category, discord.CategoryChannel):
                         asyncio.create_task(self.cleanup_empty_category_channels(category, h_join_id))
@@ -4881,6 +4853,21 @@ class voice(commands.Cog):
                         description=f"Room `{before.channel.name}` was cleaned up after all members departed.",
                         color=0xED4245
                     )
+                elif member.id == owner_id:
+                    # Host left, but other members are still inside!
+                    # Transfer host ownership to the next member in the room
+                    next_host = next((m for m in before.channel.members if not m.bot), None)
+                    if next_host:
+                        await self.set_channel_owner(chan_id, next_host.id)
+                        print(f"[VoiceClaw] Host of '{before.channel.name}' transferred from {member.display_name} to {next_host.display_name}")
+                        try:
+                            await before.channel.set_permissions(
+                                next_host,
+                                connect=True, view_channel=True, read_messages=True,
+                                send_messages=True, read_message_history=True, manage_channels=True
+                            )
+                        except Exception:
+                            pass
 
         except Exception as e:
             print(f"[VoiceClaw Error] on_voice_state_update failed: {e}")
