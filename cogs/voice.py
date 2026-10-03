@@ -1546,13 +1546,15 @@ class PrivacySelect(discord.ui.Select):
         self.cog = cog
         self.channel = channel
         options = [
-            discord.SelectOption(label="Ghost Channel (Invisible)", emoji=APP_EMOJIS["ghost"], value="ghost", description="Hide room from server sidebar"),
-            discord.SelectOption(label="Reveal Channel (Visible)", emoji=APP_EMOJIS["reveal"], value="reveal", description="Make room visible on sidebar"),
-            discord.SelectOption(label="Open Voice Chat", emoji="💬", value="open_chat", description="Allow everyone to send text messages"),
-            discord.SelectOption(label="Close Voice Chat", emoji="🔇", value="close_chat", description="Only host can send text messages"),
+            discord.SelectOption(label="Lock Channel", emoji=APP_EMOJIS["lock"], value="lock", description="Restrict connections to your room"),
+            discord.SelectOption(label="Unlock Channel", emoji=APP_EMOJIS["unlock"], value="unlock", description="Open room connection to everyone"),
+            discord.SelectOption(label="Invisible Channel", emoji=APP_EMOJIS["ghost"], value="ghost", description="Hide room from server sidebar"),
+            discord.SelectOption(label="Visible Channel", emoji=APP_EMOJIS["reveal"], value="reveal", description="Make room visible on sidebar"),
+            discord.SelectOption(label="Close Voice Chat", emoji=APP_EMOJIS["mute"], value="close_chat", description="Restricted to host only"),
+            discord.SelectOption(label="Open Voice Chat", emoji=APP_EMOJIS["chat"], value="open_chat", description="Allow everyone to send text messages"),
         ]
         super().__init__(
-            placeholder="Select an advanced privacy action...",
+            placeholder="Select a privacy action...",
             min_values=1,
             max_values=1,
             options=options,
@@ -1578,35 +1580,23 @@ class PrivacySelect(discord.ui.Select):
 
         elif val == "ghost":
             await self.channel.set_permissions(guild.default_role, view_channel=False, connect=False)
-            await interaction.response.send_message("👻 **Ghost Mode Activated!** Room is now hidden from @everyone on the sidebar.", ephemeral=True)
-            await self.cog.log_voice_event(guild, "👻 Room Ghosted", f"Host {interaction.user.mention} hid `{self.channel.name}` from sidebar.", 0x747F8D)
+            await interaction.response.send_message("👻 **Channel Hidden (Invisible)!** Room is now hidden from @everyone on the sidebar.", ephemeral=True)
+            await self.cog.log_voice_event(guild, "👻 Room Invisible", f"Host {interaction.user.mention} hid `{self.channel.name}` from sidebar.", 0x747F8D)
 
         elif val == "reveal":
             await self.channel.set_permissions(guild.default_role, view_channel=True)
-            await interaction.response.send_message("👁️ **Channel revealed!** Visible on the sidebar again.", ephemeral=True)
-            await self.cog.log_voice_event(guild, "👁️ Room Revealed", f"Host {interaction.user.mention} revealed `{self.channel.name}`.", 0x5865F2)
-
-        elif val == "open_chat":
-            await self.channel.set_permissions(guild.default_role, send_messages=True, read_messages=True)
-            await interaction.response.send_message("💬 **Voice Text Chat Opened!** Everyone in the room can now send text messages.", ephemeral=True)
-            await self.cog.log_voice_event(guild, "💬 Voice Chat Opened", f"Host {interaction.user.mention} opened text chat in `{self.channel.name}`.", 0x5865F2)
+            await interaction.response.send_message("👁️ **Channel Revealed (Visible)!** Visible on the sidebar again.", ephemeral=True)
+            await self.cog.log_voice_event(guild, "👁️ Room Visible", f"Host {interaction.user.mention} revealed `{self.channel.name}`.", 0x5865F2)
 
         elif val == "close_chat":
             await self.channel.set_permissions(guild.default_role, send_messages=False)
             await interaction.response.send_message("🔇 **Voice Text Chat Closed!** Text messages in this channel are restricted to the host.", ephemeral=True)
             await self.cog.log_voice_event(guild, "🔇 Voice Chat Closed", f"Host {interaction.user.mention} closed text chat in `{self.channel.name}`.", 0xED4245)
 
-        elif val == "knock":
-            status = "ENABLED (Doorbell Active)" if self.cog.knock_settings.get(self.channel.id, True) else "MUTED (Do Not Disturb)"
-            view = HostKnockSettingsView(self.cog, self.channel)
-            await interaction.response.send_message(
-                f"### 🚪 Doorbell / Knock Settings\n"
-                f"• **Room:** `{self.channel.name}`\n"
-                f"• **Current Status:** `{status}`\n\n"
-                f"When enabled, friends outside can knock to request entry into your room.",
-                view=view,
-                ephemeral=True
-            )
+        elif val == "open_chat":
+            await self.channel.set_permissions(guild.default_role, send_messages=True, read_messages=True)
+            await interaction.response.send_message("💬 **Voice Text Chat Opened!** Everyone in the room can now send text messages.", ephemeral=True)
+            await self.cog.log_voice_event(guild, "💬 Voice Chat Opened", f"Host {interaction.user.mention} opened text chat in `{self.channel.name}`.", 0x5865F2)
 
 
 class PrivacyControlView(discord.ui.View):
