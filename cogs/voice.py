@@ -931,12 +931,7 @@ class KnockChannelSelect(discord.ui.Select):
 
         owner_id = await self.cog.get_channel_owner(chan_id)
         if not owner_id:
-            first_human = next((m for m in target_channel.members if not m.bot), None)
-            if first_human:
-                owner_id = first_human.id
-                await self.cog.register_temp_channel(first_human.id, chan_id)
-            else:
-                return await interaction.response.send_message("✕ Host not found for this channel.", ephemeral=True)
+            return await interaction.response.send_message("✕ Host not found for this channel.", ephemeral=True)
 
         if not self.cog.knock_settings.get(chan_id, True):
             return await interaction.response.send_message("✕ This room has Knock Mode set to **Do Not Disturb**.", ephemeral=True)
@@ -1160,13 +1155,12 @@ class RegionSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         owner_id = await self.cog.get_channel_owner(self.channel.id)
         is_admin = interaction.user.guild_permissions.administrator
-        if not owner_id:
-            owner_id = interaction.user.id
-            await self.cog.register_temp_channel(interaction.user.id, self.channel.id)
-
-        if interaction.user.id != owner_id and not is_admin:
+        if not owner_id and not is_admin:
+            return await interaction.response.send_message("✕ This voice channel is not managed by VoiceClaw.", ephemeral=True)
+        effective_owner = owner_id or interaction.user.id
+        if interaction.user.id != effective_owner and not is_admin:
             return await interaction.response.send_message(
-                f"✕ Only the room host (<@{owner_id}>) can change the voice region.",
+                f"✕ Only the room host (<@{effective_owner}>) can change the voice region.",
                 ephemeral=True
             )
 
@@ -2315,9 +2309,7 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         if channel:
             owner_id = await self.cog.get_channel_owner(channel.id)
             if not owner_id:
-                # User is inside an active voice room; self-heal ownership:
-                owner_id = user.id
-                await self.cog.register_temp_channel(user.id, channel.id)
+                channel = None
 
         # 3. If user is not currently inside a voice channel, check owned channels in this server
         if not channel or not owner_id:
@@ -2366,10 +2358,11 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
 
         if channel:
             o_id = await self.cog.get_channel_owner(channel.id)
-            channel = channel
-            owner_id = o_id or user.id
             if not o_id:
-                await self.cog.register_temp_channel(user.id, channel.id)
+                channel = None
+                owner_id = None
+            else:
+                owner_id = o_id
 
         owned = await self.cog.get_user_owned_channels(guild, user.id)
 
@@ -3222,24 +3215,27 @@ class voice(commands.Cog):
         print("[VoiceClaw] Performing startup sweep of empty temporary channels...")
         for guild in self.bot.guilds:
             try:
+                # 1. Clean up stale/invalid records from voiceChannel table:
+                async with aiosqlite.connect(DB_PATH) as db:
+                    async with db.execute("SELECT voiceID FROM voiceChannel") as cur:
+                        rows = await cur.fetchall()
+                for (v_id,) in rows:
+                    ch = guild.get_channel(v_id)
+                    if ch:
+                        if not await self.is_voiceclaw_category(guild.id, ch.category_id) or await self.is_join_or_master_channel(guild.id, ch.id):
+                            print(f"[VoiceClaw Purge] Removing non-VoiceClaw channel record '{ch.name}' ({v_id}) from voiceChannel DB")
+                            await self.delete_temp_channel_record(v_id)
+                    else:
+                        await self.delete_temp_channel_record(v_id)
+
+                # 2. Sweep temporary category
                 guild_cfg = await self.get_guild_config(guild.id)
-                if not guild_cfg: continue
-                category_id = guild_cfg[3]
-                master_id = guild_cfg[2]
-                cat = guild.get_channel(category_id)
-                if cat and isinstance(cat, discord.CategoryChannel):
-                    for chan in cat.voice_channels:
-                        if chan.id != master_id and len(chan.members) == 0:
-                            owner = await self.get_channel_owner(chan.id)
-                            if owner:
-                                if await self.is_channel_permanent(chan.id):
-                                    continue
-                                try:
-                                    await chan.delete(reason="VoiceClaw: Startup empty room cleanup")
-                                    print(f"[VoiceClaw] Cleaned empty room {chan.name} ({chan.id}) on startup")
-                                except Exception:
-                                    pass
-                                await self.delete_temp_channel_record(chan.id)
+                if guild_cfg:
+                    category_id = guild_cfg[3]
+                    master_id = guild_cfg[2]
+                    cat = guild.get_channel(category_id)
+                    if cat and isinstance(cat, discord.CategoryChannel):
+                        await self.cleanup_empty_category_channels(cat, master_id)
             except Exception as e:
                 print(f"[VoiceClaw] Startup sweep error: {e}")
 
@@ -3583,41 +3579,45 @@ class voice(commands.Cog):
         except Exception as e:
             print(f"[VoiceClaw Log Error] {e}")
 
-    async def get_channel_owner(self, voice_id: int):
+    async def is_voiceclaw_category(self, guild_id: int, category_id: typing.Optional[int]) -> bool:
+        """Checks if a Discord category belongs to any VoiceClaw setup (Temp, Perm, Hub, Duo)"""
+        if not category_id:
+            return False
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT voiceCategoryID, permCategoryID FROM guild WHERE guildID = ?", (guild_id,)) as cur:
+                row = await cur.fetchone()
+                if row:
+                    if row[0] and category_id == row[0]:
+                        return True
+                    if row[1] and category_id == row[1]:
+                        return True
+            async with db.execute("SELECT 1 FROM voiceHubs WHERE guildID = ? AND categoryID = ?", (guild_id, category_id)) as cur:
+                if await cur.fetchone():
+                    return True
+        return False
+
+    async def is_join_or_master_channel(self, guild_id: int, channel_id: int) -> bool:
+        """Checks if a voice channel is a master Join-to-Create channel that should never be deleted"""
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT voiceChannelID, permChannelID FROM guild WHERE guildID = ?", (guild_id,)) as cur:
+                row = await cur.fetchone()
+                if row:
+                    if row[0] and channel_id == row[0]:
+                        return True
+                    if row[1] and channel_id == row[1]:
+                        return True
+            async with db.execute("SELECT 1 FROM voiceHubs WHERE guildID = ? AND joinChannelID = ?", (guild_id, channel_id)) as cur:
+                if await cur.fetchone():
+                    return True
+        return False
+
+    async def get_channel_owner(self, voice_id: int) -> typing.Optional[int]:
+        """Returns the registered host user ID for a VoiceClaw voice room, or None"""
         async with aiosqlite.connect(DB_PATH) as db:
             async with db.execute("SELECT userID FROM voiceChannel WHERE voiceID = ?", (voice_id,)) as cursor:
                 row = await cursor.fetchone()
                 if row:
                     return row[0]
-
-        # Automatic Self-Healing Fallback for voice rooms:
-        channel = self.bot.get_channel(voice_id)
-        if channel and isinstance(channel, discord.VoiceChannel):
-            # 1. Check member overwrites for manage_channels=True
-            for target, overwrite in channel.overwrites.items():
-                if isinstance(target, discord.Member) and not target.bot:
-                    if overwrite.manage_channels is True:
-                        await self.register_temp_channel(target.id, voice_id)
-                        print(f"[VoiceClaw Self-Heal] Recovered owner {target.display_name} ({target.id}) for room {channel.name} from permission overwrites.")
-                        return target.id
-
-            # 2. Check channel name matching a member (e.g. "{name}'s Room")
-            for m in channel.members:
-                if not m.bot:
-                    clean = " ".join(m.display_name.split()).lower()
-                    cname = channel.name.lower()
-                    if f"{clean}'s room" in cname or cname.startswith(clean):
-                        await self.register_temp_channel(m.id, voice_id)
-                        print(f"[VoiceClaw Self-Heal] Recovered owner {m.display_name} ({m.id}) for room {channel.name} from member name.")
-                        return m.id
-
-            # 3. First non-bot member in channel
-            first_human = next((m for m in channel.members if not m.bot), None)
-            if first_human:
-                await self.register_temp_channel(first_human.id, voice_id)
-                print(f"[VoiceClaw Self-Heal] Recovered owner {first_human.display_name} ({first_human.id}) for room {channel.name} as primary member.")
-                return first_human.id
-
         return None
 
     async def get_owner_channel(self, owner_id: int):
@@ -4131,19 +4131,30 @@ class voice(commands.Cog):
 
     async def cleanup_empty_category_channels(self, category: discord.CategoryChannel, master_channel_id: int):
         try:
+            guild = category.guild
+            if not await self.is_voiceclaw_category(guild.id, category.id):
+                return
+
             for c in list(category.voice_channels):
-                if c.id != master_channel_id and len(c.members) == 0:
-                    is_temp = await self.get_channel_owner(c.id)
-                    if is_temp:
-                        if await self.is_channel_permanent(c.id):
-                            continue
-                        try:
-                            await c.delete(reason="VoiceClaw: Auto-cleanup empty temp room")
-                            print(f"[VoiceClaw] Cleaned empty channel {c.name} ({c.id})")
-                        except Exception:
-                            pass
-                        await self.delete_temp_channel_record(c.id)
-                        self.knock_settings.pop(c.id, None)
+                if c.id == master_channel_id or len(c.members) > 0:
+                    continue
+                if await self.is_join_or_master_channel(guild.id, c.id):
+                    continue
+
+                async with aiosqlite.connect(DB_PATH) as db:
+                    async with db.execute("SELECT userID, isPermanent FROM voiceChannel WHERE voiceID = ?", (c.id,)) as cur:
+                        row = await cur.fetchone()
+
+                if not row or row[1]:  # Not registered or isPermanent == 1
+                    continue
+
+                try:
+                    await c.delete(reason="VoiceClaw: Auto-cleanup empty temp room")
+                    print(f"[VoiceClaw] Cleaned empty channel {c.name} ({c.id})")
+                except Exception:
+                    pass
+                await self.delete_temp_channel_record(c.id)
+                self.knock_settings.pop(c.id, None)
         except Exception:
             pass
 
@@ -4814,31 +4825,50 @@ class voice(commands.Cog):
                     )
 
             # 4. Member Left a Voice Channel
-            is_hub_join = await self.is_hub_join_channel(before.channel.id) if before.channel else False
-            if before.channel and (not master_channel_id or before.channel.id != master_channel_id) and (not perm_channel_id or before.channel.id != perm_channel_id) and not is_hub_join:
+            if before.channel:
                 chan_id = before.channel.id
-                owner_id = await self.get_channel_owner(chan_id)
-                if owner_id:
-                    if len(before.channel.members) == 0:
-                        is_perm = await self.is_channel_permanent(chan_id)
-                        if is_perm:
-                            # Permanent rooms stay forever!
-                            return
-                        try:
-                            await before.channel.delete(reason="VoiceClaw: Temporary channel empty")
-                            print(f"[VoiceClaw] Cleaned up empty temporary channel {chan_id}")
-                        except Exception:
-                            pass
-                        await self.delete_temp_channel_record(chan_id)
-                        self.knock_settings.pop(chan_id, None)
-                        self.afk_tracker.pop(chan_id, None)
+                b_guild = before.channel.guild
 
-                        await self.log_voice_event(
-                            guild,
-                            title="✕ Temporary Room Deleted",
-                            description=f"Room `{before.channel.name}` was cleaned up after all members departed.",
-                            color=0xED4245
-                        )
+                # Master join/create channels must NEVER be deleted
+                if await self.is_join_or_master_channel(b_guild.id, chan_id):
+                    return
+
+                # Strict Category Guard: Ignore any channels outside VoiceClaw categories!
+                if not await self.is_voiceclaw_category(b_guild.id, before.channel.category_id):
+                    return
+
+                # Strict Database Check: Only channels recorded in voiceChannel
+                async with aiosqlite.connect(DB_PATH) as db:
+                    async with db.execute("SELECT userID, isPermanent FROM voiceChannel WHERE voiceID = ?", (chan_id,)) as cur:
+                        chan_record = await cur.fetchone()
+
+                if not chan_record:
+                    return
+
+                owner_id, is_perm = chan_record[0], bool(chan_record[1])
+
+                # Permanent rooms (24/7) NEVER auto-delete!
+                if is_perm:
+                    return
+
+                # Delete ONLY if 0 members
+                if len(before.channel.members) == 0:
+                    try:
+                        await before.channel.delete(reason="VoiceClaw: Temporary channel empty")
+                        print(f"[VoiceClaw] Cleaned up empty temporary channel '{before.channel.name}' ({chan_id})")
+                    except Exception as del_err:
+                        print(f"[VoiceClaw Error] Failed to delete temporary channel {chan_id}: {del_err}")
+
+                    await self.delete_temp_channel_record(chan_id)
+                    self.knock_settings.pop(chan_id, None)
+                    self.afk_tracker.pop(chan_id, None)
+
+                    await self.log_voice_event(
+                        b_guild,
+                        title="✕ Temporary Room Deleted",
+                        description=f"Room `{before.channel.name}` was cleaned up after all members departed.",
+                        color=0xED4245
+                    )
 
         except Exception as e:
             print(f"[VoiceClaw Error] on_voice_state_update failed: {e}")
@@ -4854,8 +4884,8 @@ class voice(commands.Cog):
         channel = voice_state.channel
         owner_id = await self.get_channel_owner(channel.id)
         if not owner_id:
-            owner_id = ctx.author.id
-            await self.register_temp_channel(ctx.author.id, channel.id)
+            await ctx.send("✕ This voice channel is not managed by VoiceClaw.", ephemeral=True)
+            return None, None
 
         if ctx.author.id != owner_id and not ctx.author.guild_permissions.administrator:
             await ctx.send(f"✕ Only the room host (<@{owner_id}>) can use this command.", ephemeral=True)
@@ -4877,8 +4907,7 @@ class voice(commands.Cog):
         channel = voice_state.channel
         owner_id = await self.get_channel_owner(channel.id)
         if not owner_id:
-            owner_id = ctx.author.id
-            await self.register_temp_channel(ctx.author.id, channel.id)
+            return await ctx.send("✕ You are not connected to an active VoiceClaw voice room!", ephemeral=True)
 
         owner = ctx.guild.get_member(owner_id)
         owner_name = owner.mention if owner else f"User ID: {owner_id}"
