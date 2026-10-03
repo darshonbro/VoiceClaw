@@ -305,6 +305,11 @@ class JtcSetupModal(discord.ui.Modal, title="Configure Join to Create VC"):
         self.cog = cog
 
     async def on_submit(self, interaction: discord.Interaction):
+        if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
+            return await interaction.response.send_message(
+                f"✕ Only the server owner (<@{interaction.guild.owner_id}>) can complete VoiceClaw setup.",
+                ephemeral=True
+            )
         await interaction.response.defer()
         cat_name = self.category_name.value.strip() or "Voice Channels"
         join_name = self.join_channel_name.value.strip() or "＋ Join to Create"
@@ -373,6 +378,11 @@ class PermSetupModal(discord.ui.Modal, title="Configure Permanent Voice Rooms"):
         self.cog = cog
 
     async def on_submit(self, interaction: discord.Interaction):
+        if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
+            return await interaction.response.send_message(
+                f"✕ Only the server owner (<@{interaction.guild.owner_id}>) can complete VoiceClaw setup.",
+                ephemeral=True
+            )
         await interaction.response.defer()
         cat_name = self.category_name.value.strip() or "Permanent Rooms"
         create_name = self.create_channel_name.value.strip() or "＋ Create Permanent VC"
@@ -455,6 +465,11 @@ class DualSetupModal(discord.ui.Modal, title="Configure Dual Voice System"):
         self.cog = cog
 
     async def on_submit(self, interaction: discord.Interaction):
+        if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
+            return await interaction.response.send_message(
+                f"✕ Only the server owner (<@{interaction.guild.owner_id}>) can complete VoiceClaw setup.",
+                ephemeral=True
+            )
         await interaction.response.defer()
         t_cat = self.temp_category.value.strip() or "Voice Channels"
         p_cat = self.perm_category.value.strip() or "Permanent Rooms"
@@ -525,6 +540,11 @@ class SetupCustomModal(discord.ui.Modal, title="Custom Voice Setup"):
         self.cog = cog
 
     async def on_submit(self, interaction: discord.Interaction):
+        if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
+            return await interaction.response.send_message(
+                f"✕ Only the server owner (<@{interaction.guild.owner_id}>) can complete VoiceClaw setup.",
+                ephemeral=True
+            )
         await interaction.response.defer()
         cat_name = self.category_name.value.strip()
         chan_name = self.channel_name.value.strip()
@@ -610,6 +630,11 @@ class HubSetupModal(discord.ui.Modal, title="Fixed-Name Themed Hub Setup"):
         self.cog = cog
 
     async def on_submit(self, interaction: discord.Interaction):
+        if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
+            return await interaction.response.send_message(
+                f"✕ Only the server owner (<@{interaction.guild.owner_id}>) can complete VoiceClaw setup.",
+                ephemeral=True
+            )
         await interaction.response.defer()
         cat_name = self.category_name.value.strip()
         chan_name = self.channel_name.value.strip()
@@ -715,8 +740,8 @@ class SetupSelect(discord.ui.Select):
         self.author_id = author_id
 
     async def callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.author_id and not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message("✕ Only the administrator who invoked setup can use these controls.", ephemeral=True)
+        if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
+            return await interaction.response.send_message(f"✕ Only the server owner (<@{interaction.guild.owner_id}>) can use setup controls.", ephemeral=True)
 
         selected = self.values[0]
         if selected == "dual":
@@ -785,8 +810,8 @@ class SetupLayoutView(discord.ui.LayoutView):
         await interaction.followup.send("✓ Setup wizard refreshed!", ephemeral=True)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self.author_id and not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("✕ Only the administrator who invoked setup can use these controls.", ephemeral=True)
+        if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
+            await interaction.response.send_message(f"✕ Only the server owner (<@{interaction.guild.owner_id}>) can use setup controls.", ephemeral=True)
             return False
         return True
 
@@ -2976,6 +3001,21 @@ class voice(commands.Cog):
         self.panel_cooldowns[user_id] = loop_now
         return 0.0
 
+    async def is_server_owner_or_bot_owner(self, user: typing.Union[discord.Member, discord.User], guild: typing.Optional[discord.Guild]) -> bool:
+        """Strict check ensuring only the Server Owner (or Bot Developer) can access setup configurations"""
+        if not guild:
+            return False
+        if user.id == guild.owner_id:
+            return True
+        if self._app_owner_id and user.id == self._app_owner_id:
+            return True
+        try:
+            if await self.bot.is_owner(user):
+                return True
+        except Exception:
+            pass
+        return False
+
     async def cog_load(self):
         """Initialize database tables, register views, sweep channels, and start background tasks"""
         if self.bot.help_command:
@@ -4020,6 +4060,28 @@ class voice(commands.Cog):
         except Exception:
             pass
 
+    # --- Listener: Guild Join Server Owner Authorization Guard ---
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild: discord.Guild):
+        """Alerts the server owner when VoiceClaw is added to ensure only the server owner configures it"""
+        print(f"[VoiceClaw] Bot joined server '{guild.name}' ({guild.id}). Server Owner: {guild.owner_id}")
+        try:
+            owner = guild.owner or await guild.fetch_member(guild.owner_id)
+            if owner:
+                try:
+                    await owner.send(
+                        f"### ✦ VoiceClaw Added to {guild.name}\n"
+                        f"Hello **{owner.display_name}**,\n"
+                        f"**VoiceClaw** has been added to your server **{guild.name}**.\n\n"
+                        f"🔒 **Server Owner Security Policy:**\n"
+                        f"To protect your server, **only you (the Server Owner)** have permission to run `/setup` (or `.setup`) and configure voice channels or hubs.\n\n"
+                        f"Whenever you are ready, run `/setup` or `.setup` in your server to start the interactive wizard."
+                    )
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"[VoiceClaw] on_guild_join notification error: {e}")
+
     # --- Listener: Auto-delete all messages in interface channels ---
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -5015,15 +5077,21 @@ class voice(commands.Cog):
         await self.set_guild_log_channel(ctx.guild.id, channel.id)
         await ctx.send(f"✓ Voice audit log channel set to {channel.mention}!")
 
-    @voice_group.command(name="setup", description="Interactive setup wizard for Voice Channels and Interfaces (Admin only)")
+    @voice_group.command(name="setup", description="Interactive setup wizard for Voice Channels and Interfaces (Server Owner only)")
     @commands.has_permissions(administrator=True)
     @app_commands.describe(mode="Setup mode: 'menu' (interactive dropdown), 'temp', 'perm', or 'dual'")
     async def v_setup(self, ctx: commands.Context, mode: typing.Optional[str] = None):
+        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
+            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
+            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can configure VoiceClaw setup on this server.", ephemeral=True)
         await self.standalone_setup(ctx, mode=mode)
 
-    @voice_group.command(name="interface", aliases=["panel"], description="Deploy or refresh the VoiceClaw Interface panel")
+    @voice_group.command(name="interface", aliases=["panel"], description="Deploy or refresh the VoiceClaw Interface panel (Server Owner only)")
     @commands.has_permissions(administrator=True)
     async def v_interface(self, ctx: commands.Context):
+        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
+            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
+            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can deploy or refresh the interface panel.", ephemeral=True)
         guild = ctx.guild
         guild_cfg = await self.get_guild_config(guild.id)
 
@@ -5491,6 +5559,9 @@ class voice(commands.Cog):
     @hub_group.command(name="refresh", description="Refresh the themed hubs overview")
     @commands.has_permissions(administrator=True)
     async def hub_refresh(self, ctx: commands.Context):
+        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
+            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
+            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can refresh Themed Hubs.", ephemeral=True)
         await self.hub_list_overview(ctx)
 
     async def hub_list_overview(self, ctx: commands.Context):
@@ -5538,6 +5609,10 @@ class voice(commands.Cog):
         join_name: typing.Optional[str] = None,
         user_limit: typing.Optional[int] = 0
     ):
+        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
+            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
+            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can create Themed Hubs.", ephemeral=True)
+
         if not fixed_name and ctx.interaction:
             return await ctx.interaction.response.send_modal(HubSetupModal(self))
 
@@ -5601,6 +5676,9 @@ class voice(commands.Cog):
     @commands.has_permissions(administrator=True)
     @app_commands.describe(join_channel="The join-to-create channel of the hub to remove")
     async def hub_delete(self, ctx: commands.Context, join_channel: discord.VoiceChannel):
+        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
+            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
+            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can delete Themed Hubs.", ephemeral=True)
         hub = await self.get_voice_hub(join_channel.id)
         if not hub:
             return await ctx.send(f"✕ {join_channel.mention} is not registered as a Fixed-Name Hub.", ephemeral=True)
@@ -5711,13 +5789,16 @@ class voice(commands.Cog):
         else:
             await self.v_interface(ctx)
 
-    @commands.hybrid_command(name="refresh", aliases=["reloadpanel", "refreshpanel", "fixpanel", "updatepanel"], description="Refresh and update all VoiceClaw panels & interfaces with latest features (Admin only)")
+    @commands.hybrid_command(name="refresh", aliases=["reloadpanel", "refreshpanel", "fixpanel", "updatepanel"], description="Refresh and update all VoiceClaw panels & interfaces with latest features (Server Owner only)")
     @commands.has_permissions(administrator=True)
     async def standalone_refresh(self, ctx: commands.Context):
         """Refreshes and redeploys the latest VoiceClaw panels across the server"""
+        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
+            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
+            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can refresh setup panels.", ephemeral=True)
         await self.execute_full_refresh(ctx)
 
-    @commands.hybrid_command(name="setup", description="Interactive setup wizard for Voice Channels and Interfaces (Admin only)")
+    @commands.hybrid_command(name="setup", description="Interactive setup wizard for Voice Channels and Interfaces (Server Owner only)")
     @commands.has_permissions(administrator=True)
     @app_commands.describe(mode="Setup mode: 'menu' (interactive dropdown), 'temp', 'perm', or 'dual'")
     @app_commands.choices(mode=[
@@ -5728,6 +5809,9 @@ class voice(commands.Cog):
         app_commands.Choice(name="🏷️ Fixed-Name Themed Hub", value="hub"),
     ])
     async def standalone_setup(self, ctx: commands.Context, mode: typing.Optional[str] = None):
+        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
+            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
+            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can configure and set up VoiceClaw on this server.", ephemeral=True)
         choice = (mode or "menu").lower().strip()
         if choice in ["menu", "wizard", "select"]:
             view = SetupLayoutView(self, ctx.author.id)
