@@ -2675,10 +2675,15 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
 
         owner_member = channel.guild.get_member(owner_id)
         if owner_member and owner_member in channel.members:
-            return await interaction.response.send_message(f"✕ Cannot claim: the owner {owner_member.mention} is still in the room!", ephemeral=True)
+            return await interaction.response.send_message(f"✕ Cannot claim: the owner {owner_member.mention} is still in the room! Only the current host can transfer ownership.", ephemeral=True)
 
         await self.cog.set_channel_owner(channel.id, user.id)
         await channel.set_permissions(user, connect=True, view_channel=True, read_messages=True, manage_channels=True)
+        if owner_member:
+            try:
+                await channel.set_permissions(owner_member, overwrite=None)
+            except Exception:
+                pass
         await interaction.response.send_message(f"👑 **Congratulations!** You are now the new owner of {channel.name}.", ephemeral=False)
         await self.cog.log_voice_event(
             interaction.guild,
@@ -4853,21 +4858,7 @@ class voice(commands.Cog):
                         description=f"Room `{before.channel.name}` was cleaned up after all members departed.",
                         color=0xED4245
                     )
-                elif member.id == owner_id:
-                    # Host left, but other members are still inside!
-                    # Transfer host ownership to the next member in the room
-                    next_host = next((m for m in before.channel.members if not m.bot), None)
-                    if next_host:
-                        await self.set_channel_owner(chan_id, next_host.id)
-                        print(f"[VoiceClaw] Host of '{before.channel.name}' transferred from {member.display_name} to {next_host.display_name}")
-                        try:
-                            await before.channel.set_permissions(
-                                next_host,
-                                connect=True, view_channel=True, read_messages=True,
-                                send_messages=True, read_message_history=True, manage_channels=True
-                            )
-                        except Exception:
-                            pass
+
 
         except Exception as e:
             print(f"[VoiceClaw Error] on_voice_state_update failed: {e}")
@@ -5310,10 +5301,15 @@ class voice(commands.Cog):
 
         owner_member = channel.guild.get_member(owner_id)
         if owner_member and owner_member in channel.members:
-            return await ctx.send(f"✕ Cannot claim: the owner {owner_member.mention} is still in the room!", ephemeral=True)
+            return await ctx.send(f"✕ Cannot claim: the owner {owner_member.mention} is still in the room! Only the current host can transfer ownership.", ephemeral=True)
 
         await self.set_channel_owner(channel.id, ctx.author.id)
         await channel.set_permissions(ctx.author, connect=True, view_channel=True, read_messages=True, manage_channels=True)
+        if owner_member:
+            try:
+                await channel.set_permissions(owner_member, overwrite=None)
+            except Exception:
+                pass
         await ctx.send(f"👑 **Congratulations!** You are now the new owner of {channel.name}.")
         await self.log_voice_event(
             ctx.guild,
@@ -5331,6 +5327,10 @@ class voice(commands.Cog):
             return await ctx.send("✕ The target member must currently be inside the room!", ephemeral=True)
         await self.set_channel_owner(channel.id, member.id)
         await channel.set_permissions(member, connect=True, view_channel=True, read_messages=True, manage_channels=True)
+        try:
+            await channel.set_permissions(ctx.author, overwrite=None)
+        except Exception:
+            pass
         await ctx.send(f"♔ Ownership transferred to {member.mention}!")
         await self.log_voice_event(
             ctx.guild,
@@ -6449,12 +6449,15 @@ class voice(commands.Cog):
     async def p_kick_alias(self, ctx, member: discord.Member):
         await self.v_kick(ctx, member=member)
 
-    @commands.command(name="claim")
-    async def p_claim_alias(self, ctx):
+    @commands.hybrid_command(name="claim", description="Claim room ownership if the previous host has left the channel")
+    async def p_claim_alias(self, ctx: commands.Context):
+        """Claim room ownership if the host has left the channel"""
         await self.v_claim(ctx)
 
-    @commands.command(name="transfer")
-    async def p_transfer_alias(self, ctx, member: discord.Member):
+    @commands.hybrid_command(name="transfer", description="Transfer room ownership to another member inside the room")
+    @app_commands.describe(member="Member inside your room to make host")
+    async def p_transfer_alias(self, ctx: commands.Context, member: discord.Member):
+        """Transfer room ownership to another member inside the room"""
         await self.v_transfer(ctx, member=member)
 
     @commands.command(name="delete")
