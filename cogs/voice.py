@@ -2015,52 +2015,52 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
                 discord.ui.MediaGallery(discord.MediaGalleryItem("attachment://banner.jpg"))
             )
 
-        # Row 0: Privacy, Settings, Region, Members, Host (Uniform Square Icons)
-        btn_privacy = discord.ui.Button(emoji=APP_EMOJIS["privacy"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_privacy")
-        btn_settings = discord.ui.Button(emoji=APP_EMOJIS["settings"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_settings")
-        btn_region = discord.ui.Button(emoji=APP_EMOJIS["region"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_region")
-        btn_members = discord.ui.Button(emoji=APP_EMOJIS["members"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_members")
-        btn_host = discord.ui.Button(emoji=APP_EMOJIS["host"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_host")
-
-        btn_privacy.callback = self.privacy_callback
-        btn_settings.callback = self.settings_callback
-        btn_region.callback = self.region_callback
-        btn_members.callback = self.members_callback
-        btn_host.callback = self.host_callback
-
-        row0 = discord.ui.ActionRow(btn_privacy, btn_settings, btn_region, btn_members, btn_host)
-        container_children.append(row0)
-
-        # Row 1: Delete, Lock, Unlock, Ghost, Reveal (Uniform Square Icons)
-        btn_delete = discord.ui.Button(emoji=APP_EMOJIS["delete"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_delete")
-        btn_lock = discord.ui.Button(emoji=APP_EMOJIS["lock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_lock")
-        btn_unlock = discord.ui.Button(emoji=APP_EMOJIS["unlock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_unlock")
-        btn_ghost = discord.ui.Button(emoji=APP_EMOJIS["ghost"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_ghost")
-        btn_reveal = discord.ui.Button(emoji=APP_EMOJIS["reveal"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_reveal")
-
-        btn_delete.callback = self.delete_callback
-        btn_lock.callback = self.lock_callback
-        btn_unlock.callback = self.unlock_callback
-        btn_ghost.callback = self.ghost_callback
-        btn_reveal.callback = self.reveal_callback
-
-        row1 = discord.ui.ActionRow(btn_delete, btn_lock, btn_unlock, btn_ghost, btn_reveal)
-        container_children.append(row1)
-
-        # Row 2: Knock, Rename, Limit, Trust, Untrust (Uniform Square Icons)
-        btn_knock = discord.ui.Button(emoji=APP_EMOJIS["knock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock")
+        # Row 0: Rename, Limit, Privacy, Waiting Room (Knock), Chat
         btn_rename = discord.ui.Button(emoji=APP_EMOJIS["rename"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_rename")
         btn_limit = discord.ui.Button(emoji=APP_EMOJIS["limit"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_limit")
-        btn_trust = discord.ui.Button(emoji=APP_EMOJIS["trust"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_trust")
-        btn_untrust = discord.ui.Button(emoji=APP_EMOJIS["untrust"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_untrust")
+        btn_privacy = discord.ui.Button(emoji=APP_EMOJIS["privacy"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_privacy")
+        btn_knock = discord.ui.Button(emoji=APP_EMOJIS["knock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_knock")
+        btn_chat = discord.ui.Button(emoji="💬", style=discord.ButtonStyle.secondary, custom_id="vc_btn_chat")
 
-        btn_knock.callback = self.knock_toggle_callback
         btn_rename.callback = self.rename_callback
         btn_limit.callback = self.limit_callback
+        btn_privacy.callback = self.privacy_callback
+        btn_knock.callback = self.knock_toggle_callback
+        btn_chat.callback = self.chat_callback
+
+        row0 = discord.ui.ActionRow(btn_rename, btn_limit, btn_privacy, btn_knock, btn_chat)
+        container_children.append(row0)
+
+        # Row 1: Trust, Untrust, Invite, Kick, Region
+        btn_trust = discord.ui.Button(emoji=APP_EMOJIS["trust"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_trust")
+        btn_untrust = discord.ui.Button(emoji=APP_EMOJIS["untrust"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_untrust")
+        btn_invite = discord.ui.Button(emoji=APP_EMOJIS["invite"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_invite")
+        btn_kick = discord.ui.Button(emoji=APP_EMOJIS["kick"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_kick")
+        btn_region = discord.ui.Button(emoji=APP_EMOJIS["region"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_region")
+
         btn_trust.callback = self.trust_callback
         btn_untrust.callback = self.untrust_callback
+        btn_invite.callback = self.invite_callback
+        btn_kick.callback = self.kick_callback
+        btn_region.callback = self.region_callback
 
-        row2 = discord.ui.ActionRow(btn_knock, btn_rename, btn_limit, btn_trust, btn_untrust)
+        row1 = discord.ui.ActionRow(btn_trust, btn_untrust, btn_invite, btn_kick, btn_region)
+        container_children.append(row1)
+
+        # Row 2: Block, Unblock, Claim, Transfer, Delete
+        btn_block = discord.ui.Button(emoji=APP_EMOJIS["block"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_block")
+        btn_unblock = discord.ui.Button(emoji=APP_EMOJIS["unblock"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_unblock")
+        btn_claim = discord.ui.Button(emoji=APP_EMOJIS["claim"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_claim")
+        btn_transfer = discord.ui.Button(emoji=APP_EMOJIS["transfer"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_transfer")
+        btn_delete = discord.ui.Button(emoji=APP_EMOJIS["delete"], style=discord.ButtonStyle.secondary, custom_id="vc_btn_delete")
+
+        btn_block.callback = self.block_callback
+        btn_unblock.callback = self.unblock_callback
+        btn_claim.callback = self.claim_callback
+        btn_transfer.callback = self.transfer_callback
+        btn_delete.callback = self.delete_callback
+
+        row2 = discord.ui.ActionRow(btn_block, btn_unblock, btn_claim, btn_transfer, btn_delete)
         container_children.append(row2)
 
         # 3. Unified borderless V2 Container
@@ -2127,6 +2127,7 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             "transfer": self.transfer_callback,
             "delete": self.delete_callback,
             "info": self.info_callback,
+            "chat": self.chat_callback,
         }
         handler = mapping.get(action)
         if handler:
@@ -2619,6 +2620,34 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             accent_color=None
         )
         info_view.add_item(c)
+        await interaction.response.send_message(view=info_view, ephemeral=True)
+
+    async def chat_callback(self, interaction: discord.Interaction):
+        channel, owner_id = await self._get_voice_context(interaction)
+        if not channel: return
+        if interaction.user.id != owner_id and not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can manage chat permissions.", ephemeral=True)
+
+        current_perms = channel.permissions_for(interaction.guild.default_role)
+        if current_perms.send_messages is False:
+            await channel.set_permissions(interaction.guild.default_role, send_messages=True, read_messages=True)
+            await interaction.response.send_message("💬 **Voice Text Chat Opened!** Everyone in this voice room can now send text messages.", ephemeral=True)
+            await self.cog.log_voice_event(
+                interaction.guild,
+                title="💬 Voice Chat Opened",
+                description=f"Host {interaction.user.mention} opened text chat in `{channel.name}`.",
+                color=0x5865F2
+            )
+        else:
+            await channel.set_permissions(interaction.guild.default_role, send_messages=False)
+            await interaction.response.send_message("🔇 **Voice Text Chat Closed!** Text messages in this channel are restricted to the host.", ephemeral=True)
+            await self.cog.log_voice_event(
+                interaction.guild,
+                title="🔇 Voice Chat Closed",
+                description=f"Host {interaction.user.mention} closed text chat in `{channel.name}`.",
+                color=0xED4245
+            )
+
 def get_help_content(category: str) -> tuple[str, str]:
     cat = (category or "overview").lower()
     synonyms = {
@@ -2694,10 +2723,9 @@ def get_help_content(category: str) -> tuple[str, str]:
             "Member guide for using Join-to-Create voice channels:\n\n"
             "1. **Join to Create (JTC):** Join `＋ Create VC` to instantly generate your private room.\n"
             "2. **#interface Panel:** Click buttons in the text channel to manage your room:\n"
-            "   • **Privacy:** Lock, Unlock, Ghost, Reveal, Chat, Knock\n"
-            "   • **Settings:** Rename, Limit, Bitrate, Region, Activities, Soundboard\n"
-            "   • **Members:** Trust VIP, Untrust, Invite, Kick, Block\n"
-            "   • **Host:** Claim ownership, Transfer host, Info & Delete\n"
+            "   • **Row 1:** Rename • Limit • Privacy • Waiting Room • Chat\n"
+            "   • **Row 2:** Trust • Untrust • Invite • Kick • Region\n"
+            "   • **Row 3:** Block • Unblock • Claim • Transfer • Delete\n"
             "3. **Auto Cleanup:** The room deletes automatically when all members leave."
         )
     elif cat == "profile":
