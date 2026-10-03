@@ -880,13 +880,10 @@ class HostKnockSettingsView(VoiceControlActionView):
         view = discord.ui.LayoutView()
         container = discord.ui.Container(
             discord.ui.TextDisplay(
-                f"### 🔔 Knock Doorbell: ENABLED\n"
+                f"### 🔔 Doorbell Enabled\n"
                 f"• **Room:** `{self.channel.name}`\n"
-                f"• **Doorbell Status:** `Active`\n\n"
-                f"**📌 এটি কীভাবে কাজ করবে?**\n"
-                f"1. **রুম লক করুন (🔒):** আপনার ভয়েস রুমটি লক (`.lock` বা 🔒 বাটন) করে রাখুন যাতে অনুমতি ছাড়া সরাসরি কেউ ঢুকতে না পারে।\n"
-                f"2. **বাইরের মেম্বারদের নক করতে বলুন:** বাইরের কোনো মেম্বার আপনার রুমে আসতে চাইলে `#interface` প্যানেলের **Knock (🔔)** বাটন চাপবে অথবা `.knock` লিখবে।\n"
-                f"3. **অনুমতি দিন:** সাথে সাথে আপনার এই টেক্সট চ্যাটে কলিং বেল আসবে। আপনি **[✦ Allow Entry]** চাপলেই বট তাকে রুমে টেনে নিয়ে আসবে!"
+                f"• **Status:** `Active`\n\n"
+                f"Members can now knock to request entry to your room."
             ),
             accent_color=None
         )
@@ -898,10 +895,10 @@ class HostKnockSettingsView(VoiceControlActionView):
         view = discord.ui.LayoutView()
         container = discord.ui.Container(
             discord.ui.TextDisplay(
-                f"### 🔕 Knock Doorbell: MUTED (Do Not Disturb)\n"
+                f"### 🔕 Doorbell Muted\n"
                 f"• **Room:** `{self.channel.name}`\n"
-                f"• **Doorbell Status:** `Muted`\n\n"
-                f"বাইরের কেউ এখন এই রুমে কলিং বেল (Knock) পাঠাতে পারবে না।"
+                f"• **Status:** `Muted`\n\n"
+                f"Doorbell requests are now muted for this room."
             ),
             accent_color=None
         )
@@ -2393,13 +2390,12 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
         if voice_state and voice_state.channel:
             owner_id = await self.cog.get_channel_owner(voice_state.channel.id)
             if owner_id == user.id:
-                status = "ENABLED (Doorbell Active)" if self.cog.knock_settings.get(voice_state.channel.id, True) else "MUTED (Do Not Disturb)"
+                status = "Active" if self.cog.knock_settings.get(voice_state.channel.id, True) else "Muted"
                 view = HostKnockSettingsView(self.cog, voice_state.channel)
                 return await interaction.response.send_message(
-                    f"### ⌬ Knock Doorbell Settings\n"
+                    f"### 🔔 Doorbell Settings\n"
                     f"• **Room:** `{voice_state.channel.name}`\n"
-                    f"• **Current Status:** `{status}`\n\n"
-                    f"When enabled, friends outside can knock to request entry into your room.",
+                    f"• **Status:** `{status}`",
                     view=view,
                     ephemeral=True
                 )
