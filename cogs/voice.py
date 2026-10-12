@@ -4,12 +4,20 @@ import os
 import time
 import traceback
 import typing
-import aiosqlite
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
+import mongo_db
+from mongo_db import get_db
 
-DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "voice.db"))
+class MongoDbCompat:
+    """Seamless drop-in adapter connecting VoiceClaw to self-hosted VPS MongoDB"""
+    @staticmethod
+    def connect(*args, **kwargs):
+        return get_db()
+
+aiosqlite = MongoDbCompat
+DB_PATH = "voiceclaw_mongodb"
 BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "banner.jpg")
 GUIDE_BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "guide.jpg")
 PREMIUM_BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "premium.jpg")
@@ -142,17 +150,22 @@ class ChannelLimitModal(discord.ui.Modal, title="Set User Limit"):
         raw_val = self.limit_input.value.strip()
         is_reset = not bool(raw_val)
 
-        if is_reset:
-            guild_pref = await self.cog.get_guild_setting(interaction.guild.id)
-            limit = guild_pref[1] if guild_pref and guild_pref[1] is not None else 0
+        if is_reset or not raw_val.isdigit():
+            if not is_reset and not raw_val.isdigit():
+                return await interaction.response.send_message("✕ Please enter a valid number (0 - 99).", ephemeral=True)
+            limit = 0
+            is_reset = True
             await self.cog.save_user_setting(interaction.user.id, clear_limit=True)
         else:
-            if not raw_val.isdigit():
-                return await interaction.response.send_message("✕ Please enter a valid number (0 - 99).", ephemeral=True)
             limit = int(raw_val)
             if limit < 0 or limit > 99:
                 return await interaction.response.send_message("✕ Limit must be between 0 and 99.", ephemeral=True)
-            await self.cog.save_user_setting(interaction.user.id, channel_limit=limit)
+            if limit == 0 or limit >= 99:
+                limit = 0
+                is_reset = True
+                await self.cog.save_user_setting(interaction.user.id, clear_limit=True)
+            else:
+                await self.cog.save_user_setting(interaction.user.id, channel_limit=limit)
 
         try:
             await self.channel.edit(user_limit=limit)
@@ -177,6 +190,223 @@ class ChannelLimitModal(discord.ui.Modal, title="Set User Limit"):
                 await interaction.response.send_message(f"✕ Failed to update limit: {e}", ephemeral=True)
         except Exception as e:
             await interaction.response.send_message(f"✕ Failed to update limit: {e}", ephemeral=True)
+
+
+class ChannelCapacityView(discord.ui.LayoutView):
+    def __init__(self, cog, channel: discord.VoiceChannel, is_admin: bool = False):
+        super().__init__(timeout=180)
+        self.cog = cog
+        self.channel = channel
+        self.is_admin = is_admin
+
+        current_limit_str = f"**{channel.user_limit} Members**" if channel.user_limit > 0 else "**Unlimited**"
+
+        container_children = []
+        header = discord.ui.TextDisplay(
+            f"### 👥 Room Capacity & Party Modes • `{channel.name}`\n"
+            f"• **Current Limit:** {current_limit_str}\n\n"
+            f"Select a quick party mode below to adjust room capacity instantly, or choose custom limit:"
+        )
+        container_children.append(header)
+
+        btn_duo = discord.ui.Button(label="Duo (2)", emoji="👥", style=discord.ButtonStyle.secondary, custom_id="cap_btn_duo")
+        btn_trio = discord.ui.Button(label="Trio (3)", emoji="👪", style=discord.ButtonStyle.secondary, custom_id="cap_btn_trio")
+        btn_squad = discord.ui.Button(label="Squad (4)", emoji="🛡️", style=discord.ButtonStyle.secondary, custom_id="cap_btn_squad")
+        btn_unlimited = discord.ui.Button(label="Unlimited", emoji="♾️", style=discord.ButtonStyle.secondary, custom_id="cap_btn_unlimited")
+        btn_custom = discord.ui.Button(label="Custom (0-99)", emoji="⚙️", style=discord.ButtonStyle.secondary, custom_id="cap_btn_custom")
+
+        btn_duo.callback = self.duo_callback
+        btn_trio.callback = self.trio_callback
+        btn_squad.callback = self.squad_callback
+        btn_unlimited.callback = self.unlimited_callback
+        btn_custom.callback = self.custom_callback
+
+        row1 = discord.ui.ActionRow(btn_duo, btn_trio, btn_squad, btn_unlimited, btn_custom)
+        container_children.append(row1)
+
+        if is_admin and channel.category:
+            admin_header = discord.ui.TextDisplay(
+                f"\n**👑 Category Hub Expansion ({channel.category.name}):**\n"
+                f"Add permanent Join-to-Create hubs directly to this category (shares this `#interface`):"
+            )
+            container_children.append(admin_header)
+
+            btn_add_duo_hub = discord.ui.Button(label="＋ Add Duo Join VC", emoji="👥", style=discord.ButtonStyle.primary, custom_id="cap_btn_add_duo")
+            btn_add_trio_hub = discord.ui.Button(label="＋ Add Trio Join VC", emoji="👪", style=discord.ButtonStyle.primary, custom_id="cap_btn_add_trio")
+            btn_add_squad_hub = discord.ui.Button(label="＋ Add Squad Join VC", emoji="🛡️", style=discord.ButtonStyle.primary, custom_id="cap_btn_add_squad")
+            btn_add_duo_hub.callback = self.add_duo_hub_callback
+            btn_add_trio_hub.callback = self.add_trio_hub_callback
+            btn_add_squad_hub.callback = self.add_squad_hub_callback
+            row2 = discord.ui.ActionRow(btn_add_duo_hub, btn_add_trio_hub, btn_add_squad_hub)
+            container_children.append(row2)
+
+        container = discord.ui.Container(*container_children, accent_color=None)
+        self.add_item(container)
+
+    async def _apply_limit(self, interaction: discord.Interaction, limit: int, label: str):
+        rem = self.cog.check_panel_cooldown(interaction.user.id, 2.0)
+        if rem > 0:
+            return await interaction.response.send_message(f"⏳ **Cooldown active:** Please wait `{rem}`s.", ephemeral=True)
+        try:
+            await self.channel.edit(user_limit=limit)
+            if limit == 0 or limit >= 99:
+                await self.cog.save_user_setting(interaction.user.id, clear_limit=True)
+            else:
+                await self.cog.save_user_setting(interaction.user.id, channel_limit=limit)
+            txt = "Unlimited" if limit == 0 else str(limit)
+            await interaction.response.send_message(f"✦ Room capacity set to **{label}** (`{txt}`)!", ephemeral=True)
+            await self.cog.log_voice_event(
+                interaction.guild,
+                title="⌗ Room Capacity Changed",
+                description=f"Host {interaction.user.mention} set capacity of `{self.channel.name}` to **{label}** (`{txt}`).",
+                color=0x5865F2
+            )
+        except Exception as e:
+            await interaction.response.send_message(f"✕ Could not update capacity: {e}", ephemeral=True)
+
+    async def duo_callback(self, interaction: discord.Interaction):
+        await self._apply_limit(interaction, 2, "Duo (2 Players)")
+
+    async def trio_callback(self, interaction: discord.Interaction):
+        await self._apply_limit(interaction, 3, "Trio (3 Players)")
+
+    async def squad_callback(self, interaction: discord.Interaction):
+        await self._apply_limit(interaction, 4, "Squad (4 Players)")
+
+    async def unlimited_callback(self, interaction: discord.Interaction):
+        await self._apply_limit(interaction, 0, "Unlimited")
+
+    async def custom_callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(ChannelLimitModal(self.cog, self.channel))
+
+    async def add_duo_hub_callback(self, interaction: discord.Interaction):
+        if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
+            return await interaction.response.send_message("✕ Only server administrators can add hub channels.", ephemeral=True)
+        await interaction.response.defer(ephemeral=True)
+        try:
+            chan, iface = await self.cog.add_party_hub_to_category(
+                guild=interaction.guild,
+                category=self.channel.category,
+                party_name="Duo",
+                user_limit=2
+            )
+            v = make_v2_card(
+                "✦ Duo Join Hub Created",
+                f"• **Category:** `{self.channel.category.name}`\n"
+                f"• **Join Channel:** {chan.mention}\n"
+                f"• **Control Interface:** {iface.mention if iface else 'This interface'}\n"
+                f"• **Capacity:** `2 Players (Duo)`\n\n"
+                f"Members can now join {chan.mention} to spawn dynamic 2-player rooms right in this category!"
+            )
+            await interaction.followup.send(view=v, ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"✕ Failed to add Duo hub: {e}", ephemeral=True)
+
+    async def add_trio_hub_callback(self, interaction: discord.Interaction):
+        if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
+            return await interaction.response.send_message("✕ Only server administrators can add hub channels.", ephemeral=True)
+        await interaction.response.defer(ephemeral=True)
+        try:
+            chan, iface = await self.cog.add_party_hub_to_category(
+                guild=interaction.guild,
+                category=self.channel.category,
+                party_name="Trio",
+                user_limit=3
+            )
+            v = make_v2_card(
+                "✦ Trio Join Hub Created",
+                f"• **Category:** `{self.channel.category.name}`\n"
+                f"• **Join Channel:** {chan.mention}\n"
+                f"• **Control Interface:** {iface.mention if iface else 'This interface'}\n"
+                f"• **Capacity:** `3 Players (Trio)`\n\n"
+                f"Members can now join {chan.mention} to spawn dynamic 3-player rooms right in this category!"
+            )
+            await interaction.followup.send(view=v, ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"✕ Failed to add Trio hub: {e}", ephemeral=True)
+
+    async def add_squad_hub_callback(self, interaction: discord.Interaction):
+        if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
+            return await interaction.response.send_message("✕ Only server administrators can add hub channels.", ephemeral=True)
+        await interaction.response.defer(ephemeral=True)
+        try:
+            chan, iface = await self.cog.add_party_hub_to_category(
+                guild=interaction.guild,
+                category=self.channel.category,
+                party_name="Squad",
+                user_limit=4
+            )
+            v = make_v2_card(
+                "✦ Squad Join Hub Created",
+                f"• **Category:** `{self.channel.category.name}`\n"
+                f"• **Join Channel:** {chan.mention}\n"
+                f"• **Control Interface:** {iface.mention if iface else 'This interface'}\n"
+                f"• **Capacity:** `4 Players (Squad)`\n\n"
+                f"Members can now join {chan.mention} to spawn dynamic 4-player rooms right in this category!"
+            )
+            await interaction.followup.send(view=v, ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"✕ Failed to add Squad hub: {e}", ephemeral=True)
+
+
+class CategoryHubExpansionView(discord.ui.LayoutView):
+    def __init__(self, cog, category: discord.CategoryChannel):
+        super().__init__(timeout=180)
+        self.cog = cog
+        self.category = category
+
+        container_children = []
+        header = discord.ui.TextDisplay(
+            f"### 👑 Category Voice Hubs • `{category.name}`\n"
+            f"You are not connected to a voice room, but as a server administrator you can add Duo (2-player) or Trio (3-player) Join-to-Create channels directly into this category, sharing this `#interface` panel:\n"
+        )
+        container_children.append(header)
+
+        btn_add_duo = discord.ui.Button(label="＋ Add Duo Join VC (Limit 2)", emoji="👥", style=discord.ButtonStyle.primary, custom_id="hub_btn_add_duo")
+        btn_add_trio = discord.ui.Button(label="＋ Add Trio Join VC (Limit 3)", emoji="👪", style=discord.ButtonStyle.primary, custom_id="hub_btn_add_trio")
+        btn_add_squad = discord.ui.Button(label="＋ Add Squad Join VC (Limit 4)", emoji="🛡️", style=discord.ButtonStyle.primary, custom_id="hub_btn_add_squad")
+
+        btn_add_duo.callback = self.add_duo_callback
+        btn_add_trio.callback = self.add_trio_callback
+        btn_add_squad.callback = self.add_squad_callback
+
+        row = discord.ui.ActionRow(btn_add_duo, btn_add_trio, btn_add_squad)
+        container_children.append(row)
+
+        container = discord.ui.Container(*container_children, accent_color=None)
+        self.add_item(container)
+
+    async def _add_hub(self, interaction: discord.Interaction, name: str, limit: int):
+        if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
+            return await interaction.response.send_message("✕ Only server administrators can add hub channels.", ephemeral=True)
+        await interaction.response.defer(ephemeral=True)
+        try:
+            chan, iface = await self.cog.add_party_hub_to_category(
+                guild=interaction.guild,
+                category=self.category,
+                party_name=name,
+                user_limit=limit
+            )
+            v = make_v2_card(
+                f"✦ {name} Voice Hub Deployed",
+                f"• **Category:** `{self.category.name}`\n"
+                f"• **Join Channel:** {chan.mention}\n"
+                f"• **Control Interface:** {iface.mention if iface else 'This interface'}\n"
+                f"• **Capacity:** `{limit} Players ({name})`\n\n"
+                f"Members can join {chan.mention} to start {limit}-player rooms right in this category!"
+            )
+            await interaction.followup.send(view=v, ephemeral=True)
+        except Exception as e:
+            await interaction.followup.send(f"✕ Failed to add {name} hub: {e}", ephemeral=True)
+
+    async def add_duo_callback(self, interaction: discord.Interaction):
+        await self._add_hub(interaction, "Duo", 2)
+
+    async def add_trio_callback(self, interaction: discord.Interaction):
+        await self._add_hub(interaction, "Trio", 3)
+
+    async def add_squad_callback(self, interaction: discord.Interaction):
+        await self._add_hub(interaction, "Squad", 4)
 
 
 class ChannelBitrateModal(discord.ui.Modal, title="Adjust Audio Bitrate"):
@@ -551,7 +781,8 @@ class SetupCustomModal(discord.ui.Modal, title="Custom Voice Setup"):
         guild = interaction.guild
 
         try:
-            new_cat = await guild.create_category(cat_name)
+            open_ow = self.cog.get_open_voice_overwrites(guild)
+            new_cat = await guild.create_category(cat_name, overwrites=open_ow)
             interface_chan = await guild.create_text_channel(
                 "interface",
                 category=new_cat,
@@ -560,7 +791,7 @@ class SetupCustomModal(discord.ui.Modal, title="Custom Voice Setup"):
             await interface_chan.set_permissions(guild.default_role, read_messages=True, send_messages=False, read_message_history=True)
             await interface_chan.set_permissions(guild.me, read_messages=True, send_messages=True, manage_channels=True)
 
-            new_chan = await guild.create_voice_channel(chan_name, category=new_cat)
+            new_chan = await guild.create_voice_channel(chan_name, category=new_cat, overwrites=open_ow)
 
             ctrl_view = VoiceControlLayoutView(self.cog, has_banner=os.path.exists(BANNER_PATH))
             if os.path.exists(BANNER_PATH):
@@ -644,7 +875,8 @@ class HubSetupModal(discord.ui.Modal, title="Fixed-Name Themed Hub Setup"):
         guild = interaction.guild
 
         try:
-            new_cat = await guild.create_category(cat_name)
+            open_ow = self.cog.get_open_voice_overwrites(guild)
+            new_cat = await guild.create_category(cat_name, overwrites=open_ow)
             interface_chan = await guild.create_text_channel(
                 "interface",
                 category=new_cat,
@@ -653,7 +885,7 @@ class HubSetupModal(discord.ui.Modal, title="Fixed-Name Themed Hub Setup"):
             await interface_chan.set_permissions(guild.default_role, read_messages=True, send_messages=False, read_message_history=True)
             await interface_chan.set_permissions(guild.me, read_messages=True, send_messages=True, manage_channels=True)
 
-            join_chan = await guild.create_voice_channel(chan_name, category=new_cat)
+            join_chan = await guild.create_voice_channel(chan_name, category=new_cat, overwrites=open_ow)
 
             ctrl_view = VoiceControlLayoutView(self.cog, has_banner=os.path.exists(BANNER_PATH))
             if os.path.exists(BANNER_PATH):
@@ -855,7 +1087,7 @@ class SetupSelect(discord.ui.Select):
 
 class SetupLayoutView(discord.ui.LayoutView):
     def __init__(self, cog, author_id: int):
-        super().__init__(timeout=180)
+        super().__init__(timeout=600)
         self.cog = cog
         self.author_id = author_id
 
@@ -877,21 +1109,11 @@ class SetupLayoutView(discord.ui.LayoutView):
         action_row = discord.ui.ActionRow(setup_select)
         container_children.append(action_row)
 
-        btn_refresh = discord.ui.Button(label="Refresh Wizard", emoji=APP_EMOJIS["transfer"], style=discord.ButtonStyle.secondary, custom_id="setup_refresh_btn")
-        btn_refresh.callback = self.refresh_callback
-        action_row_btn = discord.ui.ActionRow(btn_refresh)
-        container_children.append(action_row_btn)
-
         container = discord.ui.Container(
             *container_children,
             accent_color=None
         )
         self.add_item(container)
-
-    async def refresh_callback(self, interaction: discord.Interaction):
-        new_view = SetupLayoutView(self.cog, self.author_id)
-        await interaction.response.edit_message(view=new_view)
-        await interaction.followup.send("✓ Setup wizard refreshed!", ephemeral=True)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if not await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild):
@@ -1655,40 +1877,40 @@ class InviteSelectView(VoiceControlActionView):
 
 APP_EMOJIS = {
     "activity": discord.PartialEmoji(name="vc_activity", id=1555103014132383794),
-    "bitrate": discord.PartialEmoji(name="vc_bitrate", id=1555101565138894872),
-    "block": discord.PartialEmoji(name="vc_block", id=1555784490872340520),
-    "chat": discord.PartialEmoji(name="vc_chat", id=1555784440796553286),
-    "claim": discord.PartialEmoji(name="vc_claim", id=1555784507318345788),
-    "delete": discord.PartialEmoji(name="vc_delete", id=1555784523562623097),
-    "ghost": discord.PartialEmoji(name="vc_ghost", id=1554955943618420839),
+    "bitrate": discord.PartialEmoji(name="vc_bitrate", id=1557851439915733007),
+    "block": discord.PartialEmoji(name="vc_block", id=1557851582958141503),
+    "chat": discord.PartialEmoji(name="vc_chat", id=1557851496887091378),
+    "claim": discord.PartialEmoji(name="vc_claim", id=1557851613245481071),
+    "delete": discord.PartialEmoji(name="vc_delete", id=1557851641670139994),
+    "ghost": discord.PartialEmoji(name="vc_ghost", id=1557851670388412587),
     "host": discord.PartialEmoji(name="vc_host", id=1554955947150024814),
     "hubs": discord.PartialEmoji(name="vc_hubs", id=1554955950379761704),
-    "info": discord.PartialEmoji(name="vc_info", id=1554955954100117587),
+    "info": discord.PartialEmoji(name="vc_info", id=1557851698637316206),
     "interface": discord.PartialEmoji(name="vc_interface", id=1554955957447032874),
-    "invite": discord.PartialEmoji(name="vc_invite", id=1555784465391947819),
-    "kick": discord.PartialEmoji(name="vc_kick", id=1555784473662980198),
-    "knock": discord.PartialEmoji(name="vc_knock", id=1555784430910709761),
+    "invite": discord.PartialEmoji(name="vc_invite", id=1557851540209799218),
+    "kick": discord.PartialEmoji(name="vc_kick", id=1557851555171143730),
+    "knock": discord.PartialEmoji(name="vc_knock", id=1557851482408362095),
     "leaderboard": discord.PartialEmoji(name="vc_leaderboard", id=1554955971405815888),
-    "limit": discord.PartialEmoji(name="vc_limit", id=1555784413655343136),
-    "lock": discord.PartialEmoji(name="vc_privacy", id=1555784422727483522),
+    "limit": discord.PartialEmoji(name="vc_limit", id=1557851425973866671),
+    "lock": discord.PartialEmoji(name="vc_lock", id=1557851468198052020),
     "maintenance": discord.PartialEmoji(name="vc_maintenance", id=1554955991714365461),
     "members": discord.PartialEmoji(name="vc_members", id=1554955995011354655),
     "mute": discord.PartialEmoji(name="vc_mute", id=1554955999083888741),
     "overview": discord.PartialEmoji(name="vc_overview", id=1554956002544062474),
     "permanent": discord.PartialEmoji(name="vc_permanent", id=1554956006226792628),
-    "privacy": discord.PartialEmoji(name="vc_privacy", id=1555784422727483522),
-    "region": discord.PartialEmoji(name="vc_region", id=1555784482530009189),
-    "rename": discord.PartialEmoji(name="vc_rename", id=1555784405187035220),
-    "reveal": discord.PartialEmoji(name="vc_reveal", id=1554956020864778284),
+    "privacy": discord.PartialEmoji(name="vc_privacy", id=1557851454272839710),
+    "region": discord.PartialEmoji(name="vc_region", id=1557851569305690162),
+    "rename": discord.PartialEmoji(name="vc_rename", id=1557851411713368294),
+    "reveal": discord.PartialEmoji(name="vc_reveal", id=1557851684397387896),
     "settings": discord.PartialEmoji(name="vc_settings", id=1554956024342126602),
     "setup": discord.PartialEmoji(name="vc_setup", id=1554956027366215812),
     "soundboard": discord.PartialEmoji(name="vc_soundboard", id=1554956031073722428),
-    "transfer": discord.PartialEmoji(name="vc_transfer", id=1555784515555688468),
-    "trust": discord.PartialEmoji(name="vc_trust", id=1555784449025769613),
-    "unblock": discord.PartialEmoji(name="vc_unblock", id=1555784499168804864),
-    "unlock": discord.PartialEmoji(name="vc_unlock", id=1554956052775305416),
+    "transfer": discord.PartialEmoji(name="vc_transfer", id=1557851627279351890),
+    "trust": discord.PartialEmoji(name="vc_trust", id=1557851511948836928),
+    "unblock": discord.PartialEmoji(name="vc_unblock", id=1557851598795837523),
+    "unlock": discord.PartialEmoji(name="vc_unlock", id=1557851655989497966),
     "unmute": discord.PartialEmoji(name="vc_unmute", id=1554956056667627640),
-    "untrust": discord.PartialEmoji(name="vc_untrust", id=1555784457074642994),
+    "untrust": discord.PartialEmoji(name="vc_untrust", id=1557851526117204049),
     "video": discord.PartialEmoji(name="vc_video", id=1554956063994945618),
     "setup_jtc": discord.PartialEmoji(name="vc_setup_jtc", id=1555808557620920360),
     "setup_perm": discord.PartialEmoji(name="vc_setup_perm", id=1555808564176490546),
@@ -2557,11 +2779,30 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
 
     async def limit_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
-        if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can change the limit.", ephemeral=True)
+        is_admin = await self.cog.is_server_owner_or_bot_owner(interaction.user, interaction.guild) or (
+            interaction.user.guild_permissions.administrator if isinstance(interaction.user, discord.Member) else False
+        )
 
-        await interaction.response.send_modal(ChannelLimitModal(self.cog, channel))
+        if not channel:
+            if is_admin:
+                cat = interaction.channel.category if interaction.channel and hasattr(interaction.channel, "category") else None
+                if not cat:
+                    cfg = await self.cog.get_guild_config(interaction.guild.id)
+                    if cfg and cfg[3]:
+                        cat = interaction.guild.get_channel(cfg[3])
+                if cat and isinstance(cat, discord.CategoryChannel):
+                    view = CategoryHubExpansionView(self.cog, cat)
+                    return await interaction.response.send_message(view=view, ephemeral=True)
+            return await interaction.response.send_message(
+                "✕ You are not connected to a voice channel and do not own an active voice room in this server!",
+                ephemeral=True
+            )
+
+        if interaction.user.id != owner_id and not is_admin:
+            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can change room capacity.", ephemeral=True)
+
+        view = ChannelCapacityView(self.cog, channel, is_admin=is_admin)
+        await interaction.response.send_message(view=view, ephemeral=True)
 
     async def bitrate_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
@@ -3665,11 +3906,19 @@ class voice(commands.Cog):
 
     async def get_channel_owner(self, voice_id: int) -> typing.Optional[int]:
         """Returns the registered host user ID for a VoiceClaw voice room, or None"""
+        if hasattr(self.bot, 'redis') and self.bot.redis.is_ready:
+            cached_owner = await self.bot.redis.get_channel_owner(voice_id)
+            if cached_owner is not None:
+                return cached_owner
+
         async with aiosqlite.connect(DB_PATH) as db:
             async with db.execute("SELECT userID FROM voiceChannel WHERE voiceID = ?", (voice_id,)) as cursor:
                 row = await cursor.fetchone()
                 if row:
-                    return row[0]
+                    owner_id = row[0]
+                    if hasattr(self.bot, 'redis') and self.bot.redis.is_ready:
+                        await self.bot.redis.set_channel_owner(voice_id, owner_id)
+                    return owner_id
         return None
 
     async def get_owner_channel(self, owner_id: int):
@@ -3679,11 +3928,17 @@ class voice(commands.Cog):
                 return row[0] if row else None
 
     async def set_channel_owner(self, voice_id: int, new_owner_id: int):
+        if hasattr(self.bot, 'redis') and self.bot.redis.is_ready:
+            await self.bot.redis.set_channel_owner(voice_id, new_owner_id)
+            await self.bot.redis.publish_event("owner_transferred", {"voice_id": voice_id, "new_owner_id": new_owner_id})
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("UPDATE voiceChannel SET userID = ? WHERE voiceID = ?", (new_owner_id, voice_id))
             await db.commit()
 
     async def register_temp_channel(self, user_id: int, voice_id: int, is_permanent: int = 0, is_locked_name: int = 0):
+        if hasattr(self.bot, 'redis') and self.bot.redis.is_ready:
+            await self.bot.redis.set_channel_owner(voice_id, user_id)
+            await self.bot.redis.publish_event("room_created", {"voice_id": voice_id, "user_id": user_id, "is_permanent": is_permanent})
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("DELETE FROM voiceChannel WHERE voiceID = ?", (voice_id,))
             await db.execute("INSERT INTO voiceChannel (userID, voiceID, isPermanent, isLockedName) VALUES (?, ?, ?, ?)", (user_id, voice_id, is_permanent, is_locked_name))
@@ -3739,6 +3994,99 @@ class voice(commands.Cog):
         hub = await self.get_voice_hub(channel_id)
         return hub is not None
 
+    def get_open_voice_overwrites(self, guild: discord.Guild) -> dict:
+        """Returns standard open permissions so categories and join channels are NEVER locked for @everyone"""
+        bot_user = self.bot.user
+        bot_member = guild.me or (guild.get_member(bot_user.id) if bot_user else None)
+        ow = {
+            guild.default_role: discord.PermissionOverwrite(
+                connect=True,
+                view_channel=True,
+                speak=True,
+                read_messages=True,
+                read_message_history=True
+            )
+        }
+        if bot_member:
+            ow[bot_member] = discord.PermissionOverwrite(
+                connect=True,
+                view_channel=True,
+                speak=True,
+                read_messages=True,
+                read_message_history=True,
+                manage_channels=True,
+                move_members=True
+            )
+        return ow
+
+    async def add_party_hub_to_category(
+        self,
+        guild: discord.Guild,
+        category: discord.CategoryChannel,
+        party_name: str,
+        user_limit: int,
+        is_permanent: int = 0
+    ) -> typing.Tuple[discord.VoiceChannel, typing.Optional[discord.TextChannel]]:
+        """
+        Adds a Duo (2), Trio (3), Squad (4), or custom voice hub directly inside an existing category,
+        reusing that category's existing #interface text channel without creating any separate category.
+        """
+        ch_name = f"＋ Join {party_name.title()}"
+        open_ow = self.get_open_voice_overwrites(guild)
+
+        # 1. Look for existing interface in this category
+        interface_chan = None
+        for ch in category.text_channels:
+            if "interface" in ch.name.lower():
+                interface_chan = ch
+                break
+
+        if not interface_chan:
+            cfg = await self.get_guild_config(guild.id)
+            if cfg and cfg[4]:
+                interface_chan = guild.get_channel(cfg[4])
+
+        if not interface_chan:
+            interface_chan = await guild.create_text_channel(
+                "interface",
+                category=category,
+                topic=f"VoiceClaw Control Interface for {category.name}"
+            )
+            await interface_chan.set_permissions(guild.default_role, read_messages=True, send_messages=False, read_message_history=True)
+            await interface_chan.set_permissions(guild.me, read_messages=True, send_messages=True, manage_channels=True)
+            ctrl_view = VoiceControlLayoutView(self, has_banner=os.path.exists(BANNER_PATH))
+            if os.path.exists(BANNER_PATH):
+                file = discord.File(BANNER_PATH, filename="banner.jpg")
+                await interface_chan.send(file=file, view=ctrl_view)
+            else:
+                await interface_chan.send(view=ctrl_view)
+
+        # 2. Create or get Join VC with open permissions
+        join_chan = discord.utils.get(category.voice_channels, name=ch_name)
+        if not join_chan:
+            join_chan = await guild.create_voice_channel(
+                ch_name,
+                category=category,
+                user_limit=user_limit,
+                overwrites=open_ow
+            )
+        else:
+            await join_chan.edit(user_limit=user_limit, overwrites=open_ow)
+
+        # 3. Register in voiceHubs
+        await self.create_voice_hub(
+            guild_id=guild.id,
+            category_id=category.id,
+            join_channel_id=join_chan.id,
+            interface_channel_id=interface_chan.id,
+            fixed_name=party_name.title(),
+            user_limit=user_limit,
+            lock_name=0,
+            is_permanent=is_permanent
+        )
+
+        return join_chan, interface_chan
+
     async def perform_dual_setup(
         self,
         guild: discord.Guild,
@@ -3750,6 +4098,7 @@ class voice(commands.Cog):
         interface_name: typing.Optional[str] = None
     ):
         """Creates both Temporary and Permanent voice categories, interfaces, and join channels with custom names"""
+        open_ow = self.get_open_voice_overwrites(guild)
         t_cat_name = (temp_category_name or "Voice Channels").strip()
         p_cat_name = (perm_category_name or "Permanent Rooms").strip()
         t_join = (temp_join_name or "＋ Join to Create").strip()
@@ -3764,7 +4113,9 @@ class voice(commands.Cog):
                 temp_cat = c
                 break
         if not temp_cat:
-            temp_cat = await guild.create_category(t_cat_name)
+            temp_cat = await guild.create_category(t_cat_name, overwrites=open_ow)
+        else:
+            await temp_cat.edit(overwrites=open_ow)
 
         interface_chan = discord.utils.get(temp_cat.text_channels, name=i_name)
         if not interface_chan:
@@ -3778,7 +4129,9 @@ class voice(commands.Cog):
 
         temp_chan = discord.utils.get(temp_cat.voice_channels, name=t_join)
         if not temp_chan:
-            temp_chan = await guild.create_voice_channel(t_join, category=temp_cat)
+            temp_chan = await guild.create_voice_channel(t_join, category=temp_cat, overwrites=open_ow)
+        else:
+            await temp_chan.edit(overwrites=open_ow)
 
         # 2. Permanent Category & Channels
         perm_cat = None
@@ -3787,7 +4140,9 @@ class voice(commands.Cog):
                 perm_cat = c
                 break
         if not perm_cat:
-            perm_cat = await guild.create_category(p_cat_name)
+            perm_cat = await guild.create_category(p_cat_name, overwrites=open_ow)
+        else:
+            await perm_cat.edit(overwrites=open_ow)
 
         perm_interface = discord.utils.get(perm_cat.text_channels, name=i_name)
         if not perm_interface:
@@ -3801,7 +4156,9 @@ class voice(commands.Cog):
 
         perm_chan = discord.utils.get(perm_cat.voice_channels, name=p_create)
         if not perm_chan:
-            perm_chan = await guild.create_voice_channel(p_create, category=perm_cat)
+            perm_chan = await guild.create_voice_channel(p_create, category=perm_cat, overwrites=open_ow)
+        else:
+            await perm_chan.edit(overwrites=open_ow)
 
         # Deploy interface control panels with banner
         has_banner = os.path.exists(BANNER_PATH)
@@ -3846,6 +4203,7 @@ class voice(commands.Cog):
         - 'fixed': Fixed-Name Duo (name locked to 'Duo', limit 2, auto-deletes)
         - 'all': Complete Duo Suite (Creates category with all 3 Duo hubs + control interface)
         """
+        open_ow = self.get_open_voice_overwrites(guild)
         raw_type = (duo_type or "all").lower().strip()
         cat_name = (category_name or ("Duo Voice Channels" if raw_type == "all" else f"Duo Rooms ({raw_type.title()})")).strip()
         raw_iface = (interface_name or "duo-interface").strip().lstrip("#")
@@ -3858,7 +4216,9 @@ class voice(commands.Cog):
                 duo_cat = c
                 break
         if not duo_cat:
-            duo_cat = await guild.create_category(cat_name)
+            duo_cat = await guild.create_category(cat_name, overwrites=open_ow)
+        else:
+            await duo_cat.edit(overwrites=open_ow)
 
         # 2. Get or create interface text channel
         interface_chan = discord.utils.get(duo_cat.text_channels, name=i_name)
@@ -3889,7 +4249,9 @@ class voice(commands.Cog):
             ch_name = "＋ Join Duo (Temp)"
             join_chan = discord.utils.get(duo_cat.voice_channels, name=ch_name)
             if not join_chan:
-                join_chan = await guild.create_voice_channel(ch_name, category=duo_cat, user_limit=2)
+                join_chan = await guild.create_voice_channel(ch_name, category=duo_cat, user_limit=2, overwrites=open_ow)
+            else:
+                await join_chan.edit(overwrites=open_ow)
             await self.create_voice_hub(
                 guild_id=guild.id,
                 category_id=duo_cat.id,
@@ -3906,7 +4268,9 @@ class voice(commands.Cog):
             ch_name = "＋ Create Duo (24/7)"
             join_chan = discord.utils.get(duo_cat.voice_channels, name=ch_name)
             if not join_chan:
-                join_chan = await guild.create_voice_channel(ch_name, category=duo_cat, user_limit=2)
+                join_chan = await guild.create_voice_channel(ch_name, category=duo_cat, user_limit=2, overwrites=open_ow)
+            else:
+                await join_chan.edit(overwrites=open_ow)
             await self.create_voice_hub(
                 guild_id=guild.id,
                 category_id=duo_cat.id,
@@ -3923,7 +4287,9 @@ class voice(commands.Cog):
             ch_name = "＋ Join Fixed Duo"
             join_chan = discord.utils.get(duo_cat.voice_channels, name=ch_name)
             if not join_chan:
-                join_chan = await guild.create_voice_channel(ch_name, category=duo_cat, user_limit=2)
+                join_chan = await guild.create_voice_channel(ch_name, category=duo_cat, user_limit=2, overwrites=open_ow)
+            else:
+                await join_chan.edit(overwrites=open_ow)
             await self.create_voice_hub(
                 guild_id=guild.id,
                 category_id=duo_cat.id,
@@ -3941,7 +4307,9 @@ class voice(commands.Cog):
             temp_name = "＋ Join Duo (Temp)"
             temp_chan = discord.utils.get(duo_cat.voice_channels, name=temp_name)
             if not temp_chan:
-                temp_chan = await guild.create_voice_channel(temp_name, category=duo_cat, user_limit=2)
+                temp_chan = await guild.create_voice_channel(temp_name, category=duo_cat, user_limit=2, overwrites=open_ow)
+            else:
+                await temp_chan.edit(overwrites=open_ow)
             await self.create_voice_hub(
                 guild_id=guild.id,
                 category_id=duo_cat.id,
@@ -3958,7 +4326,9 @@ class voice(commands.Cog):
             perm_name = "＋ Create Duo (24/7)"
             perm_chan = discord.utils.get(duo_cat.voice_channels, name=perm_name)
             if not perm_chan:
-                perm_chan = await guild.create_voice_channel(perm_name, category=duo_cat, user_limit=2)
+                perm_chan = await guild.create_voice_channel(perm_name, category=duo_cat, user_limit=2, overwrites=open_ow)
+            else:
+                await perm_chan.edit(overwrites=open_ow)
             await self.create_voice_hub(
                 guild_id=guild.id,
                 category_id=duo_cat.id,
@@ -3975,7 +4345,9 @@ class voice(commands.Cog):
             fixed_name = "＋ Join Fixed Duo"
             fixed_chan = discord.utils.get(duo_cat.voice_channels, name=fixed_name)
             if not fixed_chan:
-                fixed_chan = await guild.create_voice_channel(fixed_name, category=duo_cat, user_limit=2)
+                fixed_chan = await guild.create_voice_channel(fixed_name, category=duo_cat, user_limit=2, overwrites=open_ow)
+            else:
+                await fixed_chan.edit(overwrites=open_ow)
             await self.create_voice_hub(
                 guild_id=guild.id,
                 category_id=duo_cat.id,
@@ -3992,6 +4364,7 @@ class voice(commands.Cog):
 
     async def perform_temp_setup(self, guild: discord.Guild, author_id: int, category_name: typing.Optional[str] = None, join_name: typing.Optional[str] = None, interface_name: typing.Optional[str] = None):
         """Creates only Temporary voice category, interface, and join channel with customizable names"""
+        open_ow = self.get_open_voice_overwrites(guild)
         cat_name = (category_name or "Voice Channels").strip()
         j_name = (join_name or "＋ Join to Create").strip()
         raw_iface = (interface_name or "interface").strip().lstrip("#")
@@ -4003,7 +4376,9 @@ class voice(commands.Cog):
                 temp_cat = c
                 break
         if not temp_cat:
-            temp_cat = await guild.create_category(cat_name)
+            temp_cat = await guild.create_category(cat_name, overwrites=open_ow)
+        else:
+            await temp_cat.edit(overwrites=open_ow)
 
         interface_chan = discord.utils.get(temp_cat.text_channels, name=i_name)
         if not interface_chan:
@@ -4017,7 +4392,9 @@ class voice(commands.Cog):
 
         temp_chan = discord.utils.get(temp_cat.voice_channels, name=j_name)
         if not temp_chan:
-            temp_chan = await guild.create_voice_channel(j_name, category=temp_cat)
+            temp_chan = await guild.create_voice_channel(j_name, category=temp_cat, overwrites=open_ow)
+        else:
+            await temp_chan.edit(overwrites=open_ow)
 
         has_banner = os.path.exists(BANNER_PATH)
         ctrl_view = VoiceControlLayoutView(self, has_banner=has_banner)
@@ -4053,6 +4430,7 @@ class voice(commands.Cog):
         interface_name: typing.Optional[str] = None
     ):
         """Creates only Permanent voice category, interface, and join channel with customizable names"""
+        open_ow = self.get_open_voice_overwrites(guild)
         cat_name = (category_name or "Permanent Rooms").strip()
         c_name = (create_name or "＋ Create Permanent VC").strip()
         raw_iface = (interface_name or "interface").strip().lstrip("#")
@@ -4064,7 +4442,9 @@ class voice(commands.Cog):
                 perm_cat = c
                 break
         if not perm_cat:
-            perm_cat = await guild.create_category(cat_name)
+            perm_cat = await guild.create_category(cat_name, overwrites=open_ow)
+        else:
+            await perm_cat.edit(overwrites=open_ow)
 
         perm_interface = discord.utils.get(perm_cat.text_channels, name=i_name)
         if not perm_interface:
@@ -4078,7 +4458,9 @@ class voice(commands.Cog):
 
         perm_chan = discord.utils.get(perm_cat.voice_channels, name=c_name)
         if not perm_chan:
-            perm_chan = await guild.create_voice_channel(c_name, category=perm_cat)
+            perm_chan = await guild.create_voice_channel(c_name, category=perm_cat, overwrites=open_ow)
+        else:
+            await perm_chan.edit(overwrites=open_ow)
 
         has_banner = os.path.exists(BANNER_PATH)
         ctrl_view = VoiceControlLayoutView(self, has_banner=has_banner)
@@ -4109,6 +4491,9 @@ class voice(commands.Cog):
         return perm_cat, perm_chan, perm_interface
 
     async def delete_temp_channel_record(self, voice_id: int):
+        if hasattr(self.bot, 'redis') and self.bot.redis.is_ready:
+            await self.bot.redis.delete_channel_owner(voice_id)
+            await self.bot.redis.publish_event("room_deleted", {"voice_id": voice_id})
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("DELETE FROM voiceChannel WHERE voiceID = ?", (voice_id,))
             await db.commit()
@@ -4438,9 +4823,12 @@ class voice(commands.Cog):
             if not hub:
                 return
 
-            hub_id, guild_id, cat_id, join_id, interface_id, fixed_name, user_limit, lock_name = hub
+            hub_id, guild_id, cat_id, join_id, interface_id, fixed_name, user_limit, lock_name, is_perm = hub
 
             if not lock_name or not fixed_name:
+                return
+
+            if not await self.is_channel_locked_name(after.id):
                 return
 
             # Do not force join channel name so admins can customize join channel title
@@ -4561,21 +4949,32 @@ class voice(commands.Cog):
                     if len(user_pref) > 2 and user_pref[2]:
                         target_bitrate = min(user_pref[2] * 1000, guild.bitrate_limit)
 
-                print(f"[VoiceClaw] Creating temporary room '{chan_name}' for {member.display_name}...")
+                try:
+                    chan_limit = max(0, min(int(chan_limit or 0), 99))
+                except Exception:
+                    chan_limit = 0
+
+                # Clamping: 99 is treated as Unlimited (0)
+                if chan_limit >= 99 or chan_limit < 0:
+                    chan_limit = 0
+
+                print(f"[VoiceClaw] Creating temporary room '{chan_name}' for {member.display_name} (limit={chan_limit})...")
 
                 bot_user = self.bot.user
                 bot_member = guild.me or (guild.get_member(bot_user.id) if bot_user else None)
                 overwrites = {
-                    guild.default_role: discord.PermissionOverwrite(read_messages=True, read_message_history=True),
+                    guild.default_role: discord.PermissionOverwrite(
+                        connect=True, view_channel=True, speak=True, read_messages=True, read_message_history=True
+                    ),
                     member: discord.PermissionOverwrite(
-                        connect=True, view_channel=True, read_messages=True,
+                        connect=True, view_channel=True, speak=True, read_messages=True,
                         send_messages=True, read_message_history=True, manage_channels=True
                     )
                 }
                 if bot_member:
                     overwrites[bot_member] = discord.PermissionOverwrite(
-                        connect=True, view_channel=True, read_messages=True,
-                        send_messages=True, read_message_history=True, manage_channels=True
+                        connect=True, view_channel=True, speak=True, read_messages=True,
+                        send_messages=True, read_message_history=True, manage_channels=True, move_members=True
                     )
 
                 temp_channel = await guild.create_voice_channel(
@@ -4673,18 +5072,28 @@ class voice(commands.Cog):
                     if len(user_pref) > 2 and user_pref[2]:
                         target_bitrate = min(user_pref[2] * 1000, guild.bitrate_limit)
 
+                try:
+                    chan_limit = max(0, min(int(chan_limit or 0), 99))
+                except Exception:
+                    chan_limit = 0
+
+                if chan_limit >= 99 or chan_limit < 0:
+                    chan_limit = 0
+
                 overwrites = {
-                    guild.default_role: discord.PermissionOverwrite(read_messages=True, read_message_history=True),
+                    guild.default_role: discord.PermissionOverwrite(
+                        connect=True, view_channel=True, speak=True, read_messages=True, read_message_history=True
+                    ),
                     member: discord.PermissionOverwrite(
-                        connect=True, view_channel=True, read_messages=True,
+                        connect=True, view_channel=True, speak=True, read_messages=True,
                         send_messages=True, read_message_history=True, manage_channels=True
                     )
                 }
                 bot_member = guild.me
                 if bot_member:
                     overwrites[bot_member] = discord.PermissionOverwrite(
-                        connect=True, view_channel=True, read_messages=True,
-                        send_messages=True, read_message_history=True, manage_channels=True
+                        connect=True, view_channel=True, speak=True, read_messages=True,
+                        send_messages=True, read_message_history=True, manage_channels=True, move_members=True
                     )
 
                 perm_channel = await guild.create_voice_channel(
@@ -4784,22 +5193,26 @@ class voice(commands.Cog):
                         else:
                             chan_name = f"{clean_name}'s {fixed_name}"
                     chan_limit = user_limit if user_limit else 0
+                    if chan_limit >= 99 or chan_limit < 0:
+                        chan_limit = 0
 
                     print(f"[VoiceClaw] Creating hub room '{chan_name}' (limit={chan_limit}, perm={hub_is_perm}, lock={lock_name}) for {member.display_name}...")
 
                     bot_user = self.bot.user
                     bot_member = guild.me or (guild.get_member(bot_user.id) if bot_user else None)
                     overwrites = {
-                        guild.default_role: discord.PermissionOverwrite(read_messages=True, read_message_history=True),
+                        guild.default_role: discord.PermissionOverwrite(
+                            connect=True, view_channel=True, speak=True, read_messages=True, read_message_history=True
+                        ),
                         member: discord.PermissionOverwrite(
-                            connect=True, view_channel=True, read_messages=True,
+                            connect=True, view_channel=True, speak=True, read_messages=True,
                             send_messages=True, read_message_history=True, manage_channels=True
                         )
                     }
                     if bot_member:
                         overwrites[bot_member] = discord.PermissionOverwrite(
-                            connect=True, view_channel=True, read_messages=True,
-                            send_messages=True, read_message_history=True, manage_channels=True
+                            connect=True, view_channel=True, speak=True, read_messages=True,
+                            send_messages=True, read_message_history=True, manage_channels=True, move_members=True
                         )
 
                     temp_channel = await guild.create_voice_channel(
@@ -5042,14 +5455,22 @@ class voice(commands.Cog):
     async def v_limit(self, ctx: commands.Context, limit: typing.Optional[int] = None):
         channel, owner_id = await self._require_channel_host(ctx)
         if not channel: return
+
         if limit is None:
-            guild_pref = await self.get_guild_setting(ctx.guild.id)
-            limit = guild_pref[1] if guild_pref and guild_pref[1] is not None else 0
+            is_admin = await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild) or (
+                ctx.author.guild_permissions.administrator if isinstance(ctx.author, discord.Member) else False
+            )
+            view = ChannelCapacityView(self, channel, is_admin=is_admin)
+            return await ctx.send(view=view, ephemeral=True)
+
+        if limit < 0 or limit > 99:
+            return await ctx.send("✕ Limit must be between 0 and 99.", ephemeral=True)
+
+        if limit == 0 or limit >= 99:
+            limit = 0
             is_reset = True
             await self.save_user_setting(ctx.author.id, clear_limit=True)
         else:
-            if limit < 0 or limit > 99:
-                return await ctx.send("✕ Limit must be between 0 and 99.", ephemeral=True)
             is_reset = False
             await self.save_user_setting(ctx.author.id, channel_limit=limit)
 
@@ -5507,11 +5928,13 @@ class voice(commands.Cog):
                     break
 
         if not cat:
-            cat = await guild.create_category("Voice Channels")
+            open_ow = self.get_open_voice_overwrites(guild)
+            cat = await guild.create_category("Voice Channels", overwrites=open_ow)
 
         existing_join_vc = discord.utils.get(cat.voice_channels, name="＋ Join to Create")
         if not existing_join_vc:
-            existing_join_vc = await guild.create_voice_channel("＋ Join to Create", category=cat)
+            open_ow = self.get_open_voice_overwrites(guild)
+            existing_join_vc = await guild.create_voice_channel("＋ Join to Create", category=cat, overwrites=open_ow)
 
         target_chan = discord.utils.get(cat.text_channels, name="interface")
         if not target_chan:
@@ -5786,7 +6209,8 @@ class voice(commands.Cog):
                     break
 
         if not category:
-            category = await ctx.guild.create_category("Permanent Rooms")
+            open_ow = self.get_open_voice_overwrites(ctx.guild)
+            category = await ctx.guild.create_category("Permanent Rooms", overwrites=open_ow)
             async with aiosqlite.connect(DB_PATH) as db:
                 await db.execute('''
                     INSERT INTO guild (guildID, ownerID, permCategoryID)
@@ -5796,16 +6220,18 @@ class voice(commands.Cog):
                 await db.commit()
 
         overwrites = {
-            ctx.guild.default_role: discord.PermissionOverwrite(read_messages=True, read_message_history=True),
+            ctx.guild.default_role: discord.PermissionOverwrite(
+                connect=True, view_channel=True, speak=True, read_messages=True, read_message_history=True
+            ),
             ctx.author: discord.PermissionOverwrite(
-                connect=True, view_channel=True, read_messages=True,
+                connect=True, view_channel=True, speak=True, read_messages=True,
                 send_messages=True, read_message_history=True, manage_channels=True
             )
         }
         if ctx.guild.me:
             overwrites[ctx.guild.me] = discord.PermissionOverwrite(
-                connect=True, view_channel=True, read_messages=True,
-                send_messages=True, read_message_history=True, manage_channels=True
+                connect=True, view_channel=True, speak=True, read_messages=True,
+                send_messages=True, read_message_history=True, manage_channels=True, move_members=True
             )
 
         chan_name = name.strip()
@@ -5896,12 +6322,14 @@ class voice(commands.Cog):
                     break
 
         if not cat:
-            cat = await guild.create_category("Permanent Rooms")
+            open_ow = self.get_open_voice_overwrites(guild)
+            cat = await guild.create_category("Permanent Rooms", overwrites=open_ow)
             perm_cat_id = cat.id
 
         existing_perm_vc = discord.utils.get(cat.voice_channels, name="＋ Create Permanent VC")
         if not existing_perm_vc:
-            existing_perm_vc = await guild.create_voice_channel("＋ Create Permanent VC", category=cat)
+            open_ow = self.get_open_voice_overwrites(guild)
+            existing_perm_vc = await guild.create_voice_channel("＋ Create Permanent VC", category=cat, overwrites=open_ow)
 
         target_chan = discord.utils.get(cat.text_channels, name="interface")
         if not target_chan:
@@ -6032,7 +6460,8 @@ class voice(commands.Cog):
                 pass
 
         try:
-            new_cat = await guild.create_category(cat_name)
+            open_ow = self.get_open_voice_overwrites(guild)
+            new_cat = await guild.create_category(cat_name, overwrites=open_ow)
             interface_chan = await guild.create_text_channel(
                 "interface",
                 category=new_cat,
@@ -6041,7 +6470,7 @@ class voice(commands.Cog):
             await interface_chan.set_permissions(guild.default_role, read_messages=True, send_messages=False, read_message_history=True)
             await interface_chan.set_permissions(guild.me, read_messages=True, send_messages=True, manage_channels=True)
 
-            join_chan = await guild.create_voice_channel(j_name, category=new_cat)
+            join_chan = await guild.create_voice_channel(j_name, category=new_cat, user_limit=limit, overwrites=open_ow)
 
             ctrl_view = VoiceControlLayoutView(self, has_banner=os.path.exists(BANNER_PATH))
             if os.path.exists(BANNER_PATH):
@@ -6314,16 +6743,19 @@ class voice(commands.Cog):
             else:
                 return await ctx.send(view=view)
 
-    @commands.hybrid_command(name="duo", description="Deploy Duo 2-player voice channels (Server Owner only)")
+    @commands.hybrid_command(name="duo", description="Deploy Duo 2-player voice channels into an existing category or new category (Server Owner only)")
     @commands.has_permissions(administrator=True)
-    @app_commands.describe(mode="Duo type: 'all' (Complete Suite), 'temp' (Dynamic), 'perm' (24/7), or 'fixed' (Fixed Name)")
+    @app_commands.describe(
+        mode="Duo type: 'all' (Complete Suite), 'temp' (Dynamic), 'perm' (24/7), or 'fixed' (Fixed Name)",
+        category="Optional existing category to add Duo channel directly into (shares that category's #interface)"
+    )
     @app_commands.choices(mode=[
         app_commands.Choice(name="🌟 All 3 in One (Complete Duo Suite)", value="all"),
         app_commands.Choice(name="🌀 Temporary Dynamic Duo (Limit 2)", value="temp"),
         app_commands.Choice(name="👑 Permanent 24/7 Duo (Limit 2)", value="perm"),
         app_commands.Choice(name="🏷️ Fixed-Name Duo (Locked 'Duo')", value="fixed"),
     ])
-    async def duo_command(self, ctx: commands.Context, mode: typing.Optional[str] = "all"):
+    async def duo_command(self, ctx: commands.Context, mode: typing.Optional[str] = "all", category: typing.Optional[discord.CategoryChannel] = None):
         if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
             owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
             return await ctx.send(f"✕ Only the server owner ({owner_mention}) can configure Duo channels.", ephemeral=True)
@@ -6333,6 +6765,25 @@ class voice(commands.Cog):
                 await ctx.defer()
             except Exception:
                 pass
+
+        if category:
+            is_perm = 1 if mode in ["perm", "permanent", "24/7"] else 0
+            join_chan, iface_chan = await self.add_party_hub_to_category(
+                guild=ctx.guild,
+                category=category,
+                party_name="Duo",
+                user_limit=2,
+                is_permanent=is_perm
+            )
+            desc = (
+                f"• **Target Category:** `{category.name}`\n"
+                f"• **Join Channel:** {join_chan.mention}\n"
+                f"• **Control Interface:** {iface_chan.mention if iface_chan else 'Existing #interface'}\n"
+                f"• **Capacity Limit:** `2 Players (Duo)`\n\n"
+                f"Duo voice hub added directly into `{category.name}` without creating any separate category!"
+            )
+            view = make_v2_card("✦ Duo Voice Hub Added to Category", desc)
+            return await ctx.send(view=view, ephemeral=True)
 
         m_type = (mode or "all").lower().strip()
         cat, iface, chans = await self.perform_duo_setup(ctx.guild, ctx.author.id, duo_type=m_type)
@@ -6347,6 +6798,102 @@ class voice(commands.Cog):
         if os.path.exists(BANNER_PATH):
             file = discord.File(BANNER_PATH, filename="banner.jpg")
             return await ctx.send(file=file, view=view)
+        return await ctx.send(view=view)
+
+    @commands.hybrid_command(name="trio", description="Deploy Trio 3-player voice channels into an existing category or new category (Server Owner only)")
+    @commands.has_permissions(administrator=True)
+    @app_commands.describe(
+        category="Optional existing category to add Trio channel directly into (shares that category's #interface)"
+    )
+    async def trio_command(self, ctx: commands.Context, category: typing.Optional[discord.CategoryChannel] = None):
+        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
+            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
+            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can configure Trio channels.", ephemeral=True)
+
+        if ctx.interaction and not ctx.interaction.response.is_done():
+            try:
+                await ctx.defer()
+            except Exception:
+                pass
+
+        target_cat = category
+        if not target_cat:
+            cfg = await self.get_guild_config(ctx.guild.id)
+            if cfg and cfg[3]:
+                target_cat = ctx.guild.get_channel(cfg[3])
+            if not target_cat:
+                for c in ctx.guild.categories:
+                    if "voice" in c.name.lower():
+                        target_cat = c
+                        break
+
+        if not target_cat:
+            open_ow = self.get_open_voice_overwrites(ctx.guild)
+            target_cat = await ctx.guild.create_category("Voice Channels", overwrites=open_ow)
+
+        join_chan, iface_chan = await self.add_party_hub_to_category(
+            guild=ctx.guild,
+            category=target_cat,
+            party_name="Trio",
+            user_limit=3,
+            is_permanent=0
+        )
+        desc = (
+            f"• **Target Category:** `{target_cat.name}`\n"
+            f"• **Join Channel:** {join_chan.mention}\n"
+            f"• **Control Interface:** {iface_chan.mention if iface_chan else 'Existing #interface'}\n"
+            f"• **Capacity Limit:** `3 Players (Trio)`\n\n"
+            f"Trio voice hub added directly into `{target_cat.name}` without creating any separate category!"
+        )
+        view = make_v2_card("✦ Trio Voice Hub Added to Category", desc)
+        return await ctx.send(view=view)
+
+    @commands.hybrid_command(name="squad", description="Deploy Squad 4-player voice channels into an existing category or new category (Server Owner only)")
+    @commands.has_permissions(administrator=True)
+    @app_commands.describe(
+        category="Optional existing category to add Squad channel directly into (shares that category's #interface)"
+    )
+    async def squad_command(self, ctx: commands.Context, category: typing.Optional[discord.CategoryChannel] = None):
+        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
+            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
+            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can configure Squad channels.", ephemeral=True)
+
+        if ctx.interaction and not ctx.interaction.response.is_done():
+            try:
+                await ctx.defer()
+            except Exception:
+                pass
+
+        target_cat = category
+        if not target_cat:
+            cfg = await self.get_guild_config(ctx.guild.id)
+            if cfg and cfg[3]:
+                target_cat = ctx.guild.get_channel(cfg[3])
+            if not target_cat:
+                for c in ctx.guild.categories:
+                    if "voice" in c.name.lower():
+                        target_cat = c
+                        break
+
+        if not target_cat:
+            open_ow = self.get_open_voice_overwrites(ctx.guild)
+            target_cat = await ctx.guild.create_category("Voice Channels", overwrites=open_ow)
+
+        join_chan, iface_chan = await self.add_party_hub_to_category(
+            guild=ctx.guild,
+            category=target_cat,
+            party_name="Squad",
+            user_limit=4,
+            is_permanent=0
+        )
+        desc = (
+            f"• **Target Category:** `{target_cat.name}`\n"
+            f"• **Join Channel:** {join_chan.mention}\n"
+            f"• **Control Interface:** {iface_chan.mention if iface_chan else 'Existing #interface'}\n"
+            f"• **Capacity Limit:** `4 Players (Squad)`\n\n"
+            f"Squad voice hub added directly into `{target_cat.name}` without creating any separate category!"
+        )
+        view = make_v2_card("✦ Squad Voice Hub Added to Category", desc)
         return await ctx.send(view=view)
 
     # ==========================================
@@ -6374,7 +6921,7 @@ class voice(commands.Cog):
         await self.v_rename(ctx, name=name)
 
     @commands.command(name="limit")
-    async def p_limit_alias(self, ctx, limit: int):
+    async def p_limit_alias(self, ctx, limit: typing.Optional[int] = None):
         await self.v_limit(ctx, limit=limit)
 
     @commands.command(name="bitrate")

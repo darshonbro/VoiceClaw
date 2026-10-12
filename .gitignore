@@ -27,6 +27,7 @@ voice.db
 # Test / Scratch files
 test_*
 .agents/
+scratch/
 *_backup.*
 vps_deploy.json
 vps_deploy.py

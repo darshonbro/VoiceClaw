@@ -48,6 +48,13 @@ class VoiceClawBot(commands.Bot):
 
     async def setup_hook(self):
         """Standard discord.py v2 lifecycle hook for loading extensions and persistent views"""
+        try:
+            from redis_manager import redis_manager
+            await redis_manager.connect()
+            self.redis = redis_manager
+        except Exception as e:
+            print(f"[VoiceClaw] Redis init warning: {e}", file=sys.stderr)
+
         print("[VoiceClaw] Initializing extensions...")
         try:
             await self.load_extension('cogs.voice')
@@ -62,6 +69,11 @@ class VoiceClawBot(commands.Bot):
         except Exception as e:
             print(f"[VoiceClaw] Failed during setup_hook: {e}", file=sys.stderr)
             traceback.print_exc()
+
+    async def close(self):
+        if hasattr(self, 'redis') and self.redis:
+            await self.redis.close()
+        await super().close()
 
     async def sync_tree_background(self):
         try:
