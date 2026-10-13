@@ -4704,7 +4704,7 @@ class voice(commands.Cog):
     async def is_interface_channel(self, channel: discord.TextChannel) -> bool:
         if not channel or not isinstance(channel, discord.TextChannel):
             return False
-        if channel.name.lower() in ["interface", "control-panel", "voice-interface"]:
+        if channel.topic and "VoiceClaw Control Interface" in channel.topic:
             return True
         config = await self.get_guild_config(channel.guild.id)
         if config:
@@ -4993,7 +4993,7 @@ class voice(commands.Cog):
                 any(k in after.channel.name.lower() for k in ["create", "join"]) or after.channel.name.startswith(("+", "＋"))
             )
 
-            # Self-healing: ONLY if existing master channel was deleted from Discord
+            # Self-healing: ONLY if existing master channel was deleted from Discord within registered category
             curr_master = guild.get_channel(master_channel_id) if master_channel_id else None
             if after.channel and is_create_name:
                 if curr_master is None and category_id and after.channel.category_id == category_id:
@@ -5005,19 +5005,6 @@ class voice(commands.Cog):
                         async with aiosqlite.connect(DB_PATH) as db:
                             await db.execute('UPDATE guild SET voiceChannelID = ? WHERE guildID = ?', (master_channel_id, guild.id))
                             await db.commit()
-                elif curr_master is None and after.channel.category:
-                    for ch in after.channel.category.text_channels:
-                        if ch.name.lower() in ["interface", "vc-menu"] and (not ch.topic or "Temporary Voice" in ch.topic or ("VoiceClaw Control Interface" in ch.topic and "Rooms" not in ch.topic)):
-                            if not any(k in after.channel.name.lower() for k in ["²", "³", "⁴", "duo", "trio", "squad"]):
-                                print(f"[VoiceClaw Self-Healing] Auto-linked main temporary category {after.channel.category.name} and channel {after.channel.name}")
-                                master_channel_id = after.channel.id
-                                category_id = after.channel.category_id
-                                curr_master = after.channel
-                                async with aiosqlite.connect(DB_PATH) as db:
-                                    await db.execute('UPDATE guild SET voiceCategoryID = ?, voiceChannelID = ?, interfaceChannelID = ? WHERE guildID = ?',
-                                                     (category_id, master_channel_id, ch.id, guild.id))
-                                    await db.commit()
-                                break
 
             if after.channel and master_channel_id and after.channel.id == master_channel_id:
                 loop_now = asyncio.get_event_loop().time()
@@ -5249,26 +5236,6 @@ class voice(commands.Cog):
                             await db.execute("UPDATE voiceHubs SET joinChannelID = ? WHERE hubID = ?", (after.channel.id, hub_id))
                             await db.commit()
                         hub = await self.get_voice_hub(after.channel.id)
-                    elif after.channel.category:
-                        for ch in after.channel.category.text_channels:
-                            if ch.name.lower() == "interface" and ch.topic and "VoiceClaw Control Interface for " in ch.topic:
-                                try:
-                                    prefix = "VoiceClaw Control Interface for "
-                                    suffix = " Rooms"
-                                    start = ch.topic.find(prefix) + len(prefix)
-                                    end = ch.topic.find(suffix, start)
-                                    fixed_name = ch.topic[start:end] if end != -1 else ch.topic[start:].strip()
-                                    async with aiosqlite.connect(DB_PATH) as db:
-                                        async with db.execute("SELECT hubID FROM voiceHubs WHERE guildID = ? AND fixedName = ?", (guild.id, fixed_name)) as cur:
-                                            found = await cur.fetchone()
-                                            if found:
-                                                await db.execute("UPDATE voiceHubs SET categoryID = ?, joinChannelID = ?, interfaceChannelID = ? WHERE hubID = ?",
-                                                                 (after.channel.category_id, after.channel.id, ch.id, found[0]))
-                                                await db.commit()
-                                                hub = await self.get_voice_hub(after.channel.id)
-                                except Exception as e:
-                                    print(f"[VoiceClaw Self-Healing Error] {e}")
-                                break
 
                 if hub:
                     loop_now = asyncio.get_event_loop().time()
@@ -5361,15 +5328,15 @@ class voice(commands.Cog):
                         color=0xFEE75C if hub_is_perm else 0x5865F2
                     )
 
-            # 3B. User Joined a Secondary / Dynamic Join VC in a VoiceClaw Category (e.g. CREATE VC ², CREATE VC ³, CREATE Y VC)
+            # 3B. User Joined a Secondary / Dynamic Join VC in VoiceClaw's Primary Category (e.g. CREATE VC ², CREATE VC ³, CREATE Y VC)
             if after.channel and is_create_name and after.channel.id != master_channel_id and (not perm_channel_id or after.channel.id != perm_channel_id):
-                is_vc_cat = (category_id and after.channel.category_id == category_id)
+                # Strictly isolate: ONLY trigger if inside VoiceClaw's own primary temporary category!
+                is_vc_cat = bool(category_id and after.channel.category_id == category_id)
                 cat_iface = None
-                if after.channel.category:
+                if is_vc_cat and after.channel.category:
                     for tc in after.channel.category.text_channels:
                         if tc.name.lower() in ["interface", "vc-menu", "control-panel"]:
                             cat_iface = tc
-                            is_vc_cat = True
                             break
 
                 if is_vc_cat:
@@ -5404,19 +5371,6 @@ class voice(commands.Cog):
                         else:
                             chan_name = f"{clean_name}'s Room"
                             hub_fixed_name = "Room"
-
-                    # Auto-register this channel as a Hub in voiceHubs so it is permanently recognized
-                    if not hub:
-                        await self.create_voice_hub(
-                            guild_id=guild.id,
-                            category_id=after.channel.category_id,
-                            join_channel_id=after.channel.id,
-                            interface_channel_id=cat_iface.id if cat_iface else (guild_cfg[4] if guild_cfg else 0),
-                            fixed_name=hub_fixed_name,
-                            user_limit=chan_limit,
-                            lock_name=0,
-                            is_permanent=0
-                        )
 
                     loop_now = asyncio.get_event_loop().time()
                     if member.id in self.cooldowns and (loop_now - self.cooldowns[member.id]) < 4:
