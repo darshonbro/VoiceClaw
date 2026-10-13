@@ -4744,7 +4744,8 @@ class voice(commands.Cog):
                     if r[0]: chan_ids.add(r[0])
         for c in guild.text_channels:
             if c.name.lower() in ["interface", "control-panel", "voice-interface"]:
-                chan_ids.add(c.id)
+                if (c.topic and "VoiceClaw Control Interface" in c.topic) or await self.is_voiceclaw_category(guild.id, c.category_id):
+                    chan_ids.add(c.id)
 
         for cid in chan_ids:
             chan = guild.get_channel(cid)
@@ -4797,7 +4798,8 @@ class voice(commands.Cog):
                     pass
                 for c in guild.text_channels:
                     if c.name.lower() in ["interface", "control-panel", "voice-interface"]:
-                        if c.id not in target_ids: target_ids.append(c.id)
+                        if (c.topic and "VoiceClaw Control Interface" in c.topic) or await self.is_voiceclaw_category(guild.id, c.category_id):
+                            if c.id not in target_ids: target_ids.append(c.id)
 
                 for chan_id in set(target_ids):
                     chan = guild.get_channel(chan_id)
@@ -5381,7 +5383,7 @@ class voice(commands.Cog):
                     if isinstance(category, discord.CategoryChannel):
                         asyncio.create_task(self.cleanup_empty_category_channels(category, after.channel.id))
 
-                    print(f"[VoiceClaw] Spawning secondary dynamic room '{chan_name}' (limit={chan_limit}) for {member.display_name} in {category.name}...")
+                    print(f"[VoiceClaw] Spawning secondary dynamic room '{chan_name}' (limit={chan_limit}) for {member.display_name} in {category.name if category else 'No Category'}...")
 
                     overwrites = {
                         guild.default_role: discord.PermissionOverwrite(
