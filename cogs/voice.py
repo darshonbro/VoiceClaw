@@ -1714,7 +1714,7 @@ class TransferOwnerSelect(discord.ui.UserSelect):
             return await interaction.response.send_message("✕ Selected member must currently be inside the room!", ephemeral=True)
 
         await self.cog.set_channel_owner(self.channel.id, member.id)
-        await self.channel.set_permissions(member, connect=True, view_channel=True, read_messages=True, manage_channels=True)
+        await self.channel.set_permissions(member, connect=True, view_channel=True, read_messages=True, send_messages=True, manage_channels=False)
         await interaction.response.send_message(f"♔ Ownership transferred to {member.mention}!", ephemeral=False)
         await self.cog.log_voice_event(
             interaction.guild,
@@ -2191,7 +2191,7 @@ class HostActionSelect(discord.ui.Select):
                 return await interaction.response.send_message(f"✕ Cannot claim: the owner {owner_member.mention} is still in the room!", ephemeral=True)
 
             await self.cog.set_channel_owner(self.channel.id, user.id)
-            await self.channel.set_permissions(user, connect=True, view_channel=True, read_messages=True, manage_channels=True)
+            await self.channel.set_permissions(user, connect=True, view_channel=True, read_messages=True, send_messages=True, manage_channels=False)
             await interaction.response.send_message(f"👑 **Congratulations!** You are now the host of `{self.channel.name}`.", ephemeral=False)
             await self.cog.log_voice_event(
                 interaction.guild,
@@ -2973,7 +2973,7 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             return await interaction.response.send_message(f"✕ Cannot claim: the owner {owner_member.mention} is still in the room! Only the current host can transfer ownership.", ephemeral=True)
 
         await self.cog.set_channel_owner(channel.id, user.id)
-        await channel.set_permissions(user, connect=True, view_channel=True, read_messages=True, manage_channels=True)
+        await channel.set_permissions(user, connect=True, view_channel=True, read_messages=True, send_messages=True, manage_channels=False)
         if owner_member:
             try:
                 await channel.set_permissions(owner_member, overwrite=None)
@@ -3497,7 +3497,7 @@ class voice(commands.Cog):
             ),
             member: discord.PermissionOverwrite(
                 connect=True, view_channel=True, speak=True, read_messages=True,
-                send_messages=True, read_message_history=True, manage_channels=True
+                send_messages=True, read_message_history=True, manage_channels=False
             )
         }
         if bot_member:
@@ -6061,7 +6061,7 @@ class voice(commands.Cog):
             return await ctx.send(f"✕ Cannot claim: the owner {owner_member.mention} is still in the room! Only the current host can transfer ownership.", ephemeral=True)
 
         await self.set_channel_owner(channel.id, ctx.author.id)
-        await channel.set_permissions(ctx.author, connect=True, view_channel=True, read_messages=True, manage_channels=True)
+        await channel.set_permissions(ctx.author, connect=True, view_channel=True, read_messages=True, send_messages=True, manage_channels=False)
         if owner_member:
             try:
                 await channel.set_permissions(owner_member, overwrite=None)
@@ -6083,7 +6083,7 @@ class voice(commands.Cog):
         if member not in channel.members:
             return await ctx.send("✕ The target member must currently be inside the room!", ephemeral=True)
         await self.set_channel_owner(channel.id, member.id)
-        await channel.set_permissions(member, connect=True, view_channel=True, read_messages=True, manage_channels=True)
+        await channel.set_permissions(member, connect=True, view_channel=True, read_messages=True, send_messages=True, manage_channels=False)
         try:
             await channel.set_permissions(ctx.author, overwrite=None)
         except Exception:
@@ -6526,7 +6526,7 @@ class voice(commands.Cog):
             ),
             ctx.author: discord.PermissionOverwrite(
                 connect=True, view_channel=True, speak=True, read_messages=True,
-                send_messages=True, read_message_history=True, manage_channels=True
+                send_messages=True, read_message_history=True, manage_channels=False
             )
         }
         if ctx.guild.me:
