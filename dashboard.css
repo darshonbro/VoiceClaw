@@ -2937,6 +2937,424 @@ input:checked + .slider:before {
   text-overflow: ellipsis;
 }
 
+/* ==========================================================================
+   Comprehensive Mobile & Tablet Responsive Architecture (max-width: 768px & 480px)
+   Ultra-Clean, Side-by-Side Proportional Alignment, Zero Horizontal Overflow
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* 1. Global Reset for Mobile */
+  body.dash-body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  /* 2. Header & Sticky Navigation */
+  .dash-header {
+    padding: 0;
+  }
+
+  .dash-nav-container {
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+  }
+
+  .dash-nav-left {
+    gap: 10px;
+  }
+
+  .brand-icon-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+  .brand-icon-box svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .dash-brand-name {
+    font-size: 1rem;
+  }
+
+  .dash-brand-sub {
+    font-size: 0.58rem;
+  }
+
+  .dash-root-badge {
+    padding: 2px 7px;
+    font-size: 0.6rem;
+    gap: 4px;
+  }
+
+  .dash-nav-right {
+    gap: 8px;
+  }
+
+  .user-pill {
+    padding: 3px 8px 3px 4px;
+    gap: 6px;
+  }
+
+  .user-avatar {
+    width: 26px;
+    height: 26px;
+  }
+
+  .user-name {
+    font-size: 0.76rem;
+    max-width: 90px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .user-role-tag {
+    display: none;
+  }
+
+  .user-logout-btn {
+    padding: 2px 7px;
+    font-size: 0.68rem;
+    margin-left: 0;
+  }
+
+  /* Nav Tabs - Horizontal Scrollbar-Free Swipe */
+  .dash-nav-center {
+    width: 100%;
+    order: 3;
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 3px;
+    gap: 4px;
+    border-radius: 10px;
+  }
+  .dash-nav-center::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dash-nav-tab,
+  .dash-nav-item {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    border-radius: 7px;
+  }
+
+  /* 3. Main Container */
+  .dash-main-container {
+    padding: 14px 12px 60px 12px;
+  }
+
+  /* 4. Hero Card */
+  .dash-hero-card {
+    padding: 16px 14px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+  }
+
+  .dash-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .dash-hero-tag {
+    font-size: 0.65rem;
+    padding: 3px 9px;
+    margin-bottom: 10px;
+  }
+
+  .dash-hero-title {
+    font-size: 1.35rem;
+    line-height: 1.25;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+
+  .dash-hero-sub {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+  }
+
+  .dash-quick-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .quick-chip {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+    gap: 5px;
+  }
+
+  /* 5. Stat Cards - Pasha-pashi (Side-by-Side 2x2 Compact Proportional Grid) */
+  .dash-stat-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .dash-stat-box {
+    padding: 10px 12px !important;
+    border-radius: 10px !important;
+    min-height: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  .dash-stat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .dash-stat-lbl {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 28px);
+  }
+
+  .stat-icon-wrapper {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 6px;
+  }
+  .stat-icon-wrapper svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .dash-stat-num {
+    font-size: 1.3rem;
+    line-height: 1.15;
+    margin: 2px 0;
+  }
+
+  .dash-stat-sub {
+    font-size: 0.64rem;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 6. Section Header & Filter / Search */
+  .dash-section {
+    margin-top: 16px;
+  }
+
+  .dash-section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .dash-section-title-wrap {
+    gap: 4px;
+  }
+
+  .dash-section-title {
+    font-size: 1.15rem;
+  }
+
+  .dash-counter-pill {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+  }
+
+  .dash-section-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  .dash-filter-group {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .search-input-box {
+    width: 100%;
+  }
+
+  .dash-search-input {
+    width: 100% !important;
+    box-sizing: border-box;
+    font-size: 0.82rem;
+    padding: 9px 12px 9px 36px;
+    border-radius: 10px;
+  }
+
+  /* 7. Guild Cards Grid - 100% Responsive Single-Col on Phone */
+  .dash-guilds-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .guild-card {
+    padding: 14px;
+    border-radius: 14px;
+    gap: 14px;
+  }
+
+  .guild-top {
+    gap: 12px;
+  }
+
+  .guild-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .guild-name {
+    font-size: 0.96rem;
+  }
+
+  .guild-meta {
+    font-size: 0.74rem;
+  }
+
+  .guild-stats-row {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .g-stat-val {
+    font-size: 0.88rem;
+  }
+
+  .g-stat-lbl {
+    font-size: 0.62rem;
+  }
+
+  .guild-card-actions {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .btn-manage-server,
+  .btn-guild-config {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    justify-content: center;
+  }
+
+  /* 8. Server Management Fullscreen Modal on Phone */
+  .modal-overlay {
+    padding: 0;
+  }
+
+  .modal-content,
+  .dash-modal {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dash-modal-header {
+    padding: 12px 14px;
+    flex-shrink: 0;
+  }
+
+  .dash-modal-tabs {
+    padding: 0 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-shrink: 0;
+  }
+  .dash-modal-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .modal-tab-btn {
+    white-space: nowrap;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  .dash-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 12px;
+  }
+
+  .dash-modal-footer {
+    padding: 12px 14px;
+    flex-shrink: 0;
+    gap: 8px;
+  }
+  .dash-modal-footer .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* 9. Role Powers Panel on Phone */
+  .rp-matrix-container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .rp-roles-sidebar {
+    width: 100%;
+    max-height: 180px;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .rp-powers-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .rp-power-row {
+    padding: 8px 10px;
+  }
+}
+
+/* Extra Small Phones (max-width: 400px) */
+@media (max-width: 400px) {
+  .dash-hero-title {
+    font-size: 1.2rem;
+  }
+
+  .dash-stat-num {
+    font-size: 1.15rem;
+  }
+
+  .dash-stat-lbl {
+    font-size: 0.6rem;
+  }
+
+  .dash-stat-box {
+    padding: 8px 10px !important;
+  }
+}
+
 
 
 
