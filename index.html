@@ -3,457 +3,1149 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VoiceClaw - Terms of Service & Privacy Policy</title>
-  <meta name="description" content="Official Terms of Service and Privacy Policy for VoiceClaw Discord Bot. Learn how we handle your data, voice permissions, and privacy.">
+  <title>VoiceClaw | Dynamic Temporary Voice Channels for Discord</title>
+  <meta name="description" content="VoiceClaw dynamically provisions private temporary voice rooms the instant members connect, and deletes them the moment they are empty.">
+  <link rel="icon" href="favicon.png">
+
+  <!-- Crisp Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css?v=3.2">
 </head>
 <body>
-  <div class="app-container">
-    <!-- Navbar -->
-    <header class="navbar">
-      <div class="nav-inner">
-        <a href="#" class="brand">
-          <div class="brand-icon">
-            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-          </div>
-          <span>VoiceClaw</span>
-          <span class="brand-badge">Official Bot</span>
+
+  <!-- Top Scroll Progress Bar -->
+  <div class="scroll-progress-bar" id="progressBar"></div>
+
+  <!-- =========================================================================
+       Navigation Header
+       ========================================================================= -->
+  <header class="site-header">
+    <div class="nav-container">
+      <a href="#" class="brand" aria-label="VoiceClaw Home">
+        <div class="brand-icon-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+        </div>
+        <span class="brand-name">VoiceClaw</span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#simulator" class="nav-link">Simulator</a>
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#pricing" class="nav-link">Pricing</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="/api/auth/login" class="btn btn-secondary" id="navAuthBtn" style="padding: 8px 14px; gap: 6px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+          </svg>
+          <span id="navAuthLabel">Dashboard</span>
         </a>
-        <div class="nav-actions">
-          <button class="btn btn-secondary" id="btnOpenDataModal">Request Data Deletion</button>
-          <a href="https://discord.gg/y9pgpbt" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-            Support Discord
+        <a href="https://discord.com/oauth2/authorize?client_id=1553908026241454090&scope=bot%20applications.commands" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+          </svg>
+          <span>Invite Bot</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       Hero Section
+       ========================================================================= -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-pill reveal">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        <span>Zero-Latency Voice Infrastructure</span>
+      </div>
+
+      <h1 class="hero-title reveal">
+        Temporary channels.<br>
+        <span class="hero-title-accent">Zero clutter.</span>
+      </h1>
+
+      <p class="hero-desc reveal">
+        VoiceClaw dynamically creates private temporary voice channels the millisecond members connect, and deletes them the moment they are empty. Studio-grade audio and instant in-channel self-moderation.
+      </p>
+
+      <div class="hero-actions reveal">
+        <a href="https://discord.com/oauth2/authorize?client_id=1553908026241454090&scope=bot%20applications.commands" class="btn btn-primary btn-lg" target="_blank" rel="noopener noreferrer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+          </svg>
+          <span>Add to Discord</span>
+        </a>
+        <a href="/dashboard" class="btn btn-secondary btn-lg" id="heroDashboardBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Open Dashboard</span>
+        </a>
+        <a href="#simulator" class="btn btn-secondary btn-lg">
+          <span>Try Live Simulator</span>
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       Dual-Row Infinite Server Marquee (Real-time Live Adoption)
+       ========================================================================= -->
+  <section class="servers-marquee-section">
+    <div class="container">
+      <div class="servers-marquee-header">
+        <div class="servers-badge reveal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="7 17 17 7 17 17"/><line x1="17" y1="7" x2="7" y2="7"/></svg>
+          <span><span class="live-pulse-dot"></span> Active in <strong id="liveServerTicker">14+</strong> Discord servers &amp; 11,600+ members</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="marquee-wrapper">
+      <!-- Top Row: Smoothly moves to the RIGHT -->
+      <div class="marquee-row to-right">
+        <div class="marquee-track">
+          <!-- Real Server 1 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1426320987326251213/a_097ba620318a96df8ca3d828e4804951.png" alt="COTTAGE SOCIETY 🍂" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">COTTAGE SOCIETY 🍂</span>
+                <span class="server-verified-badge" title="Active Server">✓</span>
+              </div>
+              <span class="server-members">• 7,292 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 2 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1527942437513990265/a_b7d33516e5f26610e23c6e57b3f55a15.png" alt="SEN DYNASTY" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">SEN DYNASTY</span>
+                <span class="server-verified-badge partner" title="Discord Partner">✓</span>
+              </div>
+              <span class="server-members">• 2,029 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 3 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1369190046149640252/607c4579fbacf097d968bcf47a7d55f3.png" alt="OYO [ Y ]" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">OYO [ Y ]</span>
+                <span class="server-verified-badge" title="Active Community">✓</span>
+              </div>
+              <span class="server-members">• 1,354 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 4 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1555142753015570502/a_64d6b9dc87b378130584426af5809476.png" alt="MUSIC VERSE" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">MUSIC VERSE</span>
+                <span class="server-verified-badge pink" title="Music Community">✓</span>
+              </div>
+              <span class="server-members">• 375 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 5 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1108668282355073046/529ab945b411092a4188b2a672e6d673.png" alt="SNIPIEST ~S~" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">SNIPIEST ~S~</span>
+                <span class="server-verified-badge" title="Gaming Server">✓</span>
+              </div>
+              <span class="server-members">• 280 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 6 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1542857239801372704/9318a4de6302e9ade9f9afa12ac34645.png" alt="9ELEVEN" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">9ELEVEN</span>
+                <span class="server-verified-badge" title="Active Server">✓</span>
+              </div>
+              <span class="server-members">• 118 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 7 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1560447402492821506/e0d631bb5f339c65dadb93acc358dc73.png" alt="OʏO" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">OʏO</span>
+                <span class="server-verified-badge" title="Voice Community">✓</span>
+              </div>
+              <span class="server-members">• 44 members</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Duplicate track for mathematically seamless infinite loop -->
+        <div class="marquee-track" aria-hidden="true">
+          <!-- Real Server 1 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1426320987326251213/a_097ba620318a96df8ca3d828e4804951.png" alt="COTTAGE SOCIETY 🍂" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">COTTAGE SOCIETY 🍂</span>
+                <span class="server-verified-badge" title="Active Server">✓</span>
+              </div>
+              <span class="server-members">• 7,292 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 2 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1527942437513990265/a_b7d33516e5f26610e23c6e57b3f55a15.png" alt="SEN DYNASTY" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">SEN DYNASTY</span>
+                <span class="server-verified-badge partner" title="Discord Partner">✓</span>
+              </div>
+              <span class="server-members">• 2,029 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 3 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1369190046149640252/607c4579fbacf097d968bcf47a7d55f3.png" alt="OYO [ Y ]" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">OYO [ Y ]</span>
+                <span class="server-verified-badge" title="Active Community">✓</span>
+              </div>
+              <span class="server-members">• 1354 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 4 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1555142753015570502/a_64d6b9dc87b378130584426af5809476.png" alt="MUSIC VERSE" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">MUSIC VERSE</span>
+                <span class="server-verified-badge pink" title="Music Community">✓</span>
+              </div>
+              <span class="server-members">• 375 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 5 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1108668282355073046/529ab945b411092a4188b2a672e6d673.png" alt="SNIPIEST ~S~" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">SNIPIEST ~S~</span>
+                <span class="server-verified-badge" title="Gaming Server">✓</span>
+              </div>
+              <span class="server-members">• 280 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 6 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1542857239801372704/9318a4de6302e9ade9f9afa12ac34645.png" alt="9ELEVEN" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">9ELEVEN</span>
+                <span class="server-verified-badge" title="Active Server">✓</span>
+              </div>
+              <span class="server-members">• 118 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 7 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1560447402492821506/e0d631bb5f339c65dadb93acc358dc73.png" alt="OʏO" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">OʏO</span>
+                <span class="server-verified-badge" title="Voice Community">✓</span>
+              </div>
+              <span class="server-members">• 44 members</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Row: Smoothly moves to the LEFT -->
+      <div class="marquee-row to-left">
+        <div class="marquee-track">
+          <!-- Real Server 8 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/850419039595266084/f9b66464fbb21c7e208365596a89b9e4.png" alt="Alderworld Hotel" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">Alderworld Hotel</span>
+                <span class="server-verified-badge partner" title="Community">✓</span>
+              </div>
+              <span class="server-members">• 31 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 9 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1437478587295993929/40b1ff134ac49b317e29ee22d76cd4b9.png" alt="For fun" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">For fun</span>
+                <span class="server-verified-badge" title="Community">✓</span>
+              </div>
+              <span class="server-members">• 29 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 10 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1503599997839610108/16c8cad8bed86849f9ac294010697b17.png" alt="Lounge" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">Voice Lounge</span>
+                <span class="server-verified-badge pink" title="Voice Server">✓</span>
+              </div>
+              <span class="server-members">• 23 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 11 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1543198603718164501/bd219d209929b2ee7ca4e0214519ff64.png" alt="TAG L" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">TAG L Community</span>
+                <span class="server-verified-badge" title="Community">✓</span>
+              </div>
+              <span class="server-members">• 12 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 12 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1558401193275822113/0a46c41b14be6c26d14377e419885bfd.png" alt="RedKnights Guild" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">RedKnights Guild</span>
+                <span class="server-verified-badge" title="Guild">✓</span>
+              </div>
+              <span class="server-members">• 8 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 13 -->
+          <div class="server-card">
+            <div class="server-avatar cs2">TB</div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">Test Bot 4</span>
+                <span class="server-verified-badge" title="Dev Server">✓</span>
+              </div>
+              <span class="server-members">• 6 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 14 -->
+          <div class="server-card">
+            <div class="server-avatar val">XI</div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">xixiiixixxi's server</span>
+                <span class="server-verified-badge partner" title="Private Server">✓</span>
+              </div>
+              <span class="server-members">• 4 members</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Duplicate track for mathematically seamless infinite loop -->
+        <div class="marquee-track" aria-hidden="true">
+          <!-- Real Server 8 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/850419039595266084/f9b66464fbb21c7e208365596a89b9e4.png" alt="Alderworld Hotel" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">Alderworld Hotel</span>
+                <span class="server-verified-badge partner" title="Community">✓</span>
+              </div>
+              <span class="server-members">• 31 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 9 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1437478587295993929/40b1ff134ac49b317e29ee22d76cd4b9.png" alt="For fun" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">For fun</span>
+                <span class="server-verified-badge" title="Community">✓</span>
+              </div>
+              <span class="server-members">• 29 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 10 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1503599997839610108/16c8cad8bed86849f9ac294010697b17.png" alt="Lounge" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">Voice Lounge</span>
+                <span class="server-verified-badge pink" title="Voice Server">✓</span>
+              </div>
+              <span class="server-members">• 23 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 11 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1543198603718164501/bd219d209929b2ee7ca4e0214519ff64.png" alt="TAG L" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">TAG L Community</span>
+                <span class="server-verified-badge" title="Community">✓</span>
+              </div>
+              <span class="server-members">• 12 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 12 -->
+          <div class="server-card">
+            <div class="server-avatar">
+              <img src="https://cdn.discordapp.com/icons/1558401193275822113/0a46c41b14be6c26d14377e419885bfd.png" alt="RedKnights Guild" class="server-avatar-img" width="38" height="38" style="width:38px;height:38px;min-width:38px;max-width:38px;border-radius:10px;object-fit:cover;display:block;" loading="lazy">
+            </div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">RedKnights Guild</span>
+                <span class="server-verified-badge" title="Guild">✓</span>
+              </div>
+              <span class="server-members">• 8 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 13 -->
+          <div class="server-card">
+            <div class="server-avatar cs2">TB</div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">Test Bot 4</span>
+                <span class="server-verified-badge" title="Dev Server">✓</span>
+              </div>
+              <span class="server-members">• 6 members</span>
+            </div>
+          </div>
+
+          <!-- Real Server 14 -->
+          <div class="server-card">
+            <div class="server-avatar val">XI</div>
+            <div class="server-info">
+              <div class="server-name-row">
+                <span class="server-name">xixiiixixxi's server</span>
+                <span class="server-verified-badge partner" title="Private Server">✓</span>
+              </div>
+              <span class="server-members">• 4 members</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       Metrics Bar
+       ========================================================================= -->
+  <section class="metrics-section">
+    <div class="container">
+      <div class="metrics-grid">
+        <div class="metric-card reveal">
+          <div class="metric-num" id="metricGuilds" data-target="15" data-suffix="+">15+</div>
+          <div class="metric-lbl">Active Guilds</div>
+        </div>
+        <div class="metric-card reveal">
+          <div class="metric-num" id="metricChannels" data-target="3126" data-suffix="+">3,126+</div>
+          <div class="metric-lbl">Channels Spawned</div>
+        </div>
+        <div class="metric-card reveal">
+          <div class="metric-num" id="metricUptime" data-target="99.98" data-suffix="%" data-decimal="true">99.98%</div>
+          <div class="metric-lbl">Uptime Rate</div>
+        </div>
+        <div class="metric-card reveal">
+          <div class="metric-num" id="metricLatency" data-target="18" data-prefix="< " data-suffix="ms">&lt; 18ms</div>
+          <div class="metric-lbl">Spawn Latency</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       Section: How It Works
+       ========================================================================= -->
+  <section class="steps-section" id="how-it-works">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-tag">Lifecycle</span>
+        <h2 class="section-title">Autonomous channel lifecycle</h2>
+        <p class="section-subtitle">Zero moderator overhead. The bot handles creation, access control, and auto-deletion in milliseconds.</p>
+      </div>
+
+      <div class="steps-grid">
+        <!-- STEP 01: Connect Creator Hub (Exact Screenshot 1 Channels) -->
+        <div class="step-card reveal">
+          <div class="step-top">
+            <span class="step-badge">STEP 01</span>
+            <div class="step-icon-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="8.5" cy="7" r="4"/>
+                <line x1="20" y1="8" x2="20" y2="14"/>
+                <line x1="23" y1="11" x2="17" y2="11"/>
+              </svg>
+            </div>
+          </div>
+          <div class="step-visual">
+            <div class="vc-step-graphic">
+              <div class="vc-step-discord-box">
+                <!-- Voice Channels Category Header -->
+                <div class="vc-step-cat-header">
+                  <div class="vc-step-cat-left">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    <span>Voice Channels</span>
+                  </div>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </div>
+
+                <!-- # interface -->
+                <div class="vc-step-chan-item active">
+                  <div class="vc-step-chan-left">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+                    <span>interface</span>
+                  </div>
+                  <div class="vc-step-chan-actions">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                  </div>
+                </div>
+
+                <!-- Join to Create -->
+                <div class="vc-step-chan-item hub">
+                  <div class="vc-step-chan-left">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                    <span>Join to Create</span>
+                  </div>
+                  <div class="vc-step-chan-actions">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <h3 class="step-heading">Connect Creator Hub</h3>
+          <p class="step-text">Members see your clean Discord category and click "Join to Create" to immediately trigger their private room.</p>
+        </div>
+
+        <!-- STEP 02: Instant Room Created (Exact Screenshot 2 3x5 Pink Button Matrix) -->
+        <div class="step-card reveal">
+          <div class="step-top">
+            <span class="step-badge">STEP 02</span>
+            <div class="step-icon-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </div>
+          </div>
+          <div class="step-visual">
+            <div class="vc-step-graphic">
+              <div class="vc-step-spawned-box">
+                <!-- Live spawned channel -->
+                <div class="vc-chan-row active" style="margin:0; padding:8px 12px;">
+                  <div class="vc-chan-left">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                    <span>Alex's Lounge [1/4]</span>
+                  </div>
+                  <span class="vc-chip-green">LIVE</span>
+                </div>
+
+                <!-- Exact 3x5 Watercolor Pink Buttons Matrix -->
+                <div class="vc-step-matrix-grid">
+                  <!-- Row 1 -->
+                  <div class="vc-step-matrix-btn" title="Rename"><img src="assets/icons/128x128/vc_rename.png" alt="Rename"></div>
+                  <div class="vc-step-matrix-btn" title="Bitrate"><img src="assets/icons/128x128/vc_bitrate.png" alt="Bitrate"></div>
+                  <div class="vc-step-matrix-btn" title="Lock"><img src="assets/icons/128x128/vc_lock.png" alt="Lock"></div>
+                  <div class="vc-step-matrix-btn" title="Audio"><img src="assets/icons/128x128/vc_mute.png" alt="Audio"></div>
+                  <div class="vc-step-matrix-btn" title="Chat"><img src="assets/icons/128x128/vc_chat.png" alt="Chat"></div>
+
+                  <!-- Row 2 -->
+                  <div class="vc-step-matrix-btn" title="Trust"><img src="assets/icons/128x128/vc_trust.png" alt="Trust"></div>
+                  <div class="vc-step-matrix-btn" title="Untrust"><img src="assets/icons/128x128/vc_untrust.png" alt="Untrust"></div>
+                  <div class="vc-step-matrix-btn" title="Invite"><img src="assets/icons/128x128/vc_invite.png" alt="Invite"></div>
+                  <div class="vc-step-matrix-btn" title="Kick"><img src="assets/icons/128x128/vc_kick.png" alt="Kick"></div>
+                  <div class="vc-step-matrix-btn" title="Region"><img src="assets/icons/128x128/vc_region.png" alt="Region"></div>
+
+                  <!-- Row 3 -->
+                  <div class="vc-step-matrix-btn" title="Block"><img src="assets/icons/128x128/vc_block.png" alt="Block"></div>
+                  <div class="vc-step-matrix-btn" title="Unblock"><img src="assets/icons/128x128/vc_unblock.png" alt="Unblock"></div>
+                  <div class="vc-step-matrix-btn" title="Claim / Host"><img src="assets/icons/128x128/vc_host.png" alt="Host"></div>
+                  <div class="vc-step-matrix-btn" title="Transfer"><img src="assets/icons/128x128/vc_transfer.png" alt="Transfer"></div>
+                  <div class="vc-step-matrix-btn danger" title="Delete"><img src="assets/icons/128x128/vc_delete.png" alt="Delete"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <h3 class="step-heading">Instant Room &amp; In-Channel Controls</h3>
+          <p class="step-text">The bot creates the room, moves members inside, and provides 15 pastel pink buttons for complete in-channel self-moderation.</p>
+        </div>
+
+        <!-- STEP 03: Automatic Cleanup -->
+        <div class="step-card reveal">
+          <div class="step-top">
+            <span class="step-badge">STEP 03</span>
+            <div class="step-icon-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </div>
+          </div>
+          <div class="step-visual">
+            <div class="vc-step-graphic">
+              <div class="vc-step-cleanup-box">
+                <div class="vc-chan-row purged" style="margin:0; padding:8px 12px;">
+                  <div class="vc-chan-left">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9499a8" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <span style="opacity:0.4; text-decoration:line-through;">Alex's Lounge [0/4]</span>
+                  </div>
+                  <span class="vc-chip-gray">DELETED</span>
+                </div>
+                <div class="vc-step-cleaned-banner">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>Channel empty • Cleaned in 10ms with zero traces</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <h3 class="step-heading">Automatic Cleanup</h3>
+          <p class="step-text">When all members leave, the channel deletes instantly—keeping your server clean, organized, and clutter-free.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       Section: Live Interactive Simulator (With Authentic Discord Channels & 3x5 Matrix)
+       ========================================================================= -->
+  <section class="simulator-section" id="simulator">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-tag">Interactive Preview</span>
+        <h2 class="section-title">Try the live VoiceClaw interface</h2>
+        <p class="section-subtitle">Click "Join to Create" below to spawn your private room, test all 15 pastel pink buttons, and watch instant auto-cleanup.</p>
+      </div>
+
+      <div class="sim-box reveal">
+        <div class="sim-header-bar">
+          <div class="sim-guild-title">
+            <div class="sim-guild-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              </svg>
+            </div>
+            <span>Community Server • #interface</span>
+          </div>
+          <span class="sim-live-tag">LIVE INTERACTIVE BOT</span>
+        </div>
+
+        <div class="sim-split">
+          <!-- Left Channels (Screenshot 1 Exact Discord Structure) -->
+          <div class="sim-sidebar">
+            <div class="sim-discord-cat">
+              <div class="sim-discord-cat-left">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                <span>Voice Channels</span>
+              </div>
+              <button class="sim-discord-cat-btn" title="Create Channel">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+
+            <!-- # interface -->
+            <div class="sim-channel-row text active" id="simInterfaceTab" title="Interface Channel">
+              <div class="sim-chan-main">
+                <svg class="sim-chan-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+                <span class="sim-chan-label">interface</span>
+              </div>
+              <div class="sim-chan-actions">
+                <button class="sim-chan-act-btn" title="Create Invite">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                </button>
+                <button class="sim-chan-act-btn" title="Edit Channel">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Join to Create Hub -->
+            <div class="sim-channel-row voice hub" id="simHubBtn" title="Click to Connect and Create Channel">
+              <div class="sim-chan-main">
+                <svg class="sim-chan-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                <span class="sim-chan-label">Join to Create</span>
+              </div>
+              <div class="sim-chan-actions">
+                <button class="sim-chan-act-btn" title="Open Text Chat">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </button>
+                <button class="sim-chan-act-btn" title="Create Invite">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                </button>
+                <button class="sim-chan-act-btn" title="Edit Channel">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Dynamic Channels Container -->
+            <div id="simDynamicList" class="sim-dynamic-channels"></div>
+          </div>
+
+          <!-- Right Workspace: Discord Components V2 3x5 Interactive Button Panel -->
+          <div class="sim-pane">
+            <div class="sim-msg-header">
+              <div class="sim-bot-avatar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+              </div>
+              <div class="sim-bot-title-wrap">
+                <div class="sim-bot-title-row">
+                  <span class="sim-bot-name">VoiceClaw</span>
+                  <span class="sim-bot-badge">APP</span>
+                  <span class="sim-bot-time">Today at 11:07 AM</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Room Live Banner (Shows active status when connected) -->
+            <div class="sim-room-banner" id="simRoomBanner" style="display:none;">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div class="sim-avatar">A</div>
+                <div>
+                  <h4 class="sim-room-title" id="simRoomTitle">Alex's Room [1/4]</h4>
+                  <span class="sim-room-subtitle" id="simBitrateLabel">Channel Owner • 96 kbps Studio Audio</span>
+                </div>
+              </div>
+
+              <div class="sim-waveform">
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
+              </div>
+            </div>
+
+            <!-- Discord Components V2 Borderless Container -->
+            <div class="sim-v2-container">
+              <div class="sim-v2-header">
+                <h4 class="sim-v2-heading">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff2a6d" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                  Voice Channel Interface
+                </h4>
+                <p class="sim-v2-desc">Click any of the 15 controls below to manage channel permissions, rename, bitrate, or delete.</p>
+              </div>
+
+              <!-- Screenshot 2: 3x5 Interactive Button Grid -->
+              <div class="vc-matrix-grid">
+                <!-- Row 1 -->
+                <button class="vc-matrix-btn" id="btnVcRename" data-action="rename" data-tooltip="Rename Room">
+                  <img src="assets/icons/128x128/vc_rename.png" alt="Rename" class="vc-matrix-icon">
+                </button>
+                <button class="vc-matrix-btn" id="btnVcBitrate" data-action="bitrate" data-tooltip="Bitrate (64k-384k)">
+                  <img src="assets/icons/128x128/vc_bitrate.png" alt="Bitrate" class="vc-matrix-icon">
+                </button>
+                <button class="vc-matrix-btn" id="btnVcLock" data-action="lock" data-tooltip="Lock / Unlock">
+                  <img src="assets/icons/128x128/vc_lock.png" alt="Lock" class="vc-matrix-icon">
+                </button>
+                <button class="vc-matrix-btn" id="btnVcMute" data-action="mute" data-tooltip="Audio & Soundboard">
+                  <img src="assets/icons/128x128/vc_mute.png" alt="Audio" class="vc-matrix-icon">
+                </button>
+                <button class="vc-matrix-btn" id="btnVcChat" data-action="chat" data-tooltip="Room Chat">
+                  <img src="assets/icons/128x128/vc_chat.png" alt="Chat" class="vc-matrix-icon">
+                </button>
+
+                <!-- Row 2 -->
+                <button class="vc-matrix-btn" id="btnVcTrust" data-action="trust" data-tooltip="Trust Member">
+                  <img src="assets/icons/128x128/vc_trust.png" alt="Trust" class="vc-matrix-icon">
+                </button>
+                <button class="vc-matrix-btn" id="btnVcUntrust" data-action="untrust" data-tooltip="Untrust Member">
+                  <img src="assets/icons/128x128/vc_untrust.png" alt="Untrust" class="vc-matrix-icon">
+                </button>
+                <button class="vc-matrix-btn" id="btnVcInvite" data-action="invite" data-tooltip="Invite Friends">
+                  <img src="assets/icons/128x128/vc_invite.png" alt="Invite" class="vc-matrix-icon">
+                </button>
+                <button class="vc-matrix-btn" id="btnVcKick" data-action="kick" data-tooltip="Kick Member">
+                  <img src="assets/icons/128x128/vc_kick.png" alt="Kick" class="vc-matrix-icon">
+                </button>
+                <button class="vc-matrix-btn" id="btnVcRegion" data-action="region" data-tooltip="Voice Region">
+                  <img src="assets/icons/128x128/vc_region.png" alt="Region" class="vc-matrix-icon">
+                </button>
+
+                <!-- Row 3 -->
+                <button class="vc-matrix-btn" id="btnVcBlock" data-action="block" data-tooltip="Block Member">
+                  <img src="assets/icons/128x128/vc_block.png" alt="Block" class="vc-matrix-icon">
+                </button>
+                <button class="vc-matrix-btn" id="btnVcUnblock" data-action="unblock" data-tooltip="Unblock / Privacy">
+                  <img src="assets/icons/128x128/vc_unblock.png" alt="Unblock" class="vc-matrix-icon">
+                </button>
+                <button class="vc-matrix-btn" id="btnVcHost" data-action="claim" data-tooltip="Claim / Crown">
+                  <img src="assets/icons/128x128/vc_host.png" alt="Claim" class="vc-matrix-icon">
+                </button>
+                <button class="vc-matrix-btn" id="btnVcTransfer" data-action="transfer" data-tooltip="Transfer Host">
+                  <img src="assets/icons/128x128/vc_transfer.png" alt="Transfer" class="vc-matrix-icon">
+                </button>
+                <button class="vc-matrix-btn danger" id="btnVcDelete" data-action="delete" data-tooltip="Delete Room Now">
+                  <img src="assets/icons/128x128/vc_delete.png" alt="Delete" class="vc-matrix-icon">
+                </button>
+              </div>
+
+              <!-- Dynamic status message -->
+              <div class="sim-status-message" id="simStatusMsg">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span id="simStatusText">Ready. Click "Join to Create" on the left to spawn your temporary channel.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       Section: Features
+       ========================================================================= -->
+  <section class="features-section" id="features">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-tag">Features</span>
+        <h2 class="section-title">Built for communities of any size</h2>
+        <p class="section-subtitle">Everything needed to automate voice channels without clutter or moderation overhead.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <div class="feature-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Category Overflow Balancer</h3>
+          <p class="feature-desc">Never hit Discord's 50-channel category limit. VoiceClaw automatically balances channels across secondary categories.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Member Self-Moderation</h3>
+          <p class="feature-desc">Channel hosts lock, hide, rename, and kick listeners through buttons without bothering server staff.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Studio 384kbps Bitrate</h3>
+          <p class="feature-desc">Enjoy crystal-clear, high-bitrate voice audio for gaming squads, music listening sessions, and podcast recordings.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Trust & Block Lists</h3>
+          <p class="feature-desc">Whitelist close friends to automatically enter locked channels, or ban unwanted members permanently.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <line x1="9" y1="3" x2="9" y2="21"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Discord Components V2</h3>
+          <p class="feature-desc">Sleek button controls posted inside the temporary text channel. Zero text command spam in server chats.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Sub-20ms Response Time</h3>
+          <p class="feature-desc">In-memory Redis pipeline handles high concurrent voice joins instantly with near-zero latency.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       Section: Pricing (iuno.lol Exact Style)
+       ========================================================================= -->
+  <section class="pricing-section" id="pricing">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-tag">Pricing</span>
+        <h2 class="section-title">Free hits hard. Pro hits harder.</h2>
+        <p class="section-subtitle">Start free, upgrade once, keep it forever. No hidden fees, no subscriptions.</p>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Free -->
+        <div class="pricing-card reveal">
+          <h3 class="tier-name">Free</h3>
+          <p class="tier-sub">Everything needed to automate your server's voice channels.</p>
+          <div class="tier-price-box">
+            <span class="tier-price">$0</span>
+            <span class="tier-period">forever</span>
+          </div>
+          <ul class="tier-list">
+            <li class="tier-item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Up to 2 "Join to Create" hubs</span>
+            </li>
+            <li class="tier-item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Instant automatic channel deletion</span>
+            </li>
+            <li class="tier-item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Standard 96 kbps audio bitrate</span>
+            </li>
+            <li class="tier-item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>In-channel button controls</span>
+            </li>
+          </ul>
+          <a href="https://discord.com/oauth2/authorize?client_id=1553908026241454090&scope=bot" class="btn btn-secondary btn-lg" target="_blank" rel="noopener noreferrer">
+            Get Started Free
+          </a>
+        </div>
+
+        <!-- Pro -->
+        <div class="pricing-card featured reveal">
+          <div class="pricing-badge">RECOMMENDED</div>
+          <h3 class="tier-name">Pro</h3>
+          <p class="tier-sub">Unlock everything with studio audio and custom presets.</p>
+          <div class="tier-price-box">
+            <span class="tier-price">$3.99</span>
+            <span class="tier-period">/ month</span>
+          </div>
+          <ul class="tier-list">
+            <li class="tier-item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Unlimited</strong> Creator Hubs</span>
+            </li>
+            <li class="tier-item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span><strong>Studio 384 kbps</strong> Ultra Lossless Audio</span>
+            </li>
+            <li class="tier-item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Custom room title templates</span>
+            </li>
+            <li class="tier-item">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Category overflow balancing</span>
+            </li>
+          </ul>
+          <a href="https://discord.gg/tempvoice" class="btn btn-primary btn-lg" target="_blank" rel="noopener noreferrer">
+            Get Pro
           </a>
         </div>
       </div>
-    </header>
-
-    <!-- Hero Section -->
-    <section class="hero">
-      <div class="hero-pill">
-        <span class="pulse-dot"></span>
-        Discord Developer Policy Compliant
-      </div>
-      <h1>Legal Terms & Privacy Policy</h1>
-      <p>Transparency and user privacy are our highest priorities. Review our terms of service, acceptable use rules, and data handling practices below.</p>
-      
-      <div class="hero-meta">
-        <span><strong>Effective Date:</strong> January 1, 2026</span>
-        <span>•</span>
-        <span><strong>Last Updated:</strong> September 2026</span>
-        <span>•</span>
-        <span><strong>Version:</strong> 2.4.0</span>
-      </div>
-    </section>
-
-    <!-- Navigation Tabs -->
-    <div class="tabs-wrapper">
-      <div class="tabs-bar">
-        <button class="tab-btn active" data-tab="privacy">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Privacy Policy
-        </button>
-        <button class="tab-btn" data-tab="terms">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          Terms of Service
-        </button>
-        <button class="tab-btn" data-tab="data-practices">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-          Data Practices & Retention
-        </button>
-      </div>
     </div>
+  </section>
 
-    <!-- Main Content Layout -->
-    <main class="content-layout">
-      <!-- Sticky Sidebar -->
-      <aside class="sidebar">
-        <div class="search-box">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="policySearch" placeholder="Filter clauses...">
-        </div>
-
-        <div class="toc-card">
-          <h3 id="tocTitle">Table of Contents</h3>
-          <ul class="toc-list" id="tocList">
-            <!-- Dynamic TOC items populated via JS -->
-          </ul>
-        </div>
-
-        <div class="sidebar-summary-card">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            Zero Audio Storage
-          </h4>
-          <p>VoiceClaw never listens to, transmits, or records your voice audio. Channels are purely managed via channel creation & permissions.</p>
-        </div>
-      </aside>
-
-      <!-- Document Content Panels -->
-      <div class="document-container">
-        
-        <!-- PRIVACY POLICY PANE -->
-        <section class="doc-pane active" id="pane-privacy">
-          
-          <div class="policy-card" id="priv-intro">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">01</span>
-                <h2>Introduction & Scope</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="priv-intro">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>This Privacy Policy outlines how <strong>VoiceClaw</strong> ("we", "us", or "our") collects, processes, and safeguards information when you invite our Discord application to your Discord server or interact with its voice creation features and commands.</p>
-              <p>By using VoiceClaw, you acknowledge and agree to the data collection and usage practices described in this document. We respect your privacy and are committed to complying with applicable data protection laws, including the European Union General Data Protection Regulation (<strong>GDPR</strong>) and the California Consumer Privacy Act (<strong>CCPA</strong>).</p>
-            </div>
-          </div>
-
-          <div class="policy-card" id="priv-data-collected">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">02</span>
-                <h2>Information We Collect & Process</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="priv-data-collected">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>To provide dynamic voice channel generation and server permission management, VoiceClaw processes a strictly minimal set of non-sensitive metadata:</p>
-              <div class="data-table-container">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Data Point</th>
-                      <th>Purpose</th>
-                      <th>Storage Type</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><strong>User Discord ID</strong></td>
-                      <td>Identifying channel owner, rate limiting, and saving user custom channel settings.</td>
-                      <td><span class="tag tag-stored">Stored in DB</span></td>
-                    </tr>
-                    <tr>
-                      <td><strong>Server (Guild) ID</strong></td>
-                      <td>Linking setup configurations (category and root join channel) to the server.</td>
-                      <td><span class="tag tag-stored">Stored in DB</span></td>
-                    </tr>
-                    <tr>
-                      <td><strong>Channel IDs</strong></td>
-                      <td>Managing permissions, temporary voice channels, and deletion upon vacancy.</td>
-                      <td><span class="tag tag-ephemeral">Ephemeral (Until Empty)</span></td>
-                    </tr>
-                    <tr>
-                      <td><strong>Custom Channel Names & Limits</strong></td>
-                      <td>Applying user or server preferences when a temporary channel is auto-generated.</td>
-                      <td><span class="tag tag-stored">Stored in DB</span></td>
-                    </tr>
-                    <tr>
-                      <td><strong>Voice Audio Data</strong></td>
-                      <td><strong>NEVER COLLECTED.</strong> VoiceClaw has zero microphone/audio streaming access.</td>
-                      <td><span class="tag tag-never">Never Stored</span></td>
-                    </tr>
-                    <tr>
-                      <td><strong>Private Text Messages / DMs</strong></td>
-                      <td><strong>NEVER STORED.</strong> DMs are only sent for cooldown alerts; no message logs are kept.</td>
-                      <td><span class="tag tag-never">Never Stored</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="callout callout-info">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                <div><strong>Important Notice:</strong> VoiceClaw never sells, rents, or distributes your personal identification or Discord user information to third-party advertisers or commercial entities.</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="policy-card" id="priv-audio-statement">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">03</span>
-                <h2>Voice Audio & Communication Privacy</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="priv-audio-statement">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>VoiceClaw operates strictly as a <strong>channel orchestrator</strong>. We want to be unequivocally clear regarding your conversations:</p>
-              <ul>
-                <li>The bot does not join voice calls as an audio listener or speaker.</li>
-                <li>The bot does not process, stream, transcribe, or capture voice packets.</li>
-                <li>All voice traffic occurs directly over Discord's end-to-end infrastructure, governed exclusively by Discord's own terms and security infrastructure.</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="policy-card" id="priv-data-retention">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">04</span>
-                <h2>Data Retention & Automatic Purging</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="priv-data-retention">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>We believe in minimal data footprint. Our retention rules operate automatically:</p>
-              <ul>
-                <li><strong>Temporary Channel Mappings:</strong> When a dynamic channel is emptied and deleted, the associated record in <code>voiceChannel</code> table is purged within 3 seconds.</li>
-                <li><strong>Guild Configuration:</strong> Server configuration records persist only until the bot is removed from the server or a server administrator runs a reset command.</li>
-                <li><strong>User Settings:</strong> Custom channel names and limits persist until requested to be removed by the user or upon 180 consecutive days of inactivity.</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="policy-card" id="priv-user-rights">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">05</span>
-                <h2>Your Rights & Data Removal (GDPR / CCPA)</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="priv-user-rights">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>Under international privacy regulations, you have the following rights:</p>
-              <ol>
-                <li><strong>Right of Access:</strong> You may request a copy of all stored preferences associated with your Discord user ID.</li>
-                <li><strong>Right to Erasure ("Right to be Forgotten"):</strong> You may request immediate deletion of your user preferences and database references at any time.</li>
-                <li><strong>Right to Rectification:</strong> You can update or override your custom settings anytime using bot commands (e.g., <code>.voice name</code>, <code>.voice limit</code>).</li>
-              </ol>
-              <p>To request data erasure, click the <strong>"Request Data Deletion"</strong> button above or join our official support server.</p>
-            </div>
-          </div>
-
-        </section>
-
-        <!-- TERMS OF SERVICE PANE -->
-        <section class="doc-pane" id="pane-terms">
-          
-          <div class="policy-card" id="terms-agreement">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">01</span>
-                <h2>Agreement to Terms</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="terms-agreement">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>By adding the <strong>VoiceClaw</strong> bot to your Discord server or utilizing its features, commands, and automated voice channels, you agree to be bound by these Terms of Service. If you disagree with any part of these terms, you must remove the bot from your server and cease use of the service immediately.</p>
-              <p>These terms operate alongside and subject to <a href="https://discord.com/terms" target="_blank" rel="noopener noreferrer" style="color:var(--accent-discord);">Discord's Terms of Service</a> and <a href="https://discord.com/guidelines" target="_blank" rel="noopener noreferrer" style="color:var(--accent-discord);">Discord's Community Guidelines</a>.</p>
-            </div>
-          </div>
-
-          <div class="policy-card" id="terms-acceptable-use">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">02</span>
-                <h2>Acceptable Use & Prohibited Conduct</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="terms-acceptable-use">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>When using VoiceClaw, you agree not to engage in any of the following activities:</p>
-              <ul>
-                <li><strong>Abuse & Spamming:</strong> Rapidly triggering join-to-create channels with automated scripts or macros in order to crash the bot, spam server audit logs, or flood Discord API rate limits.</li>
-                <li><strong>Harmful or Illegal Content:</strong> Setting temporary voice channel names containing hate speech, harassment, sexually explicit wording, promotion of self-harm, or illegal material.</li>
-                <li><strong>Reverse Engineering:</strong> Attempting to disrupt, exploit, inject malicious SQL code, or circumvent the bot's cooldown restrictions.</li>
-                <li><strong>Violation of Discord Guidelines:</strong> Using VoiceClaw channels to host or facilitate activities that violate Discord Community Guidelines.</li>
-              </ul>
-              <div class="callout callout-warning">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-                <div>Violating acceptable use rules may result in server blacklisting, bot command timeouts, or referral to Discord Trust & Safety.</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="policy-card" id="terms-owner-responsibility">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">03</span>
-                <h2>Server Owner Responsibilities</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="terms-owner-responsibility">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>Server owners and administrators are solely responsible for:</p>
-              <ul>
-                <li>Granting the bot adequate permissions (Manage Channels, Move Members, View Channels) necessary for proper execution.</li>
-                <li>Moderating the names and behavior of users inside channels created within their server.</li>
-                <li>Ensuring their server rules align with acceptable usage of dynamic voice channels.</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="policy-card" id="terms-availability">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">04</span>
-                <h2>Service Availability & Modifications</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="terms-availability">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>VoiceClaw is provided on an "as is" and "as available" basis. While we strive for 99.9% uptime, we do not guarantee uninterrupted, bug-free, or continuous operation. Service may be temporarily paused for maintenance, database optimization, or Discord API outages.</p>
-              <p>We reserve the right to modify, upgrade, or deprecate features of the bot at our discretion without prior individual notice.</p>
-            </div>
-          </div>
-
-          <div class="policy-card" id="terms-liability">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">05</span>
-                <h2>Limitation of Liability</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="terms-liability">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>To the maximum extent permitted by applicable law, the developers and maintainers of VoiceClaw shall not be held liable for any direct, indirect, incidental, special, or consequential damages resulting from:</p>
-              <ul>
-                <li>The use or inability to use the bot.</li>
-                <li>Accidental channel deletion or permission misconfigurations executed by server staff.</li>
-                <li>Discord API outages or interruptions beyond our control.</li>
-              </ul>
-            </div>
-          </div>
-
-        </section>
-
-        <!-- DATA PRACTICES PANE -->
-        <section class="doc-pane" id="pane-data-practices">
-          
-          <div class="policy-card" id="sec-architecture">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">01</span>
-                <h2>Database Architecture & Security</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="sec-architecture">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>The bot stores relational metadata in an isolated, secure database. Access is strictly restricted to automated bot operations using parameterized queries, preventing SQL injection vulnerabilities.</p>
-              <div class="callout callout-success">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
-                <div>No plaintext passwords, sensitive Discord tokens, or payment details are ever touched or stored by VoiceClaw.</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="policy-card" id="sec-permissions">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">02</span>
-                <h2>Discord Bot Permissions Explained</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="sec-permissions">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>When inviting VoiceClaw, the bot requests specific Discord OAuth2 permissions. Here is why each is required:</p>
-              <ul>
-                <li><strong>Manage Channels:</strong> Used to dynamically create temporary voice channels under your specified category and delete them once empty.</li>
-                <li><strong>Move Members:</strong> Automatically moves the user from the "Join to Create" channel directly into their newly created temporary channel.</li>
-                <li><strong>Manage Permissions:</strong> Allows the owner to run <code>.voice lock</code>, <code>.voice unlock</code>, <code>.voice permit</code>, and <code>.voice reject</code>.</li>
-                <li><strong>Send Messages & Embed Links:</strong> Sends control instructions, embed guides, and responses to command executions.</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="policy-card" id="sec-contact">
-            <div class="card-header">
-              <div class="card-title-group">
-                <span class="section-number">03</span>
-                <h2>Contact Information</h2>
-              </div>
-              <button class="copy-anchor" title="Copy Section Link" data-anchor="sec-contact">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              </button>
-            </div>
-            <div class="card-body">
-              <p>For inquiries, bug reports, or legal notices regarding these Terms or our Privacy Policy, please join our Discord support community or submit an inquiry through our developer portal:</p>
-              <ul>
-                <li><strong>Support Server:</strong> <a href="https://discord.gg/y9pgpbt" target="_blank" rel="noopener noreferrer" style="color:var(--accent-discord);">discord.gg/y9pgpbt</a></li>
-                <li><strong>Official Web:</strong> <a href="https://voicemaster.xyz/" target="_blank" rel="noopener noreferrer" style="color:var(--accent-cyan);">voicemaster.xyz</a></li>
-              </ul>
-            </div>
-          </div>
-
-        </section>
-
+  <!-- =========================================================================
+       Section: FAQ
+       ========================================================================= -->
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-tag">FAQ</span>
+        <h2 class="section-title">Questions? Answers.</h2>
+        <p class="section-subtitle">Everything you need to know before deploying VoiceClaw.</p>
       </div>
-    </main>
 
-    <!-- Data Deletion Modal -->
-    <div class="modal-overlay" id="dataModal">
-      <div class="modal-box">
-        <div class="modal-header">
-          <h3>Request Data Deletion</h3>
-          <button class="modal-close" id="btnCloseDataModal">&times;</button>
+      <div class="faq-list">
+        <div class="faq-item reveal">
+          <button class="faq-btn">
+            <span>Does VoiceClaw require Administrator permissions?</span>
+            <svg class="faq-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          <div class="faq-content">
+            <div class="faq-content-inner">
+              No. VoiceClaw only requires "Manage Channels" and "Move Members" inside the specific category where channels are created.
+            </div>
+          </div>
         </div>
-        <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1.25rem;">
-          Under GDPR & CCPA, you have the right to request full erasure of all database records linked to your Discord User ID or Guild ID.
-        </p>
-        <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.5rem;">
-          <label style="display:block; font-size: 0.8rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.4rem;">HOW TO REQUEST:</label>
-          <p style="font-size: 0.88rem; color: var(--text-main); margin-bottom: 0.5rem;">1. Join our support server: <strong>discord.gg/y9pgpbt</strong></p>
-          <p style="font-size: 0.88rem; color: var(--text-main); margin-bottom: 0.5rem;">2. Open a ticket in <code>#support</code></p>
-          <p style="font-size: 0.88rem; color: var(--text-main);">3. Provide your 18-digit Discord Snowflake ID.</p>
+
+        <div class="faq-item reveal">
+          <button class="faq-btn">
+            <span>What happens when the channel creator leaves?</span>
+            <svg class="faq-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          <div class="faq-content">
+            <div class="faq-content-inner">
+              If other participants remain, host control is transferred to the next member. When the last user leaves, the channel is instantly deleted.
+            </div>
+          </div>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-          <button class="btn btn-secondary" id="btnCancelModal">Close</button>
-          <a href="https://discord.gg/y9pgpbt" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Join Support Server</a>
+
+        <div class="faq-item reveal">
+          <button class="faq-btn">
+            <span>Can I customize the channel names?</span>
+            <svg class="faq-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          <div class="faq-content">
+            <div class="faq-content-inner">
+              Yes. Users can rename their room via the control interface, and administrators can set global default naming templates.
+            </div>
+          </div>
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- Toast Notification -->
-    <div class="toast" id="toast">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
-      <span id="toastMsg">Link copied to clipboard!</span>
-    </div>
+  <!-- =========================================================================
+       Footer
+       ========================================================================= -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-row">
+        <a href="#" class="brand">
+          <div class="brand-icon-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            </svg>
+          </div>
+          <span class="brand-name">VoiceClaw</span>
+        </a>
 
-    <!-- Footer -->
-    <footer class="footer">
-      <div class="footer-inner">
-        <div>
-          © 2026 VoiceClaw. All rights reserved. Not affiliated with Discord Inc.
-        </div>
         <div class="footer-links">
-          <a href="#pane-privacy" class="footer-nav" data-tab="privacy">Privacy</a>
-          <a href="#pane-terms" class="footer-nav" data-tab="terms">Terms</a>
-          <a href="#pane-data-practices" class="footer-nav" data-tab="data-practices">Data Practices</a>
-          <a href="https://discord.gg/y9pgpbt" target="_blank" rel="noopener noreferrer">Support</a>
+          <a href="#how-it-works" class="footer-link">How It Works</a>
+          <a href="#simulator" class="footer-link">Simulator</a>
+          <a href="#features" class="footer-link">Features</a>
+          <a href="#pricing" class="footer-link">Pricing</a>
+          <a href="privacy.html" class="footer-link">Privacy Policy</a>
+          <a href="terms.html" class="footer-link">Terms of Service</a>
         </div>
       </div>
-    </footer>
-  </div>
 
-  <script src="script.js"></script>
+      <div class="footer-copy">
+        <span>© 2026 VoiceClaw. All rights reserved. Not affiliated with Discord Inc.</span>
+        <span>High-contrast dark tech architecture</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Floating Scroll To Top -->
+  <button class="back-to-top" id="backToTop" aria-label="Back to Top">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="18 15 12 9 6 15"/>
+    </svg>
+  </button>
+
+  <script src="script.js?v=3.2"></script>
 </body>
 </html>

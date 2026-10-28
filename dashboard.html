@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>VoiceClaw Master Console | Active Server & Pricing Control Panel</title>
   <meta name="description" content="VoiceClaw Master Operations Dashboard - Manage active Discord servers, dynamic voice hubs, premium subscription pricing, and licenses.">
   <link rel="icon" href="/favicon.png">
@@ -12,8 +12,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/style.css?v=4.2">
-  <link rel="stylesheet" href="/dashboard.css?v=4.2">
+  <link rel="stylesheet" href="/style.css?v=4.3">
+  <link rel="stylesheet" href="/dashboard.css?v=4.3">
 </head>
 <body class="dash-body">
 
@@ -56,15 +56,18 @@
       <div class="dash-nav-center">
         <button class="dash-nav-tab active" data-tab="servers">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
-          Managed Servers
+          <span class="tab-label-full">Managed Servers</span>
+          <span class="tab-label-short">Servers</span>
         </button>
         <button class="dash-nav-tab" data-tab="pricing">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          Premium Pricing
+          <span class="tab-label-full">Premium Pricing</span>
+          <span class="tab-label-short">Pricing</span>
         </button>
         <button class="dash-nav-tab" data-tab="licenses">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Granted Licenses
+          <span class="tab-label-full">Granted Licenses</span>
+          <span class="tab-label-short">Licenses</span>
         </button>
       </div>
 

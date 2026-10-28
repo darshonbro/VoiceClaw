@@ -40,6 +40,18 @@ body.dash-body {
   position: relative;
   overflow-x: hidden;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
+
+img {
+  image-rendering: -webkit-optimize-contrast;
+}
+
+svg {
+  shape-rendering: geometricPrecision;
 }
 
 /* Ambient Radial Glows */
@@ -1244,6 +1256,14 @@ input:checked + .slider:before {
   flex-shrink: 0;
   opacity: 0.8;
   transition: opacity 0.18s ease;
+}
+
+.tab-label-short {
+  display: none;
+}
+
+.tab-label-full {
+  display: inline;
 }
 
 .dash-nav-tab:hover {
@@ -2942,19 +2962,32 @@ input:checked + .slider:before {
    Ultra-Clean, Side-by-Side Proportional Alignment, Zero Horizontal Overflow
    ========================================================================== */
 @media (max-width: 768px) {
-  /* 1. Global Reset for Mobile */
-  body.dash-body {
+  /* 1. Global Reset & Quality Sharpness for Mobile */
+  html, body.dash-body {
     overflow-x: hidden;
     width: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Disable heavy GPU-blurring elements on mobile to prevent browser layer downsampling */
+  .dash-ambient-glow {
+    display: none !important;
   }
 
   /* 2. Header & Sticky Navigation */
   .dash-header {
     padding: 0;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(8, 10, 16, 0.98) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .dash-nav-container {
-    padding: 10px 14px;
+    padding: 10px 12px;
     flex-wrap: wrap;
     gap: 10px;
     justify-content: space-between;
@@ -3020,29 +3053,55 @@ input:checked + .slider:before {
     margin-left: 0;
   }
 
-  /* Nav Tabs - Horizontal Scrollbar-Free Swipe */
+  /* Responsive Tab Labels: Short names on mobile */
+  .tab-label-full {
+    display: none !important;
+  }
+
+  .tab-label-short {
+    display: inline !important;
+  }
+
+  /* Nav Tabs - Equal 3-Column Side-by-Side Segmented Bar (Zero cut-off) */
   .dash-nav-center {
-    width: 100%;
+    width: 100% !important;
     order: 3;
-    display: flex;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding: 3px;
-    gap: 4px;
-    border-radius: 10px;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 4px !important;
+    padding: 3px !important;
+    background: rgba(14, 18, 28, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 10px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
   .dash-nav-center::-webkit-scrollbar {
-    display: none;
+    display: none !important;
   }
 
   .dash-nav-tab,
   .dash-nav-item {
-    flex-shrink: 0;
-    white-space: nowrap;
-    padding: 6px 12px;
-    font-size: 0.78rem;
-    border-radius: 7px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    padding: 7px 4px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+    border-radius: 7px !important;
+    width: 100% !important;
+    height: 36px !important;
+    box-sizing: border-box !important;
+    gap: 5px !important;
+  }
+
+  .dash-nav-tab svg {
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 14px !important;
+    flex-shrink: 0 !important;
   }
 
   /* 3. Main Container */
@@ -3338,6 +3397,19 @@ input:checked + .slider:before {
 
 /* Extra Small Phones (max-width: 400px) */
 @media (max-width: 400px) {
+  .dash-nav-tab,
+  .dash-nav-item {
+    font-size: 0.74rem !important;
+    padding: 6px 2px !important;
+    gap: 4px !important;
+  }
+
+  .dash-nav-tab svg {
+    width: 12px !important;
+    height: 12px !important;
+    min-width: 12px !important;
+  }
+
   .dash-hero-title {
     font-size: 1.2rem;
   }
