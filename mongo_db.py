@@ -132,6 +132,16 @@ class MongoDatabase:
         """Executes a query and returns an AsyncExecuteContext supporting await and async with."""
         return AsyncExecuteContext(self.db, sql, params)
 
+    def __getattr__(self, name: str):
+        if self.db is not None:
+            return getattr(self.db, name)
+        raise AttributeError(f"'MongoDatabase' object has no attribute '{name}'")
+
+    def __getitem__(self, name: str):
+        if self.db is not None:
+            return self.db[name]
+        raise KeyError(name)
+
 
 async def execute_sql_on_mongo(db, sql: str, params: Union[Tuple, List] = ()) -> MongoCursor:
     """

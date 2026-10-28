@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import os
+import sys
 import time
 import traceback
 import typing
@@ -1997,8 +1998,9 @@ class PrivacySelect(discord.ui.Select):
         val = self.values[0]
         guild = interaction.guild
         owner_id = await self.cog.get_channel_owner(self.channel.id)
-        if owner_id and interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the room host (<@{owner_id}>) can change privacy settings.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(guild, interaction.user, "lock_channel", owner_id, channel=self.channel)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ Only the room host (<@{owner_id}>) or authorized authorities can change privacy settings.", ephemeral=True)
 
         if val == "lock":
             await self.channel.set_permissions(guild.default_role, connect=False)
@@ -2061,10 +2063,10 @@ class SettingsSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         val = self.values[0]
         owner_id = await self.cog.get_channel_owner(self.channel.id)
-        is_admin = interaction.user.guild_permissions.administrator
         if val in ["rename", "limit", "bitrate", "region", "permissions", "preset"]:
-            if owner_id and interaction.user.id != owner_id and not is_admin:
-                return await interaction.response.send_message(f"✕ Only the room host (<@{owner_id}>) can modify room settings.", ephemeral=True)
+            has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "rename_channel", owner_id, channel=self.channel)
+            if not has_perm:
+                return await interaction.response.send_message(f"✕ Only the room host (<@{owner_id}>) or authorized authorities can modify room settings.", ephemeral=True)
 
         if val == "rename":
             if await self.cog.is_channel_locked_name(self.channel.id):
@@ -2130,8 +2132,9 @@ class MembersActionSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         val = self.values[0]
         owner_id = await self.cog.get_channel_owner(self.channel.id)
-        if owner_id and interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the room host (<@{owner_id}>) can manage members.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "kick_member", owner_id, channel=self.channel)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ Only the room host (<@{owner_id}>) or authorized authorities can manage members.", ephemeral=True)
 
         if val == "trust":
             await interaction.response.send_message("Select a member to grant VIP Trust (bypass lock & ghost):", view=TrustSelectView(self.channel), ephemeral=True)
@@ -2666,8 +2669,9 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             )
         if not channel:
             return await interaction.response.send_message("✕ You are not connected to a voice channel and do not own an active voice room in this server!", ephemeral=True)
-        if owner_id and interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the room host (<@{owner_id}>) can manage privacy settings.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "lock_channel", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ You lack permission to manage privacy settings for this room.", ephemeral=True)
 
         view = PrivacyControlView(self.cog, channel)
         await interaction.response.send_message(
@@ -2687,8 +2691,9 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             )
         if not channel:
             return await interaction.response.send_message("✕ You are not connected to a voice channel and do not own an active voice room in this server!", ephemeral=True)
-        if owner_id and interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the room host (<@{owner_id}>) can adjust channel settings.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "rename_channel", owner_id, channel=channel)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ Only the room host (<@{owner_id}>) or authorized authorities can adjust channel settings.", ephemeral=True)
 
         view = SettingsControlView(self.cog, channel)
         await interaction.response.send_message(
@@ -2708,8 +2713,9 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             )
         if not channel:
             return await interaction.response.send_message("✕ You are not connected to a voice channel and do not own an active voice room in this server!", ephemeral=True)
-        if owner_id and interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the room host (<@{owner_id}>) can manage members.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "kick_member", owner_id, channel=channel)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ Only the room host (<@{owner_id}>) or authorized authorities can manage members.", ephemeral=True)
 
         view = MembersControlView(self.cog, channel)
         await interaction.response.send_message(
@@ -2814,8 +2820,9 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
     async def rename_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can rename this channel.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "rename_channel", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ You lack permission to rename this channel. (Requires Room Host, Administrator, or an authorized Server Role)", ephemeral=True)
         if await self.cog.is_channel_locked_name(channel.id):
             return await interaction.response.send_message(
                 f"✕ This voice room has a locked name (`{channel.name}`) configured by server administration and cannot be renamed.",
@@ -2827,16 +2834,18 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
     async def limit_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can change room capacity.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "limit_channel", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ You lack permission to change room capacity. (Requires Room Host, Administrator, or an authorized Server Role)", ephemeral=True)
 
         await interaction.response.send_modal(ChannelLimitModal(self.cog, channel))
 
     async def bitrate_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can change audio bitrate.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "bitrate_channel", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ You lack permission to change audio bitrate. (Requires Room Host, Administrator, or an authorized Server Role)", ephemeral=True)
 
         await interaction.response.send_modal(ChannelBitrateModal(self.cog, channel))
 
@@ -2851,8 +2860,9 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             )
         if not channel:
             return await interaction.response.send_message("✕ You are not connected to a voice channel and do not own an active voice room in this server!", ephemeral=True)
-        if owner_id and interaction.user.id != owner_id and not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can change the voice region.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "region_channel", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ You lack permission to change the voice region.", ephemeral=True)
 
         curr = format_rtc_region(channel.rtc_region)
         await interaction.response.send_message(
@@ -2870,16 +2880,18 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
     async def permissions_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can modify room permissions.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "lock_channel", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ You lack permission to modify room permissions.", ephemeral=True)
 
         await interaction.response.send_message("🛡️ Configure Soundboard and Video / Stream permissions:", view=PermissionsControlView(self.cog, channel), ephemeral=True)
 
     async def preset_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can manage room presets.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "rename_channel", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) or authorized staff can manage room presets.", ephemeral=True)
 
         user_presets = await self.cog.get_user_presets(interaction.user.id)
         await interaction.response.send_message(
@@ -2891,48 +2903,54 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
     async def trust_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can manage trusted members.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "lock_channel", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ You lack permission to manage trusted members.", ephemeral=True)
 
         await interaction.response.send_message("Select a member to grant VIP Trust (bypass lock & ghost):", view=TrustSelectView(channel), ephemeral=True)
 
     async def untrust_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can manage trusted members.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "lock_channel", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ You lack permission to manage trusted members.", ephemeral=True)
 
         await interaction.response.send_message("Select a member to remove Trust status from:", view=UntrustSelectView(channel), ephemeral=True)
 
     async def invite_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can send invites.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "lock_channel", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ You lack permission to send room invites.", ephemeral=True)
 
         await interaction.response.send_message("Select a member to invite to this room:", view=InviteSelectView(channel), ephemeral=True)
 
     async def kick_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can kick members.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "kick_member", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ You lack permission to kick members from this channel. (Requires Room Host, Administrator, or an authorized Server Role)", ephemeral=True)
 
         await interaction.response.send_message("Select a member inside this room to kick:", view=KickSelectView(self.cog, channel), ephemeral=True)
 
     async def block_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can block members.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "kick_member", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ You lack permission to block members from this channel.", ephemeral=True)
 
         await interaction.response.send_message("Select a member to block & ban from this room:", view=BlockSelectView(self.cog, channel), ephemeral=True)
 
     async def unblock_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
         if not channel: return
-        if interaction.user.id != owner_id:
-            return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can unblock members.", ephemeral=True)
+        has_perm = await self.cog.member_has_temp_power(interaction.guild, interaction.user, "kick_member", owner_id)
+        if not has_perm:
+            return await interaction.response.send_message(f"✕ You lack permission to unblock members.", ephemeral=True)
 
         await interaction.response.send_message("Select a member to unblock:", view=UnblockSelectView(channel), ephemeral=True)
 
@@ -3408,6 +3426,162 @@ class voice(commands.Cog):
         except Exception:
             pass
         return False
+
+    async def member_has_temp_power(self, guild: typing.Optional[discord.Guild], member: typing.Union[discord.Member, discord.User], power_key: str, channel_owner_id: typing.Optional[int] = None, channel: typing.Optional[discord.VoiceChannel] = None) -> bool:
+        """Checks if a user is the channel host, server owner, administrator, or has an authorized role with power_key."""
+        if not guild or not member:
+            return False
+        # 1. Channel Host has full power
+        if channel_owner_id and member.id == channel_owner_id:
+            return True
+        # 2. Server Owner
+        if member.id == guild.owner_id:
+            return True
+        # 3. Discord Administrator
+        if hasattr(member, "guild_permissions") and member.guild_permissions.administrator:
+            return True
+        # 4. Bot Owner
+        if self._app_owner_id and member.id == self._app_owner_id:
+            return True
+
+        # 5. Check Discord Channel / Join-to-Create Permissions directly
+        target_ch = channel
+        if not target_ch and guild:
+            try:
+                cfg = await self.get_guild_config(guild.id)
+                master_id = cfg[2] if cfg and len(cfg) > 2 else None
+                if master_id:
+                    target_ch = guild.get_channel(master_id)
+            except Exception:
+                pass
+
+        if target_ch and isinstance(member, discord.Member):
+            ch_perms = target_ch.permissions_for(member)
+            if ch_perms.manage_channels or ch_perms.administrator:
+                return True
+            if power_key in ["kick_member", "move_member"] and ch_perms.move_members:
+                return True
+            if power_key in ["mute_member"] and ch_perms.mute_members:
+                return True
+
+        # 6. Check Configured Role Powers from MongoDB
+        try:
+            db = mongo_db.get_db()
+            if db is not None:
+                doc = await db.guildSettings.find_one({"guildID": str(guild.id)})
+                if not doc:
+                    doc = await db.guildSettings.find_one({"guildID": guild.id})
+                if doc and "settings" in doc:
+                    role_powers = doc["settings"].get("rolePowers", {})
+                    user_role_ids = {str(r.id) for r in getattr(member, "roles", [])}
+                    for r_id, r_cfg in role_powers.items():
+                        if r_id in user_role_ids or r_id == "@everyone":
+                            powers = r_cfg.get("powers", []) if isinstance(r_cfg, dict) else r_cfg
+                            if isinstance(powers, list) and (power_key in powers or "all" in powers):
+                                return True
+        except Exception as e:
+            print(f"[VoiceClaw RolePowers] check error: {e}", file=sys.stderr)
+        return False
+
+    async def build_temp_channel_overwrites(self, guild: discord.Guild, member: discord.Member, source_channel: typing.Optional[discord.VoiceChannel] = None) -> dict:
+        """
+        Builds Discord Channel Overwrites specifically for a temporary voice channel.
+        Clones all Role Overwrites configured on the Join to Create voice channel / category
+        so Server Authorities (e.g. @Moderator) automatically inherit bypass lock, text chat,
+        and manage permissions without needing server-wide Administrator.
+        """
+        bot_member = guild.me or (guild.get_member(self.bot.user.id) if self.bot.user else None)
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(
+                connect=True, view_channel=True, speak=True, read_messages=True, read_message_history=True
+            ),
+            member: discord.PermissionOverwrite(
+                connect=True, view_channel=True, speak=True, read_messages=True,
+                send_messages=True, read_message_history=True, manage_channels=True
+            )
+        }
+        if bot_member:
+            overwrites[bot_member] = discord.PermissionOverwrite(
+                connect=True, view_channel=True, speak=True, read_messages=True,
+                send_messages=True, read_message_history=True, manage_channels=True, move_members=True
+            )
+
+        # 1. Inherit Role Overwrites from Category (if any)
+        if source_channel and source_channel.category:
+            for target, ow in source_channel.category.overwrites.items():
+                if isinstance(target, discord.Role) and target != guild.default_role:
+                    target_ow = discord.PermissionOverwrite(**dict(ow))
+                    overwrites[target] = target_ow
+
+        # 2. Inherit Role Overwrites directly from the "Join to Create" VC
+        if source_channel and hasattr(source_channel, "overwrites"):
+            for target, ow in source_channel.overwrites.items():
+                if isinstance(target, discord.Role) and target != guild.default_role:
+                    target_ow = discord.PermissionOverwrite(**dict(ow))
+                    # Ensure authorities who have manage_channels, move_members or mute_members
+                    # can always connect & view even when regular members lock or hide the room!
+                    if target_ow.manage_channels is True or target_ow.move_members is True or target_ow.mute_members is True:
+                        if target_ow.connect is not False:
+                            target_ow.connect = True
+                        if target_ow.view_channel is not False:
+                            target_ow.view_channel = True
+                    overwrites[target] = target_ow
+                elif isinstance(target, discord.Member) and target.id != member.id and (not bot_member or target.id != bot_member.id):
+                    target_ow = discord.PermissionOverwrite(**dict(ow))
+                    if target_ow.manage_channels is True or target_ow.move_members is True or target_ow.mute_members is True:
+                        if target_ow.connect is not False:
+                            target_ow.connect = True
+                        if target_ow.view_channel is not False:
+                            target_ow.view_channel = True
+                    overwrites[target] = target_ow
+
+        # 3. Additive fallback for MongoDB RolePowers (if configured)
+        try:
+            db = mongo_db.get_db()
+            if db is not None:
+                s_doc = await db.guildSettings.find_one({"guildID": str(guild.id)})
+                if not s_doc:
+                    s_doc = await db.guildSettings.find_one({"guildID": guild.id})
+                if s_doc and "settings" in s_doc:
+                    role_powers = s_doc["settings"].get("rolePowers", {})
+                    for r_id, r_cfg in role_powers.items():
+                        target_role = None
+                        if r_id == "@everyone":
+                            target_role = guild.default_role
+                        elif str(r_id).isdigit():
+                            target_role = guild.get_role(int(r_id))
+
+                        if target_role and target_role != guild.default_role:
+                            p_list = r_cfg.get("powers", []) if isinstance(r_cfg, dict) else r_cfg
+                            if isinstance(p_list, list):
+                                ow_kwargs = {
+                                    "connect": True,
+                                    "view_channel": True,
+                                    "speak": True,
+                                    "read_messages": True
+                                }
+                                if "move_member" in p_list: ow_kwargs["move_members"] = True
+                                if "mute_member" in p_list: ow_kwargs["mute_members"] = True
+                                if "priority_speaker" in p_list: ow_kwargs["priority_speaker"] = True
+                                if "screenshare_webcam" in p_list: ow_kwargs["stream"] = True
+                                if "soundboard_sounds" in p_list:
+                                    ow_kwargs["use_soundboard"] = True
+                                    ow_kwargs["use_external_sounds"] = True
+                                if "voice_messages" in p_list: ow_kwargs["send_voice_messages"] = True
+                                if "activities" in p_list: ow_kwargs["use_embedded_activities"] = True
+                                if "manage_messages" in p_list: ow_kwargs["manage_messages"] = True
+                                if "delete_channel" in p_list or "rename_channel" in p_list: ow_kwargs["manage_channels"] = True
+
+                                if target_role in overwrites:
+                                    current_dict = dict(overwrites[target_role])
+                                    current_dict.update({k: v for k, v in ow_kwargs.items() if v is not None})
+                                    overwrites[target_role] = discord.PermissionOverwrite(**current_dict)
+                                else:
+                                    overwrites[target_role] = discord.PermissionOverwrite(**ow_kwargs)
+        except Exception as ow_err:
+            print(f"[VoiceClaw RolePowers Overwrite Error]: {ow_err}", file=sys.stderr)
+
+        return overwrites
 
     async def cog_load(self):
         """Initialize database tables, register views, sweep channels, and start background tasks"""
@@ -5049,22 +5223,7 @@ class voice(commands.Cog):
 
                 print(f"[VoiceClaw] Creating temporary room '{chan_name}' for {member.display_name} (limit={chan_limit})...")
 
-                bot_user = self.bot.user
-                bot_member = guild.me or (guild.get_member(bot_user.id) if bot_user else None)
-                overwrites = {
-                    guild.default_role: discord.PermissionOverwrite(
-                        connect=True, view_channel=True, speak=True, read_messages=True, read_message_history=True
-                    ),
-                    member: discord.PermissionOverwrite(
-                        connect=True, view_channel=True, speak=True, read_messages=True,
-                        send_messages=True, read_message_history=True, manage_channels=True
-                    )
-                }
-                if bot_member:
-                    overwrites[bot_member] = discord.PermissionOverwrite(
-                        connect=True, view_channel=True, speak=True, read_messages=True,
-                        send_messages=True, read_message_history=True, manage_channels=True, move_members=True
-                    )
+                overwrites = await self.build_temp_channel_overwrites(guild, member, source_channel=after.channel)
 
                 temp_channel = await guild.create_voice_channel(
                     name=chan_name,
@@ -5169,21 +5328,7 @@ class voice(commands.Cog):
                 if chan_limit >= 99 or chan_limit < 0:
                     chan_limit = 0
 
-                overwrites = {
-                    guild.default_role: discord.PermissionOverwrite(
-                        connect=True, view_channel=True, speak=True, read_messages=True, read_message_history=True
-                    ),
-                    member: discord.PermissionOverwrite(
-                        connect=True, view_channel=True, speak=True, read_messages=True,
-                        send_messages=True, read_message_history=True, manage_channels=True
-                    )
-                }
-                bot_member = guild.me
-                if bot_member:
-                    overwrites[bot_member] = discord.PermissionOverwrite(
-                        connect=True, view_channel=True, speak=True, read_messages=True,
-                        send_messages=True, read_message_history=True, manage_channels=True, move_members=True
-                    )
+                overwrites = await self.build_temp_channel_overwrites(guild, member, source_channel=after.channel)
 
                 perm_channel = await guild.create_voice_channel(
                     name=chan_name,
@@ -5267,22 +5412,7 @@ class voice(commands.Cog):
 
                     print(f"[VoiceClaw] Creating hub room '{chan_name}' (limit={chan_limit}, perm={hub_is_perm}, lock={lock_name}) for {member.display_name}...")
 
-                    bot_user = self.bot.user
-                    bot_member = guild.me or (guild.get_member(bot_user.id) if bot_user else None)
-                    overwrites = {
-                        guild.default_role: discord.PermissionOverwrite(
-                            connect=True, view_channel=True, speak=True, read_messages=True, read_message_history=True
-                        ),
-                        member: discord.PermissionOverwrite(
-                            connect=True, view_channel=True, speak=True, read_messages=True,
-                            send_messages=True, read_message_history=True, manage_channels=True
-                        )
-                    }
-                    if bot_member:
-                        overwrites[bot_member] = discord.PermissionOverwrite(
-                            connect=True, view_channel=True, speak=True, read_messages=True,
-                            send_messages=True, read_message_history=True, manage_channels=True, move_members=True
-                        )
+                    overwrites = await self.build_temp_channel_overwrites(guild, member, source_channel=after.channel)
 
                     temp_channel = await guild.create_voice_channel(
                         name=chan_name,
@@ -5385,21 +5515,7 @@ class voice(commands.Cog):
 
                     print(f"[VoiceClaw] Spawning secondary dynamic room '{chan_name}' (limit={chan_limit}) for {member.display_name} in {category.name if category else 'No Category'}...")
 
-                    overwrites = {
-                        guild.default_role: discord.PermissionOverwrite(
-                            connect=True, view_channel=True, speak=True, read_messages=True, read_message_history=True
-                        ),
-                        member: discord.PermissionOverwrite(
-                            connect=True, view_channel=True, speak=True, read_messages=True,
-                            send_messages=True, read_message_history=True, manage_channels=True
-                        )
-                    }
-                    bot_member = guild.me
-                    if bot_member:
-                        overwrites[bot_member] = discord.PermissionOverwrite(
-                            connect=True, view_channel=True, speak=True, read_messages=True,
-                            send_messages=True, read_message_history=True, manage_channels=True, move_members=True
-                        )
+                    overwrites = await self.build_temp_channel_overwrites(guild, member, source_channel=after.channel)
 
                     temp_channel = await guild.create_voice_channel(
                         name=chan_name,
@@ -5510,8 +5626,9 @@ class voice(commands.Cog):
             await ctx.send("✕ This voice channel is not managed by VoiceClaw.", ephemeral=True)
             return None, None
 
-        if ctx.author.id != owner_id and not ctx.author.guild_permissions.administrator:
-            await ctx.send(f"✕ Only the room host (<@{owner_id}>) can use this command.", ephemeral=True)
+        has_perm = await self.member_has_temp_power(ctx.guild, ctx.author, "manage_channel", owner_id, channel=channel)
+        if not has_perm:
+            await ctx.send(f"✕ Only the room host (<@{owner_id}>) or authorized authorities can use this command.", ephemeral=True)
             return None, None
 
         return channel, owner_id
