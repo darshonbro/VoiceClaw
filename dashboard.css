@@ -42,28 +42,6 @@ body.dash-body {
   line-height: 1.5;
 }
 
-/* Cursed Energy Release Atmosphere */
-.curse-release-canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.95;
-  transition: opacity 0.8s ease;
-}
-
-.curse-energy-vignette {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background: radial-gradient(circle at 50% 45%, transparent 35%, rgba(6, 7, 10, 0.45) 75%, rgba(6, 7, 10, 0.88) 100%);
-  mix-blend-mode: multiply;
-}
-
 /* Ambient Radial Glows */
 .dash-ambient-glow {
   position: fixed;
