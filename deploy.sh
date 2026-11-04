@@ -20,16 +20,23 @@ echo "📚 Installing dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# 4. Restart Bot Process
+# 4. Restart Bot & Web Server
 if command -v pm2 &> /dev/null; then
-    echo "🔄 Restarting with PM2..."
+    echo "🔄 Managing processes with PM2..."
+    # Discord Bot
     if pm2 describe voiceclaw > /dev/null 2>&1; then
         pm2 restart voiceclaw
     else
         pm2 start voicecreate.py --interpreter python3 --name voiceclaw
-        pm2 save
     fi
-    echo "✅ Successfully deployed with PM2! (Run 'pm2 logs voiceclaw' to view logs)"
+    # Web Dashboard Server
+    if pm2 describe voiceclaw-server > /dev/null 2>&1; then
+        pm2 restart voiceclaw-server
+    else
+        pm2 start server.py --interpreter python3 --name voiceclaw-server
+    fi
+    pm2 save
+    echo "✅ Successfully deployed bot & server with PM2! (Run 'pm2 status' or 'pm2 logs')"
 elif systemctl is-active --quiet voiceclaw.service 2>/dev/null; then
     echo "🔄 Restarting systemd service voiceclaw..."
     sudo systemctl restart voiceclaw
@@ -38,6 +45,8 @@ else
     echo "⚠️ Neither PM2 nor active systemd service detected."
     echo "Starting in background with nohup..."
     pkill -f "voicecreate.py" || true
+    pkill -f "server.py" || true
     nohup python3 voicecreate.py > bot.log 2>&1 &
-    echo "✅ Started in background! Log: bot.log"
+    nohup python3 server.py > server.log 2>&1 &
+    echo "✅ Started bot & server in background! Logs: bot.log, server.log"
 fi
