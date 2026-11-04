@@ -25,7 +25,7 @@ PREMIUM_BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "p
 HUBS_BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "hubs.jpg")
 SETUP_BANNER_PATH = os.path.join(os.path.dirname(__file__), "..", "assets", "setup.jpg")
 
-def make_v2_card(title: str, text: str, banner_filename: typing.Optional[str] = None) -> discord.ui.LayoutView:
+def make_v2_card(title: typing.Optional[str] = None, text: str = "", banner_filename: typing.Optional[str] = None) -> discord.ui.LayoutView:
     """Create a minimalist Discord Components v2 LayoutView container with optional banner and NO side accent stripe"""
     view = discord.ui.LayoutView()
     items = []
@@ -35,6 +35,90 @@ def make_v2_card(title: str, text: str, banner_filename: typing.Optional[str] = 
     items.append(discord.ui.TextDisplay(content))
     container = discord.ui.Container(
         *items,
+        accent_color=None
+    )
+    view.add_item(container)
+    return view
+
+def adapt_to_v2_components(content, kwargs):
+    """Universal 100% Discord Components v2 Enforcer"""
+    view = kwargs.get('view')
+    embed = kwargs.get('embed')
+    embeds = kwargs.get('embeds')
+
+    # Convert legacy embeds with side colors to borderless V2 container
+    if (embed or embeds) and (view is None or view is discord.utils.MISSING):
+        target_embed = embed if embed else embeds[0]
+        title = getattr(target_embed, 'title', None)
+        desc = getattr(target_embed, 'description', '')
+        kwargs['embed'] = discord.utils.MISSING
+        if 'embeds' in kwargs:
+            kwargs['embeds'] = discord.utils.MISSING
+        kwargs['view'] = make_v2_card(title, desc)
+        return None, kwargs
+
+    # Convert plain text content to borderless V2 container
+    if content and (view is None or view is discord.utils.MISSING):
+        kwargs['view'] = make_v2_card(None, str(content))
+        return None, kwargs
+
+    # Prepend prompt content to LayoutView if present
+    if content and isinstance(view, discord.ui.LayoutView):
+        c = discord.ui.Container(discord.ui.TextDisplay(str(content)), accent_color=None)
+        view._children.insert(0, c)
+        c._view = view
+        return None, kwargs
+
+    return content, kwargs
+
+_orig_interaction_send_message = discord.InteractionResponse.send_message
+_orig_context_send = commands.Context.send
+_orig_webhook_send = discord.Webhook.send
+
+async def _v2_interaction_send_message(self, content=None, *args, **kwargs):
+    content, kwargs = adapt_to_v2_components(content, kwargs)
+    if self.is_done():
+        return await self._parent.followup.send(content, *args, **kwargs)
+    return await _orig_interaction_send_message(self, content, *args, **kwargs)
+
+async def _v2_context_send(self, content=None, *args, **kwargs):
+    content, kwargs = adapt_to_v2_components(content, kwargs)
+    return await _orig_context_send(self, content, *args, **kwargs)
+
+async def _v2_webhook_send(self, content=discord.utils.MISSING, *args, **kwargs):
+    if content is not discord.utils.MISSING:
+        c, kwargs = adapt_to_v2_components(content, kwargs)
+        content = c if c is not None else discord.utils.MISSING
+    else:
+        _, kwargs = adapt_to_v2_components(None, kwargs)
+    return await _orig_webhook_send(self, content, *args, **kwargs)
+
+discord.InteractionResponse.send_message = _v2_interaction_send_message
+commands.Context.send = _v2_context_send
+discord.Webhook.send = _v2_webhook_send
+
+
+def make_web_setup_redirect(feature_name: str = 'Voice Setup', guild_id: typing.Optional[int] = None) -> discord.ui.LayoutView:
+    view = discord.ui.LayoutView()
+    url = f'https://voiceclaw.online/dashboard?guild={guild_id}' if guild_id else 'https://voiceclaw.online/dashboard'
+    content = (
+        '### 🌐 VoiceClaw Web Dashboard Setup\n'
+        f'Bot setup and channel creation for **{feature_name}** are now managed directly from the **VoiceClaw Web Dashboard**!\n\n'
+        '• **Direct Category Selection:** Deploy Duo, Trio, Squad, or JTC hubs into any voice category.\n'
+        '• **Full Customization:** Choose custom channel names, user limits, lock names, and 24/7 channels.\n'
+        '• **Instant Visual Control:** Manage all your server\'s voice hubs smoothly from your browser.\n\n'
+        '👉 Click the button below to open your server\'s Web Dashboard.'
+    )
+    container = discord.ui.Container(
+        discord.ui.TextDisplay(content),
+        discord.ui.ActionRow(
+            discord.ui.Button(
+                label='Open Web Dashboard',
+                style=discord.ButtonStyle.link,
+                url=url,
+                emoji='🚀'
+            )
+        ),
         accent_color=None
     )
     view.add_item(container)
@@ -1214,7 +1298,7 @@ class KnockChannelSelect(discord.ui.Select):
         )
 
 
-class VoiceControlActionView(discord.ui.View):
+class VoiceControlActionView(discord.ui.LayoutView):
     def __init__(self, timeout: float = 60, cooldown: float = 3.0):
         super().__init__(timeout=timeout)
         self.cooldown = cooldown
@@ -1224,10 +1308,11 @@ class VoiceControlActionView(discord.ui.View):
         if cog:
             rem = cog.check_panel_cooldown(interaction.user.id, self.cooldown)
             if rem > 0:
-                await interaction.response.send_message(
-                    f"⏳ **Please slow down!** Control action is on cooldown (`{rem}`s) to prevent Discord rate limits.",
-                    ephemeral=True
+                card = make_v2_card(
+                    "⏳ Action on Cooldown",
+                    f"Please slow down! Control action is on cooldown (`{rem}`s) to prevent Discord rate limits."
                 )
+                await interaction.response.send_message(view=card, ephemeral=True)
                 return False
         return True
 
@@ -1715,7 +1800,11 @@ class TransferOwnerSelect(discord.ui.UserSelect):
 
         await self.cog.set_channel_owner(self.channel.id, member.id)
         await self.channel.set_permissions(member, connect=True, view_channel=True, read_messages=True, send_messages=True, manage_channels=False)
-        await interaction.response.send_message(f"♔ Ownership transferred to {member.mention}!", ephemeral=False)
+        card = make_v2_card(
+            "♔ Ownership Transferred",
+            f"Voice room **`{self.channel.name}`** ownership has been transferred to **{member.mention}**.\nFull host control permissions have been granted."
+        )
+        await interaction.response.send_message(view=card, ephemeral=False)
         await self.cog.log_voice_event(
             interaction.guild,
             title="♔ Ownership Transferred",
@@ -2192,7 +2281,11 @@ class HostActionSelect(discord.ui.Select):
 
             await self.cog.set_channel_owner(self.channel.id, user.id)
             await self.channel.set_permissions(user, connect=True, view_channel=True, read_messages=True, send_messages=True, manage_channels=False)
-            await interaction.response.send_message(f"👑 **Congratulations!** You are now the host of `{self.channel.name}`.", ephemeral=False)
+            card = make_v2_card(
+                "👑 Channel Ownership Claimed",
+                f"Congratulations **{user.mention}**! You are now the host of **`{self.channel.name}`**.\nFull voice room control permissions have been granted to you."
+            )
+            await interaction.response.send_message(view=card, ephemeral=False)
             await self.cog.log_voice_event(
                 interaction.guild,
                 title="👑 Channel Claimed",
@@ -2750,7 +2843,8 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can lock this channel.", ephemeral=True)
 
         await channel.set_permissions(interaction.guild.default_role, connect=False)
-        await interaction.response.send_message("🔒 **Channel locked!** Unauthorized members cannot connect (they can still knock).", ephemeral=True)
+        card = make_v2_card("🔒 Voice Room Locked", "Unauthorized members cannot connect. Members can still knock to request entry.")
+        await interaction.response.send_message(view=card, ephemeral=True)
 
     async def unlock_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
@@ -2759,7 +2853,8 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can unlock this channel.", ephemeral=True)
 
         await channel.set_permissions(interaction.guild.default_role, connect=True)
-        await interaction.response.send_message("🔓 **Channel unlocked!** Public connection allowed.", ephemeral=True)
+        card = make_v2_card("🔓 Voice Room Unlocked", "Public connections are now allowed for everyone in the server.")
+        await interaction.response.send_message(view=card, ephemeral=True)
 
     async def ghost_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
@@ -2768,7 +2863,8 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can ghost this channel.", ephemeral=True)
 
         await channel.set_permissions(interaction.guild.default_role, view_channel=False, connect=False)
-        await interaction.response.send_message("◈ **Ghost Mode Activated!** The room is hidden from @everyone.", ephemeral=True)
+        card = make_v2_card("◈ Ghost Mode Activated", "Your voice room is now hidden from the server sidebar for @everyone.")
+        await interaction.response.send_message(view=card, ephemeral=True)
 
     async def reveal_callback(self, interaction: discord.Interaction):
         channel, owner_id = await self._get_voice_context(interaction)
@@ -2777,7 +2873,8 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
             return await interaction.response.send_message(f"✕ Only the channel host (<@{owner_id}>) can reveal this channel.", ephemeral=True)
 
         await channel.set_permissions(interaction.guild.default_role, view_channel=True)
-        await interaction.response.send_message("◇ **Channel revealed!** Visible on the sidebar again.", ephemeral=True)
+        card = make_v2_card("◇ Voice Room Revealed", "Your voice room is visible on the server sidebar again.")
+        await interaction.response.send_message(view=card, ephemeral=True)
 
     async def knock_toggle_callback(self, interaction: discord.Interaction):
         user = interaction.user
@@ -2979,7 +3076,11 @@ class VoiceControlLayoutView(discord.ui.LayoutView):
                 await channel.set_permissions(owner_member, overwrite=None)
             except Exception:
                 pass
-        await interaction.response.send_message(f"👑 **Congratulations!** You are now the new owner of {channel.name}.", ephemeral=False)
+        card = make_v2_card(
+            "👑 Channel Ownership Claimed",
+            f"Congratulations **{user.mention}**! You are now the new owner of **{channel.name}**.\nFull voice room control permissions have been granted to you."
+        )
+        await interaction.response.send_message(view=card, ephemeral=False)
         await self.cog.log_voice_event(
             interaction.guild,
             title="👑 Channel Claimed",
@@ -3654,6 +3755,9 @@ class voice(commands.Cog):
             for voice_id, owner_id, is_perm in active_rooms:
                 chan = self.bot.get_channel(voice_id)
                 if not chan or not isinstance(chan, discord.VoiceChannel):
+                    await self.delete_temp_channel_record(voice_id)
+                    self.knock_settings.pop(voice_id, None)
+                    self.afk_tracker.pop(voice_id, None)
                     continue
 
                 if await self.is_join_or_master_channel(chan.guild.id, chan.id):
@@ -3662,7 +3766,20 @@ class voice(commands.Cog):
                 if not await self.is_voiceclaw_category(chan.guild.id, chan.category_id):
                     continue
 
-                if len(chan.members) == 1:
+                # Auto-sweep orphaned empty temp rooms older than 45 seconds
+                if len(chan.members) == 0:
+                    self.afk_tracker.pop(voice_id, None)
+                    if not is_perm and (discord.utils.utcnow() - chan.created_at).total_seconds() >= 45:
+                        try:
+                            await chan.delete(reason="VoiceClaw: Background sweep empty temp room")
+                            print(f"[VoiceClaw] Swept orphaned empty channel '{chan.name}' ({voice_id})")
+                        except Exception as del_err:
+                            print(f"[VoiceClaw] Failed background sweep delete for {voice_id}: {del_err}")
+                        await self.delete_temp_channel_record(voice_id)
+                        self.knock_settings.pop(voice_id, None)
+                        continue
+
+                elif len(chan.members) == 1:
                     member = chan.members[0]
                     if member.bot:
                         continue
@@ -3708,22 +3825,25 @@ class voice(commands.Cog):
         except Exception:
             return
         print("[VoiceClaw] Performing startup sweep of empty temporary channels...")
+
+        # 1. Purge records for channels that no longer exist anywhere on Discord
+        try:
+            async with aiosqlite.connect(DB_PATH) as db:
+                async with db.execute("SELECT voiceID FROM voiceChannel") as cur:
+                    rows = await cur.fetchall()
+            for (v_id,) in rows:
+                ch = self.bot.get_channel(v_id)
+                if ch is None:
+                    await self.delete_temp_channel_record(v_id)
+                elif not await self.is_voiceclaw_category(ch.guild.id, ch.category_id) or await self.is_join_or_master_channel(ch.guild.id, ch.id):
+                    print(f"[VoiceClaw Purge] Removing non-VoiceClaw channel record '{ch.name}' ({v_id}) from voiceChannel DB")
+                    await self.delete_temp_channel_record(v_id)
+        except Exception as e:
+            print(f"[VoiceClaw] Stale DB purge error: {e}")
+
+        # 2. Sweep temporary and hub categories for empty temporary channels
         for guild in self.bot.guilds:
             try:
-                # 1. Clean up stale/invalid records from voiceChannel table:
-                async with aiosqlite.connect(DB_PATH) as db:
-                    async with db.execute("SELECT voiceID FROM voiceChannel") as cur:
-                        rows = await cur.fetchall()
-                for (v_id,) in rows:
-                    ch = guild.get_channel(v_id)
-                    if ch:
-                        if not await self.is_voiceclaw_category(guild.id, ch.category_id) or await self.is_join_or_master_channel(guild.id, ch.id):
-                            print(f"[VoiceClaw Purge] Removing non-VoiceClaw channel record '{ch.name}' ({v_id}) from voiceChannel DB")
-                            await self.delete_temp_channel_record(v_id)
-                    else:
-                        await self.delete_temp_channel_record(v_id)
-
-                # 2. Sweep temporary category
                 guild_cfg = await self.get_guild_config(guild.id)
                 if guild_cfg:
                     category_id = guild_cfg[3]
@@ -3731,8 +3851,20 @@ class voice(commands.Cog):
                     cat = guild.get_channel(category_id)
                     if cat and isinstance(cat, discord.CategoryChannel):
                         await self.cleanup_empty_category_channels(cat, master_id)
+
+                async with aiosqlite.connect(DB_PATH) as db:
+                    async with db.execute("SELECT categoryID, joinChannelID, isPermanent FROM voiceHubs WHERE guildID = ?", (guild.id,)) as cur:
+                        h_rows = await cur.fetchall()
+                for h_row in h_rows:
+                    h_cat_id = h_row[2] if len(h_row) > 2 else None
+                    h_join_id = h_row[3] if len(h_row) > 3 else None
+                    h_is_perm = bool(h_row[8]) if len(h_row) > 8 else False
+                    if not h_is_perm and h_cat_id:
+                        h_cat = guild.get_channel(h_cat_id)
+                        if h_cat and isinstance(h_cat, discord.CategoryChannel):
+                            await self.cleanup_empty_category_channels(h_cat, h_join_id)
             except Exception as e:
-                print(f"[VoiceClaw] Startup sweep error: {e}")
+                print(f"[VoiceClaw] Startup sweep error for guild {guild.id}: {e}")
 
     # --- Asynchronous Database Utilities ---
     async def init_db(self):
@@ -4841,28 +4973,40 @@ class voice(commands.Cog):
             if not await self.is_voiceclaw_category(guild.id, category.id):
                 return
 
+            guild_cfg = await self.get_guild_config(guild.id)
+            perm_cat_id = guild_cfg[6] if guild_cfg and len(guild_cfg) > 6 else None
+            # If this category is dedicated to permanent rooms, never delete empty rooms
+            if perm_cat_id and category.id == perm_cat_id:
+                return
+
             for c in list(category.voice_channels):
                 if c.id == master_channel_id or len(c.members) > 0:
                     continue
                 if await self.is_join_or_master_channel(guild.id, c.id):
                     continue
 
+                # Grace period: Never delete a newly created channel younger than 45 seconds
+                if (discord.utils.utcnow() - c.created_at).total_seconds() < 45:
+                    continue
+
                 async with aiosqlite.connect(DB_PATH) as db:
                     async with db.execute("SELECT userID, isPermanent FROM voiceChannel WHERE voiceID = ?", (c.id,)) as cur:
                         row = await cur.fetchone()
 
-                if not row or row[1]:  # Not registered or isPermanent == 1
+                # If explicitly marked as permanent room, skip
+                if row and row[1]:
                     continue
 
                 try:
                     await c.delete(reason="VoiceClaw: Auto-cleanup empty temp room")
                     print(f"[VoiceClaw] Cleaned empty channel {c.name} ({c.id})")
-                except Exception:
-                    pass
+                except Exception as del_err:
+                    print(f"[VoiceClaw] Failed to delete empty channel {c.name}: {del_err}")
                 await self.delete_temp_channel_record(c.id)
                 self.knock_settings.pop(c.id, None)
-        except Exception:
-            pass
+                self.afk_tracker.pop(c.id, None)
+        except Exception as e:
+            print(f"[VoiceClaw] cleanup_empty_category_channels error: {e}")
 
     def is_control_panel_message(self, m: discord.Message) -> bool:
         if m.author != self.bot.user:
@@ -5190,9 +5334,7 @@ class voice(commands.Cog):
                 self.cooldowns[member.id] = loop_now
 
                 category = guild.get_channel(category_id)
-                if isinstance(category, discord.CategoryChannel):
-                    asyncio.create_task(self.cleanup_empty_category_channels(category, master_channel_id))
-                else:
+                if not isinstance(category, discord.CategoryChannel):
                     category = None
 
                 user_pref = await self.get_user_setting(member.id)
@@ -5233,23 +5375,28 @@ class voice(commands.Cog):
                     overwrites=overwrites
                 )
 
-                # Move member IMMEDIATELY upon creation
-                try:
-                    if member.voice and member.voice.channel:
-                        await member.move_to(temp_channel)
-                        print(f"[VoiceClaw] Instantly moved {member.display_name} to {temp_channel.name} ({temp_channel.id})")
-                    else:
-                        if len(temp_channel.members) == 0:
-                            await temp_channel.delete(reason="VoiceClaw: Member left before being moved")
-                            return
-                except discord.HTTPException as move_err:
-                    print(f"[VoiceClaw] Could not move member {member.display_name}: {move_err}")
-                    if len(temp_channel.members) == 0:
+                # Move member with retry upon creation
+                moved = False
+                for attempt in range(3):
+                    m = guild.get_member(member.id) or member
+                    if m.voice and m.voice.channel:
                         try:
-                            await temp_channel.delete(reason="VoiceClaw: Member not in voice")
-                        except Exception:
-                            pass
-                        return
+                            await m.move_to(temp_channel)
+                            print(f"[VoiceClaw] Instantly moved {m.display_name} to {temp_channel.name} ({temp_channel.id})")
+                            moved = True
+                            break
+                        except discord.HTTPException as move_err:
+                            print(f"[VoiceClaw] Move attempt {attempt+1} failed for {member.display_name}: {move_err}")
+                            await asyncio.sleep(0.5)
+                    else:
+                        await asyncio.sleep(0.5)
+
+                if not moved and len(temp_channel.members) == 0:
+                    try:
+                        await temp_channel.delete(reason="VoiceClaw: Member not in voice after creation")
+                    except Exception:
+                        pass
+                    return
 
                 await self.register_temp_channel(member.id, temp_channel.id)
                 self.knock_settings[temp_channel.id] = True
@@ -5274,6 +5421,7 @@ class voice(commands.Cog):
                     description=f"**Room:** `{chan_name}` ({temp_channel.mention})\n**Host:** {member.mention}\n**Bitrate:** `{temp_channel.bitrate // 1000} kbps`",
                     color=0x57F287
                 )
+                return
 
             # 2. User Joined the "Create Permanent VC" Master Channel
             perm_channel_id = guild_cfg[7] if guild_cfg and len(guild_cfg) > 7 else None
@@ -5364,6 +5512,7 @@ class voice(commands.Cog):
                     description=f"**Room:** `{chan_name}` ({perm_channel.mention})\n**Host:** {member.mention}\n**Permanent:** `Yes (Never auto-deletes)`",
                     color=0xFEE75C
                 )
+                return
 
             # 3. User Joined a Fixed-Name Themed Hub Channel
             if after.channel:
@@ -5374,7 +5523,7 @@ class voice(commands.Cog):
                 )
 
                 # Self-healing: ONLY when user enters a channel meant for creation and the previous hub join channel was deleted
-                if not hub and after.channel.category_id and is_create_name:
+                if not hub and after.channel and getattr(after.channel, 'category_id', None) and is_create_name:
                     cat_hub = await self.get_voice_hub_by_category(after.channel.category_id)
                     if cat_hub and guild.get_channel(cat_hub[3]) is None:
                         hub_id = cat_hub[0]
@@ -5393,9 +5542,7 @@ class voice(commands.Cog):
                     hub_id, h_guild_id, h_cat_id, h_join_id, h_interface_id, fixed_name, user_limit, lock_name, hub_is_perm = hub
 
                     category = guild.get_channel(h_cat_id)
-                    if isinstance(category, discord.CategoryChannel):
-                        asyncio.create_task(self.cleanup_empty_category_channels(category, h_join_id))
-                    else:
+                    if not isinstance(category, discord.CategoryChannel):
                         category = None
 
                     if lock_name:
@@ -5421,22 +5568,27 @@ class voice(commands.Cog):
                         overwrites=overwrites
                     )
 
-                    try:
-                        if member.voice and member.voice.channel:
-                            await member.move_to(temp_channel)
-                            print(f"[VoiceClaw] Instantly moved {member.display_name} to {temp_channel.name} ({temp_channel.id})")
-                        else:
-                            if len(temp_channel.members) == 0:
-                                await temp_channel.delete(reason="VoiceClaw: Member left before being moved")
-                                return
-                    except discord.HTTPException as move_err:
-                        print(f"[VoiceClaw] Could not move member {member.display_name}: {move_err}")
-                        if len(temp_channel.members) == 0:
+                    moved = False
+                    for attempt in range(3):
+                        m = guild.get_member(member.id) or member
+                        if m.voice and m.voice.channel:
                             try:
-                                await temp_channel.delete(reason="VoiceClaw: Member not in voice")
-                            except Exception:
-                                pass
-                            return
+                                await m.move_to(temp_channel)
+                                print(f"[VoiceClaw] Instantly moved {m.display_name} to {temp_channel.name} ({temp_channel.id})")
+                                moved = True
+                                break
+                            except discord.HTTPException as move_err:
+                                print(f"[VoiceClaw] Move attempt {attempt+1} failed for {member.display_name}: {move_err}")
+                                await asyncio.sleep(0.5)
+                        else:
+                            await asyncio.sleep(0.5)
+
+                    if not moved and len(temp_channel.members) == 0:
+                        try:
+                            await temp_channel.delete(reason="VoiceClaw: Member not in voice after creation")
+                        except Exception:
+                            pass
+                        return
 
                     await self.register_temp_channel(member.id, temp_channel.id, is_permanent=(1 if hub_is_perm else 0), is_locked_name=lock_name)
                     self.knock_settings[temp_channel.id] = True
@@ -5459,6 +5611,7 @@ class voice(commands.Cog):
                         description=f"**Room:** `{chan_name}` ({temp_channel.mention})\n**Host:** {member.mention}\n**Limit:** `{chan_limit if chan_limit > 0 else 'Unlimited'}`",
                         color=0xFEE75C if hub_is_perm else 0x5865F2
                     )
+                    return
 
             # 3B. User Joined a Secondary / Dynamic Join VC in VoiceClaw's Primary Category (e.g. CREATE VC ², CREATE VC ³, CREATE Y VC)
             if after.channel and is_create_name and after.channel.id != master_channel_id and (not perm_channel_id or after.channel.id != perm_channel_id):
@@ -5509,9 +5662,7 @@ class voice(commands.Cog):
                         return
                     self.cooldowns[member.id] = loop_now
 
-                    category = after.channel.category
-                    if isinstance(category, discord.CategoryChannel):
-                        asyncio.create_task(self.cleanup_empty_category_channels(category, after.channel.id))
+                    category = after.channel.category if isinstance(after.channel.category, discord.CategoryChannel) else None
 
                     print(f"[VoiceClaw] Spawning secondary dynamic room '{chan_name}' (limit={chan_limit}) for {member.display_name} in {category.name if category else 'No Category'}...")
 
@@ -5524,22 +5675,27 @@ class voice(commands.Cog):
                         overwrites=overwrites
                     )
 
-                    try:
-                        if member.voice and member.voice.channel:
-                            await member.move_to(temp_channel)
-                            print(f"[VoiceClaw] Instantly moved {member.display_name} to {temp_channel.name} ({temp_channel.id})")
-                        else:
-                            if len(temp_channel.members) == 0:
-                                await temp_channel.delete(reason="VoiceClaw: Member left before being moved")
-                                return
-                    except discord.HTTPException as move_err:
-                        print(f"[VoiceClaw] Could not move member {member.display_name}: {move_err}")
-                        if len(temp_channel.members) == 0:
+                    moved = False
+                    for attempt in range(3):
+                        m = guild.get_member(member.id) or member
+                        if m.voice and m.voice.channel:
                             try:
-                                await temp_channel.delete(reason="VoiceClaw: Member not in voice")
-                            except Exception:
-                                pass
-                            return
+                                await m.move_to(temp_channel)
+                                print(f"[VoiceClaw] Instantly moved {m.display_name} to {temp_channel.name} ({temp_channel.id})")
+                                moved = True
+                                break
+                            except discord.HTTPException as move_err:
+                                print(f"[VoiceClaw] Move attempt {attempt+1} failed for {member.display_name}: {move_err}")
+                                await asyncio.sleep(0.5)
+                        else:
+                            await asyncio.sleep(0.5)
+
+                    if not moved and len(temp_channel.members) == 0:
+                        try:
+                            await temp_channel.delete(reason="VoiceClaw: Member not in voice after creation")
+                        except Exception:
+                            pass
+                        return
 
                     await self.register_temp_channel(member.id, temp_channel.id)
                     self.knock_settings[temp_channel.id] = True
@@ -5561,6 +5717,7 @@ class voice(commands.Cog):
                         description=f"**Room:** `{chan_name}` ({temp_channel.mention})\n**Host:** {member.mention}\n**Capacity:** `{chan_limit if chan_limit > 0 else 'Unlimited'}`",
                         color=0x57F287
                     )
+                    return
 
             # 4. Member Left a Voice Channel
             if before.channel:
@@ -5571,19 +5728,25 @@ class voice(commands.Cog):
                 if await self.is_join_or_master_channel(b_guild.id, chan_id):
                     return
 
-                # Strict Category Guard: Ignore any channels outside VoiceClaw categories!
-                if not await self.is_voiceclaw_category(b_guild.id, before.channel.category_id):
-                    return
-
-                # Strict Database Check: Only channels recorded in voiceChannel
+                # Check if channel is recorded in voiceChannel
                 async with aiosqlite.connect(DB_PATH) as db:
                     async with db.execute("SELECT userID, isPermanent FROM voiceChannel WHERE voiceID = ?", (chan_id,)) as cur:
                         chan_record = await cur.fetchone()
 
-                if not chan_record:
+                # Strict Category Guard: Ignore any channels outside VoiceClaw categories unless tracked in DB!
+                is_in_vc_category = await self.is_voiceclaw_category(b_guild.id, before.channel.category_id)
+                if not is_in_vc_category and not chan_record:
                     return
 
-                owner_id, is_perm = chan_record[0], bool(chan_record[1])
+                is_perm = False
+                if chan_record and chan_record[1]:
+                    is_perm = True
+
+                # Check if inside permanent category
+                guild_cfg = await self.get_guild_config(b_guild.id)
+                perm_cat_id = guild_cfg[6] if guild_cfg and len(guild_cfg) > 6 else None
+                if perm_cat_id and before.channel.category_id == perm_cat_id:
+                    is_perm = True
 
                 # Permanent rooms (24/7) NEVER auto-delete!
                 if is_perm:
@@ -6067,7 +6230,11 @@ class voice(commands.Cog):
                 await channel.set_permissions(owner_member, overwrite=None)
             except Exception:
                 pass
-        await ctx.send(f"👑 **Congratulations!** You are now the new owner of {channel.name}.")
+        card = make_v2_card(
+            "👑 Channel Ownership Claimed",
+            f"Congratulations **{ctx.author.mention}**! You are now the new owner of **{channel.name}**.\nFull voice room control permissions have been granted to you."
+        )
+        await ctx.send(view=card)
         await self.log_voice_event(
             ctx.guild,
             title="👑 Channel Claimed",
@@ -6088,7 +6255,11 @@ class voice(commands.Cog):
             await channel.set_permissions(ctx.author, overwrite=None)
         except Exception:
             pass
-        await ctx.send(f"♔ Ownership transferred to {member.mention}!")
+        card = make_v2_card(
+            "♔ Ownership Transferred",
+            f"Voice room **`{channel.name}`** ownership has been transferred to **{member.mention}**.\nFull host control permissions have been granted."
+        )
+        await ctx.send(view=card)
         await self.log_voice_event(
             ctx.guild,
             title="♔ Ownership Transferred",
@@ -6949,277 +7120,33 @@ class voice(commands.Cog):
             return await ctx.send(f"✕ Only the server owner ({owner_mention}) can refresh setup panels.", ephemeral=True)
         await self.execute_full_refresh(ctx)
 
-    @commands.hybrid_command(name="setup", description="Interactive setup wizard for Voice Channels and Interfaces (Server Owner only)")
+    @commands.hybrid_command(name="setup", description="VoiceClaw web dashboard setup (Server Owner only)")
     @commands.has_permissions(administrator=True)
-    @app_commands.describe(mode="Setup mode: 'menu' (interactive dropdown), 'temp', 'perm', or 'dual'")
-    @app_commands.choices(mode=[
-        app_commands.Choice(name="✦ Interactive Setup Wizard (Dropdown Menu)", value="menu"),
-        app_commands.Choice(name="🌀 Temporary Dynamic Voice (JTC)", value="temp"),
-        app_commands.Choice(name="👑 Permanent 24/7 Voice Rooms", value="perm"),
-        app_commands.Choice(name="🌟 Dual Setup (Both Temp & Perm)", value="dual"),
-        app_commands.Choice(name="👥 Duo 2-Player Systems (Temp / Perm / Fixed)", value="duo"),
-        app_commands.Choice(name="🏷️ Fixed-Name Themed Hub", value="hub"),
-    ])
     async def standalone_setup(self, ctx: commands.Context, mode: typing.Optional[str] = None):
-        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
-            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
-            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can configure and set up VoiceClaw on this server.", ephemeral=True)
-        choice = (mode or "menu").lower().strip()
-        if choice in ["menu", "wizard", "select"]:
-            view = SetupLayoutView(self, ctx.author.id)
-            if os.path.exists(SETUP_BANNER_PATH):
-                file = discord.File(SETUP_BANNER_PATH, filename="setup.jpg")
-                return await ctx.send(file=file, view=view)
-            elif os.path.exists(BANNER_PATH):
-                file = discord.File(BANNER_PATH, filename="banner.jpg")
-                return await ctx.send(file=file, view=view)
-            else:
-                return await ctx.send(view=view)
+        guild_id = ctx.guild.id if ctx.guild else None
+        view = make_web_setup_redirect(feature_name="Voice Setup", guild_id=guild_id)
+        await ctx.send(view=view, ephemeral=True)
 
-        if choice in ["hub", "fixed", "themed"]:
-            if ctx.interaction:
-                return await ctx.interaction.response.send_modal(HubSetupModal(self))
-            else:
-                return await ctx.send("Use `/hub create` to configure a Fixed-Name Themed Hub.", ephemeral=True)
-
-        if choice in ["duo", "duos", "duovc"]:
-            if ctx.interaction:
-                return await ctx.interaction.response.send_modal(DuoSetupModal(self))
-            else:
-                cat, iface, chans = await self.perform_duo_setup(ctx.guild, ctx.author.id, duo_type="all")
-                chan_lines = "\n".join([f"• **{label}:** {ch.mention}" for label, ch in chans])
-                desc = (
-                    f"• **Category:** `{cat.name}`\n"
-                    f"• **Control Interface:** {iface.mention}\n"
-                    f"{chan_lines}\n\n"
-                    f"Members can join any Duo hub to start a 2-player voice room!"
-                )
-                view = make_v2_card("✦ Duo 2-Player Systems Complete", desc, banner_filename="banner.jpg" if os.path.exists(BANNER_PATH) else None)
-                if os.path.exists(BANNER_PATH):
-                    file = discord.File(BANNER_PATH, filename="banner.jpg")
-                    return await ctx.send(file=file, view=view)
-                return await ctx.send(view=view)
-
-        if choice in ["temp", "temporary", "quick"]:
-            if ctx.interaction and not ctx.interaction.response.is_done():
-                return await ctx.interaction.response.send_modal(JtcSetupModal(self))
-            res = await self.perform_temp_setup(ctx.guild, ctx.author.id)
-            temp_cat, temp_chan, interface_chan = res[:3]
-            desc = (
-                f"• **Category:** `{temp_cat.name}`\n"
-                f"• **Join Channel:** {temp_chan.mention}\n"
-                f"• **Interface Panel:** {interface_chan.mention}\n\n"
-                f"Join {temp_chan.mention} to start your dynamic temporary voice room, and control it from {interface_chan.mention}!"
-            )
-            view = make_v2_card("✦ Temporary Voice Setup Complete", desc, banner_filename="banner.jpg" if os.path.exists(BANNER_PATH) else None)
-            if os.path.exists(BANNER_PATH):
-                file = discord.File(BANNER_PATH, filename="banner.jpg")
-                return await ctx.send(file=file, view=view)
-            return await ctx.send(view=view)
-
-        if ctx.interaction and not ctx.interaction.response.is_done():
-            try:
-                await ctx.defer()
-            except Exception:
-                pass
-
-        elif choice in ["perm", "permanent"]:
-            perm_cat, perm_chan, perm_interface = await self.perform_perm_setup(ctx.guild, ctx.author.id)
-            desc = (
-                f"• **Category:** `{perm_cat.name}`\n"
-                f"• **Create Channel:** {perm_chan.mention}\n"
-                f"• **Interface Panel:** {perm_interface.mention}\n\n"
-                f"Join {perm_chan.mention} to claim your permanent voice room!"
-            )
-            view = make_v2_card("✦ Permanent Voice Setup Complete", desc, banner_filename="banner.jpg" if os.path.exists(BANNER_PATH) else None)
-            if os.path.exists(BANNER_PATH):
-                file = discord.File(BANNER_PATH, filename="banner.jpg")
-                return await ctx.send(file=file, view=view)
-            return await ctx.send(view=view)
-
-        elif choice in ["dual", "both", "all"]:
-            temp_cat, temp_chan, interface_chan, perm_cat, perm_chan, perm_interface = await self.perform_dual_setup(ctx.guild, ctx.author.id)
-            desc = (
-                f"**🌀 Temporary Voice System:**\n"
-                f"• Category: `{temp_cat.name}`\n"
-                f"• Join Channel: {temp_chan.mention}\n"
-                f"• Interface Panel: {interface_chan.mention}\n\n"
-                f"**✦ Permanent Voice System:**\n"
-                f"• Category: `{perm_cat.name}`\n"
-                f"• Create Channel: {perm_chan.mention}\n"
-                f"• Interface Panel: {perm_interface.mention}\n\n"
-                f"All voice channels & control interfaces are fully configured and ready!"
-            )
-            view = make_v2_card("✦ VoiceClaw Dual Voice Setup Complete", desc, banner_filename="banner.jpg" if os.path.exists(BANNER_PATH) else None)
-            if os.path.exists(BANNER_PATH):
-                file = discord.File(BANNER_PATH, filename="banner.jpg")
-                return await ctx.send(file=file, view=view)
-            return await ctx.send(view=view)
-
-        else:
-            view = SetupLayoutView(self, ctx.author.id)
-            if os.path.exists(SETUP_BANNER_PATH):
-                file = discord.File(SETUP_BANNER_PATH, filename="setup.jpg")
-                return await ctx.send(file=file, view=view)
-            elif os.path.exists(BANNER_PATH):
-                file = discord.File(BANNER_PATH, filename="banner.jpg")
-                return await ctx.send(file=file, view=view)
-            else:
-                return await ctx.send(view=view)
-
-    @commands.hybrid_command(name="duo", description="Deploy Duo 2-player voice channels into an existing category or new category (Server Owner only)")
+    @commands.hybrid_command(name="duo", description="Deploy Duo voice channels via web dashboard (Server Owner only)")
     @commands.has_permissions(administrator=True)
-    @app_commands.describe(
-        mode="Duo type: 'all' (Complete Suite), 'temp' (Dynamic), 'perm' (24/7), or 'fixed' (Fixed Name)",
-        category="Optional existing category to add Duo channel directly into (shares that category's #interface)"
-    )
-    @app_commands.choices(mode=[
-        app_commands.Choice(name="🌟 All 3 in One (Complete Duo Suite)", value="all"),
-        app_commands.Choice(name="🌀 Temporary Dynamic Duo (Limit 2)", value="temp"),
-        app_commands.Choice(name="👑 Permanent 24/7 Duo (Limit 2)", value="perm"),
-        app_commands.Choice(name="🏷️ Fixed-Name Duo (Locked 'Duo')", value="fixed"),
-    ])
-    async def duo_command(self, ctx: commands.Context, mode: typing.Optional[str] = "all", category: typing.Optional[discord.CategoryChannel] = None):
-        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
-            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
-            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can configure Duo channels.", ephemeral=True)
+    async def duo_command(self, ctx: commands.Context, mode: typing.Optional[str] = None, category: typing.Optional[discord.CategoryChannel] = None):
+        guild_id = ctx.guild.id if ctx.guild else None
+        view = make_web_setup_redirect(feature_name="Duo Voice Channels", guild_id=guild_id)
+        await ctx.send(view=view, ephemeral=True)
 
-        if ctx.interaction and not ctx.interaction.response.is_done():
-            try:
-                await ctx.defer()
-            except Exception:
-                pass
-
-        if category:
-            is_perm = 1 if mode in ["perm", "permanent", "24/7"] else 0
-            join_chan, iface_chan = await self.add_party_hub_to_category(
-                guild=ctx.guild,
-                category=category,
-                party_name="Duo",
-                user_limit=2,
-                is_permanent=is_perm
-            )
-            desc = (
-                f"• **Target Category:** `{category.name}`\n"
-                f"• **Join Channel:** {join_chan.mention}\n"
-                f"• **Control Interface:** {iface_chan.mention if iface_chan else 'Existing #interface'}\n"
-                f"• **Capacity Limit:** `2 Players (Duo)`\n\n"
-                f"Duo voice hub added directly into `{category.name}` without creating any separate category!"
-            )
-            view = make_v2_card("✦ Duo Voice Hub Added to Category", desc)
-            return await ctx.send(view=view, ephemeral=True)
-
-        m_type = (mode or "all").lower().strip()
-        cat, iface, chans = await self.perform_duo_setup(ctx.guild, ctx.author.id, duo_type=m_type)
-        chan_lines = "\n".join([f"• **{label}:** {ch.mention}" for label, ch in chans])
-        desc = (
-            f"• **Category:** `{cat.name}`\n"
-            f"• **Control Interface:** {iface.mention}\n"
-            f"{chan_lines}\n\n"
-            f"Members can join any Duo hub to start a 2-player voice room!"
-        )
-        view = make_v2_card("✦ Duo 2-Player Systems Complete", desc, banner_filename="banner.jpg" if os.path.exists(BANNER_PATH) else None)
-        if os.path.exists(BANNER_PATH):
-            file = discord.File(BANNER_PATH, filename="banner.jpg")
-            return await ctx.send(file=file, view=view)
-        return await ctx.send(view=view)
-
-    @commands.hybrid_command(name="trio", description="Deploy Trio 3-player voice channels into an existing category or new category (Server Owner only)")
+    @commands.hybrid_command(name="trio", description="Deploy Trio voice channels via web dashboard (Server Owner only)")
     @commands.has_permissions(administrator=True)
-    @app_commands.describe(
-        category="Optional existing category to add Trio channel directly into (shares that category's #interface)"
-    )
     async def trio_command(self, ctx: commands.Context, category: typing.Optional[discord.CategoryChannel] = None):
-        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
-            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
-            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can configure Trio channels.", ephemeral=True)
+        guild_id = ctx.guild.id if ctx.guild else None
+        view = make_web_setup_redirect(feature_name="Trio Voice Channels", guild_id=guild_id)
+        await ctx.send(view=view, ephemeral=True)
 
-        if ctx.interaction and not ctx.interaction.response.is_done():
-            try:
-                await ctx.defer()
-            except Exception:
-                pass
-
-        target_cat = category
-        if not target_cat:
-            cfg = await self.get_guild_config(ctx.guild.id)
-            if cfg and cfg[3]:
-                target_cat = ctx.guild.get_channel(cfg[3])
-            if not target_cat:
-                for c in ctx.guild.categories:
-                    if "voice" in c.name.lower():
-                        target_cat = c
-                        break
-
-        if not target_cat:
-            open_ow = self.get_open_voice_overwrites(ctx.guild)
-            target_cat = await ctx.guild.create_category("Voice Channels", overwrites=open_ow)
-
-        join_chan, iface_chan = await self.add_party_hub_to_category(
-            guild=ctx.guild,
-            category=target_cat,
-            party_name="Trio",
-            user_limit=3,
-            is_permanent=0
-        )
-        desc = (
-            f"• **Target Category:** `{target_cat.name}`\n"
-            f"• **Join Channel:** {join_chan.mention}\n"
-            f"• **Control Interface:** {iface_chan.mention if iface_chan else 'Existing #interface'}\n"
-            f"• **Capacity Limit:** `3 Players (Trio)`\n\n"
-            f"Trio voice hub added directly into `{target_cat.name}` without creating any separate category!"
-        )
-        view = make_v2_card("✦ Trio Voice Hub Added to Category", desc)
-        return await ctx.send(view=view)
-
-    @commands.hybrid_command(name="squad", description="Deploy Squad 4-player voice channels into an existing category or new category (Server Owner only)")
+    @commands.hybrid_command(name="squad", description="Deploy Squad voice channels via web dashboard (Server Owner only)")
     @commands.has_permissions(administrator=True)
-    @app_commands.describe(
-        category="Optional existing category to add Squad channel directly into (shares that category's #interface)"
-    )
     async def squad_command(self, ctx: commands.Context, category: typing.Optional[discord.CategoryChannel] = None):
-        if not await self.is_server_owner_or_bot_owner(ctx.author, ctx.guild):
-            owner_mention = f"<@{ctx.guild.owner_id}>" if ctx.guild else "the server owner"
-            return await ctx.send(f"✕ Only the server owner ({owner_mention}) can configure Squad channels.", ephemeral=True)
-
-        if ctx.interaction and not ctx.interaction.response.is_done():
-            try:
-                await ctx.defer()
-            except Exception:
-                pass
-
-        target_cat = category
-        if not target_cat:
-            cfg = await self.get_guild_config(ctx.guild.id)
-            if cfg and cfg[3]:
-                target_cat = ctx.guild.get_channel(cfg[3])
-            if not target_cat:
-                for c in ctx.guild.categories:
-                    if "voice" in c.name.lower():
-                        target_cat = c
-                        break
-
-        if not target_cat:
-            open_ow = self.get_open_voice_overwrites(ctx.guild)
-            target_cat = await ctx.guild.create_category("Voice Channels", overwrites=open_ow)
-
-        join_chan, iface_chan = await self.add_party_hub_to_category(
-            guild=ctx.guild,
-            category=target_cat,
-            party_name="Squad",
-            user_limit=4,
-            is_permanent=0
-        )
-        desc = (
-            f"• **Target Category:** `{target_cat.name}`\n"
-            f"• **Join Channel:** {join_chan.mention}\n"
-            f"• **Control Interface:** {iface_chan.mention if iface_chan else 'Existing #interface'}\n"
-            f"• **Capacity Limit:** `4 Players (Squad)`\n\n"
-            f"Squad voice hub added directly into `{target_cat.name}` without creating any separate category!"
-        )
-        view = make_v2_card("✦ Squad Voice Hub Added to Category", desc)
-        return await ctx.send(view=view)
-
+        guild_id = ctx.guild.id if ctx.guild else None
+        view = make_web_setup_redirect(feature_name="Squad Voice Channels", guild_id=guild_id)
+        await ctx.send(view=view, ephemeral=True)
     # ==========================================
     # STANDALONE PREFIX ALIAS SHORTCUTS (.lock, .unlock, etc.)
     # ==========================================

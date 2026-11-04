@@ -1,779 +1,1835 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
   <title>VoiceClaw Master Console | Active Server & Pricing Control Panel</title>
+
   <meta name="description" content="VoiceClaw Master Operations Dashboard - Manage active Discord servers, dynamic voice hubs, premium subscription pricing, and licenses.">
+
   <link rel="icon" href="/favicon.png">
 
+
+
   <!-- Typography -->
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
+
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 
+
+
   <link rel="stylesheet" href="/style.css?v=4.3">
+
   <link rel="stylesheet" href="/dashboard.css?v=4.3">
+
 </head>
+
 <body class="dash-body">
 
+
+
   <!-- Ambient Background Glows -->
+
   <div class="dash-ambient-glow glow-1"></div>
+
   <div class="dash-ambient-glow glow-2"></div>
 
+
+
   <!-- Top Notification Toast -->
+
   <div id="dashToast" class="dash-toast">
+
     <div class="dash-toast-icon">
+
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+
     </div>
+
     <div id="dashToastMsg" class="dash-toast-text">Configuration updated successfully!</div>
+
   </div>
 
+
+
   <!-- Navigation Header -->
+
   <header class="dash-header">
+
     <div class="dash-nav-container">
+
       <div class="dash-nav-left">
+
         <a href="/" class="dash-brand" aria-label="VoiceClaw Home">
+
           <div class="brand-icon-box">
+
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+
               <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+
               <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+
             </svg>
+
           </div>
+
           <div class="brand-text-col">
+
             <span class="dash-brand-name">VoiceClaw</span>
+
             <span class="dash-brand-sub">CONTROL CENTER</span>
+
           </div>
+
         </a>
+
         <div class="dash-root-badge">
+
           <span class="pulse-indicator"></span>
+
           <span>ADMIN CONSOLE</span>
+
         </div>
+
       </div>
 
+
+
       <!-- Navigation Tabs -->
+
       <div class="dash-nav-center">
+
         <button class="dash-nav-tab active" data-tab="servers">
+
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+
           <span class="tab-label-full">Managed Servers</span>
+
           <span class="tab-label-short">Servers</span>
+
         </button>
+
         <button class="dash-nav-tab" data-tab="pricing">
+
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+
           <span class="tab-label-full">Premium Pricing</span>
+
           <span class="tab-label-short">Pricing</span>
+
         </button>
+
         <button class="dash-nav-tab" data-tab="licenses">
+
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+
           <span class="tab-label-full">Granted Licenses</span>
+
           <span class="tab-label-short">Licenses</span>
+
         </button>
+
       </div>
+
+
+
 
 
       <div class="dash-nav-right" id="userProfileArea">
+
         <div class="dash-profile-skeleton">Connecting session...</div>
+
       </div>
+
     </div>
+
   </header>
 
+
+
   <!-- Main Container -->
+
   <main class="dash-main-container">
+
     
+
     <!-- Hero / Command Overview Card -->
+
     <section class="dash-hero-card">
+
       <div class="dash-hero-grid">
+
         <div class="dash-hero-left">
+
           <div class="dash-hero-tag">
+
             <span class="hero-tag-glow"></span>
+
             <span>SYSTEM HEALTH: 100% OPERATIONAL</span>
+
           </div>
+
           <h1 id="welcomeUser" class="dash-hero-title">VoiceClaw Master Console</h1>
+
           <p class="dash-hero-sub">
+
             Real-time management for all servers where VoiceClaw is joined. Configure dynamic voice hubs, tune audio bitrates, set premium pricing tiers, and manage customer licenses.
+
           </p>
+
           <div class="dash-quick-badges">
+
             <span class="quick-chip"><span class="chip-dot emerald"></span> Cluster Online</span>
+
             <span class="quick-chip"><span class="chip-dot blue"></span> MongoDB Connected</span>
+
             <span class="quick-chip"><span class="chip-dot purple"></span> Monetization Active</span>
+
           </div>
+
         </div>
+
+
 
         <!-- Metric KPI Cards -->
+
         <div class="dash-stat-grid">
+
           <div class="dash-stat-box">
+
             <div class="dash-stat-top">
+
               <span class="dash-stat-lbl">Active Bot Servers</span>
+
               <div class="stat-icon-wrapper emerald">
+
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+
               </div>
+
             </div>
+
             <span class="dash-stat-num" id="statGuildsCount">--</span>
+
             <span class="dash-stat-sub">Live registered nodes</span>
+
           </div>
 
+
+
           <div class="dash-stat-box">
+
             <div class="dash-stat-top">
+
               <span class="dash-stat-lbl">Channels Spawned</span>
+
               <div class="stat-icon-wrapper blue">
+
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+
               </div>
+
             </div>
+
             <span class="dash-stat-num" id="statChannelsSpawned">3,126+</span>
+
             <span class="dash-stat-sub">Dynamic voice rooms</span>
+
           </div>
 
+
+
           <div class="dash-stat-box">
+
             <div class="dash-stat-top">
+
               <span class="dash-stat-lbl">Premium Licenses</span>
+
               <div class="stat-icon-wrapper purple">
+
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+
               </div>
+
             </div>
+
             <span class="dash-stat-num" id="statPremiumCount">--</span>
+
             <span class="dash-stat-sub">Active VIP servers/users</span>
+
           </div>
 
+
+
           <div class="dash-stat-box">
+
             <div class="dash-stat-top">
+
               <span class="dash-stat-lbl">Dispatch Latency</span>
+
               <div class="stat-icon-wrapper amber">
+
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+
               </div>
+
             </div>
+
             <span class="dash-stat-num" id="statSpawnRate">18ms</span>
+
             <span class="dash-stat-sub">Ultra-low audio ping</span>
+
           </div>
+
         </div>
+
       </div>
+
     </section>
 
+
+
     <!-- =========================================================================
+
          TAB 1: ACTIVE MANAGED SERVERS
+
          ========================================================================= -->
+
     <section class="dash-tab-content active" id="tabContentServers">
+
       <div class="dash-section-header">
+
         <div class="dash-section-title-wrap">
+
           <div class="title-with-pill">
+
             <h2 class="dash-section-title">Active VoiceClaw Servers</h2>
+
             <span class="dash-counter-pill" id="activeServersPill">Loading...</span>
+
           </div>
+
           <p class="dash-section-subtitle">
+
             Listing only servers where VoiceClaw bot is actively installed and running. Select a server to tune voice hubs, bitrate, and permissions.
+
           </p>
+
         </div>
 
+
+
         <div class="dash-filter-group">
+
           <div class="search-input-box">
+
             <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+
             <input type="text" id="serverSearchInput" class="dash-search-input" placeholder="Search active servers by name or ID...">
+
           </div>
+
         </div>
+
       </div>
+
+
 
       <!-- Guilds Grid -->
+
       <div class="dash-guilds-grid" id="guildsGrid">
+
         <div class="dash-skeleton-grid">
+
           <div class="dash-skeleton-card">
+
             <div class="skeleton-row">
+
               <div class="skeleton-avatar"></div>
+
               <div class="skeleton-text-col">
+
                 <div class="skeleton-line medium"></div>
+
                 <div class="skeleton-line short"></div>
+
               </div>
+
             </div>
+
             <div class="skeleton-btn"></div>
+
           </div>
+
           <div class="dash-skeleton-card">
+
             <div class="skeleton-row">
+
               <div class="skeleton-avatar"></div>
+
               <div class="skeleton-text-col">
+
                 <div class="skeleton-line medium"></div>
+
                 <div class="skeleton-line short"></div>
+
               </div>
+
             </div>
+
             <div class="skeleton-btn"></div>
+
           </div>
+
         </div>
+
       </div>
+
     </section>
 
+
+
     <!-- =========================================================================
+
          TAB 2: PREMIUM PRICING CONTROL & MONETIZATION
+
          ========================================================================= -->
+
     <section class="dash-tab-content" id="tabContentPricing">
+
       <div class="dash-section-header">
+
         <div class="dash-section-title-wrap">
+
           <div class="title-with-pill">
+
             <h2 class="dash-section-title">Premium Pricing & Tiers Manager</h2>
+
             <span class="dash-counter-pill" id="pricingCountPill">3 Active Tiers</span>
+
           </div>
+
           <p class="dash-section-subtitle">
+
             Create, edit, and publish VoiceClaw subscription plans. Changes update the public pricing page and user dashboard in real-time.
+
           </p>
+
         </div>
+
+
 
         <div class="dash-filter-group">
+
           <button class="btn btn-primary" id="btnAddNewPlan">
+
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+
             Add New Plan
+
           </button>
+
         </div>
+
       </div>
+
+
 
       <!-- Global Monetization Settings Bar -->
+
       <div class="admin-payment-settings-card">
+
         <div class="settings-card-header">
+
           <div class="settings-title-group">
+
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+
             <span>Payment Gateways & Instructions</span>
+
           </div>
+
           <button class="btn btn-secondary btn-sm" id="btnSavePaymentSettings">Save Settings</button>
+
         </div>
+
         <div class="settings-grid-3col">
+
           <div class="config-group">
+
             <label class="config-label">
+
               <span class="label-main">Currency Code</span>
+
               <span class="config-hint">e.g. USD, BDT, EUR</span>
+
             </label>
+
             <input type="text" id="cfgCurrency" class="dash-input" value="USD">
+
           </div>
+
           <div class="config-group">
+
             <label class="config-label">
+
               <span class="label-main">Currency Symbol</span>
+
               <span class="config-hint">e.g. $, ৳, €</span>
+
             </label>
+
             <input type="text" id="cfgCurrencySymbol" class="dash-input" value="$">
+
           </div>
+
           <div class="config-group">
+
             <label class="config-label">
+
               <span class="label-main">Support / Order Discord</span>
+
               <span class="config-hint">Invite or Ticket link</span>
+
             </label>
+
             <input type="text" id="cfgSupportUrl" class="dash-input" value="https://discord.gg/y9pgpbt">
+
           </div>
+
         </div>
+
         <div class="config-group" style="margin-top:12px;">
+
           <label class="config-label">
+
             <span class="label-main">Custom Payment Instructions (bKash, Nagad, Stripe, Crypto)</span>
+
             <span class="config-hint">Shown to users in the checkout / upgrade modal</span>
+
           </label>
+
           <textarea id="cfgPaymentInstructions" class="dash-input" rows="2" style="resize:vertical;">Pay via bKash / Nagad (Personal: 01XXXXXXXXX) or Discord Ticket. Open a ticket in our support server with your Transaction ID to get verified instantly.</textarea>
+
         </div>
+
       </div>
+
+
 
       <!-- Live Editable Pricing Plans Grid -->
+
       <div class="admin-pricing-grid" id="adminPricingGrid">
+
         <div class="dash-loading-card">
+
           <div class="dash-spinner"></div>
+
           <span>Loading pricing tiers...</span>
+
         </div>
+
       </div>
+
     </section>
+
+
 
     <!-- =========================================================================
+
          TAB 3: GRANTED LICENSES & USER PERMISSIONS
+
          ========================================================================= -->
+
     <section class="dash-tab-content" id="tabContentLicenses">
+
       <div class="dash-section-header">
+
         <div class="dash-section-title-wrap">
+
           <div class="title-with-pill">
+
             <h2 class="dash-section-title">Direct License Management</h2>
+
             <span class="dash-counter-pill" id="licensesCountPill">Loading...</span>
+
           </div>
+
           <p class="dash-section-subtitle">
+
             Instantly grant or revoke VoiceClaw Premium for any Discord server or user without requiring bot restarts.
+
           </p>
+
         </div>
+
       </div>
+
+
 
       <!-- Quick Grant License Form Card -->
+
       <div class="license-grant-card">
+
         <h3 class="grant-card-title">
+
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+
           Grant New Premium License
+
         </h3>
+
         <div class="grant-form-row">
+
           <div class="config-group" style="flex:1;">
+
             <label class="config-label"><span class="label-main">Target Type</span></label>
+
             <select id="grantTargetType" class="dash-select">
+
               <option value="guild">Discord Server (Guild ID)</option>
+
               <option value="user">Discord User (User ID)</option>
+
             </select>
+
           </div>
+
+
 
           <div class="config-group" style="flex:2;">
+
             <label class="config-label"><span class="label-main">Select Active Server or Enter ID</span></label>
+
             <div style="display:flex; gap:8px;">
+
               <select id="grantServerSelect" class="dash-select" style="flex:1.2;">
+
                 <option value="">-- Choose from Active Servers --</option>
+
               </select>
+
               <input type="text" id="grantTargetIdInput" class="dash-input" placeholder="Or paste Discord ID..." style="flex:1;">
+
             </div>
+
           </div>
+
+
 
           <div class="config-group" style="flex:1;">
+
             <label class="config-label"><span class="label-main">License Plan</span></label>
+
             <select id="grantPlanSelect" class="dash-select">
+
               <option value="Lifetime">Lifetime VIP</option>
+
               <option value="Yearly">Pro Guild Annual</option>
+
               <option value="Monthly">Server Monthly</option>
+
               <option value="Partner">Community Partner</option>
+
             </select>
+
           </div>
+
+
 
           <div style="align-self:flex-end;">
+
             <button class="btn btn-primary" id="btnSubmitGrantLicense" style="white-space:nowrap; padding:10px 20px;">
+
               Grant License
+
             </button>
+
           </div>
+
         </div>
+
       </div>
+
+
 
       <!-- Active Premium Licenses Tables -->
+
       <div class="licenses-split-grid">
-        <div class="license-table-box">
-          <div class="license-table-header">
-            <h4><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px; vertical-align:-2px;"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5v-2z"/></svg>Premium Guilds (Servers)</h4>
-            <span class="dash-counter-pill" id="premGuildCount">0 Guilds</span>
-          </div>
-          <div class="license-table-wrap">
-            <table class="dash-table" id="tablePremGuilds">
-              <thead>
-                <tr>
-                  <th>Guild ID</th>
-                  <th>Plan Tier</th>
-                  <th>Granted At</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="tbodyPremGuilds">
-                <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Loading active premium servers...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
 
         <div class="license-table-box">
+
           <div class="license-table-header">
-            <h4><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px; vertical-align:-2px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Premium Users</h4>
-            <span class="dash-counter-pill" id="premUserCount">0 Users</span>
+
+            <h4><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px; vertical-align:-2px;"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5v-2z"/></svg>Premium Guilds (Servers)</h4>
+
+            <span class="dash-counter-pill" id="premGuildCount">0 Guilds</span>
+
           </div>
+
           <div class="license-table-wrap">
-            <table class="dash-table" id="tablePremUsers">
+
+            <table class="dash-table" id="tablePremGuilds">
+
               <thead>
+
                 <tr>
-                  <th>User ID</th>
+
+                  <th>Guild ID</th>
+
                   <th>Plan Tier</th>
+
                   <th>Granted At</th>
+
                   <th>Action</th>
+
                 </tr>
+
               </thead>
-              <tbody id="tbodyPremUsers">
-                <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Loading active premium users...</td></tr>
+
+              <tbody id="tbodyPremGuilds">
+
+                <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Loading active premium servers...</td></tr>
+
               </tbody>
+
             </table>
+
           </div>
+
         </div>
+
+
+
+        <div class="license-table-box">
+
+          <div class="license-table-header">
+
+            <h4><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px; vertical-align:-2px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Premium Users</h4>
+
+            <span class="dash-counter-pill" id="premUserCount">0 Users</span>
+
+          </div>
+
+          <div class="license-table-wrap">
+
+            <table class="dash-table" id="tablePremUsers">
+
+              <thead>
+
+                <tr>
+
+                  <th>User ID</th>
+
+                  <th>Plan Tier</th>
+
+                  <th>Granted At</th>
+
+                  <th>Action</th>
+
+                </tr>
+
+              </thead>
+
+              <tbody id="tbodyPremUsers">
+
+                <tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Loading active premium users...</td></tr>
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
       </div>
 
+
+
     </section>
+
+
 
   </main>
 
+
+
   <!-- Server Management Drawer / Creator Channel Modal (Matching Exact TempVoice Screenshots) -->
+
   <div class="dash-modal-backdrop" id="guildModal">
+
     <div class="dash-modal-card creator-modal-card">
+
       
+
       <!-- Top Breadcrumbs & Header -->
+
       <div class="creator-modal-top">
+
         <div class="creator-breadcrumbs">
+
           <span>...</span>
+
           <span class="bc-sep">&gt;</span>
+
           <span>Server Settings</span>
+
           <span class="bc-sep">&gt;</span>
+
           <span class="bc-current">Creator Settings</span>
+
         </div>
+
         <button class="dash-modal-close" id="btnCloseModal" aria-label="Close modal">
+
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+
         </button>
+
       </div>
+
+
+
 
 
       <div class="creator-modal-title-row">
+
         <div class="creator-title-left">
+
           <div class="creator-plus-icon">+</div>
+
           <h2 id="modalGuildName">Creator Channel</h2>
+
           <span class="creator-date-pill" id="modalCreatorDate">Oct 3, 2026</span>
+
         </div>
+
         <div class="creator-title-badges">
+
           <span class="creator-badge instance"><span class="badge-dot"></span> VoiceClaw Instance</span>
+
           <span class="creator-badge" id="modalPremiumBadge">No Premium</span>
+
         </div>
+
       </div>
+
+
 
       <!-- Navigation Sub-Tabs -->
+
       <div class="creator-subtabs-nav">
-        <button type="button" class="creator-subtab active" data-subtab="overview">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-          Overview
+
+        <button type="button" class="creator-subtab active" data-subtab="setup">
+
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+
+          Voice Setup & Hubs
+
         </button>
+
         <button type="button" class="creator-subtab" data-subtab="permissions">
+
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+
           Permissions
+
         </button>
+
         <button type="button" class="creator-subtab" data-subtab="moderation">
+
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+
           Moderation
+
         </button>
+
         <button type="button" class="creator-subtab" data-subtab="features">
+
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+
           Toggle Features
+
         </button>
+
       </div>
 
+
+
       <!-- Modal Body With Sub-tab Panes -->
-      <div class="creator-modal-body">
-        
-        <!-- SUBTAB 1: OVERVIEW -->
-        <div class="creator-tab-pane active" id="paneOverview">
-          <div class="creator-2col-grid">
-            
-            <!-- Left Column -->
-            <div class="creator-col">
-              <div class="config-group">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Temporary Channel Name</span>
-                </label>
-                <div class="input-with-tools">
-                  <input type="text" id="cfgRoomPrefix" class="dash-input" value="[OWNER_NICKNAME]'s Channel">
-                  <div class="input-tool-btns">
-                    <button type="button" class="tool-btn" id="btnInsertVariables" title="Insert Variable">{ }</button>
-                  </div>
-                </div>
-                <div class="naming-variable-chips" style="margin-top:6px;">
-                  <span class="var-chip" data-var="{user}">+ {user}</span>
-                  <span class="var-chip" data-var="{game}">+ {game}</span>
-                  <span class="var-chip" data-var="{num}">+ {num}</span>
-                  <span class="var-chip" data-var="[OWNER_NICKNAME]">+ [OWNER_NICKNAME]</span>
-                </div>
-                <span class="c-help-text">Set the default naming format for temporary channels when they are created. <a href="#">Learn more.</a></span>
+
+      <div class="creator-modal-body">        <!-- SUBTAB 1: VOICE SETUP & HUBS (UNIFIED) -->
+
+        <div class="creator-tab-pane active" id="paneSetup">
+
+          
+
+          <!-- Hidden inputs for backward compatibility -->
+
+          <input type="hidden" id="cfgRoomPrefix" value="[OWNER_NICKNAME]'s Channel">
+
+          <input type="hidden" id="cfgUserLimit" value="0">
+
+          <input type="hidden" id="cfgUserLimitSlider" value="0">
+
+          <input type="hidden" id="limitBadgeDisplay" value="∞">
+
+
+
+          <!-- Card 1: Server Category & Audio Quality -->
+
+          <div class="setup-section-card">
+
+            <div class="setup-section-header">
+
+              <div class="setup-section-title">
+
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+
+                Target Server Category & Audio Quality
+
               </div>
 
-              <div class="config-group" style="margin-top:20px;">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Temporary Channel User Limit</span>
-                  <span class="limit-badge-pill" id="limitBadgeDisplay">∞</span>
-                </label>
-                <div class="slider-row">
-                  <input type="range" id="cfgUserLimitSlider" min="0" max="99" value="0" class="c-slider">
-                  <input type="number" id="cfgUserLimit" min="0" max="99" value="0" class="dash-input" style="width:70px; text-align:center;">
-                </div>
-                <span class="c-help-text">Set the default user limit for temporary channels when they are created. <a href="#">Learn more.</a></span>
-              </div>
+              <span class="setup-section-desc">Select where your voice rooms and interactive control panel reside in your Discord server.</span>
+
             </div>
 
-            <!-- Right Column -->
-            <div class="creator-col">
-              <div class="config-group">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> Temporary Channel Category</span>
-                </label>
-                <select id="cfgCategory" class="dash-select">
-                  <option value="">Default (Synced with Bot Category)</option>
-                </select>
-                <span class="c-help-text">Choose the category where temporary channels will be created. <a href="#">Learn more.</a></span>
+
+
+            <div class="creator-2col-grid">
+
+              <!-- Left Column: Category Selection & Auto #interface -->
+
+              <div class="creator-col">
+
+                <div class="config-group">
+
+                  <label class="creator-label">
+
+                    <span class="c-label-title">
+
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+
+                      Discord Category
+
+                    </span>
+
+                  </label>
+
+                  <select id="cfgCategory" class="dash-select">
+
+                    <option value="">Default (Synced with Bot Category)</option>
+
+                    <option value="__NEW__">+ Create Brand New Category...</option>
+
+                  </select>
+
+                  <span class="c-help-text">Choose an existing server category or create a new one for all voice rooms.</span>
+
+                </div>
+
+
+
+                <!-- New Category Input (Conditional) -->
+
+                <div class="config-group" id="hubNewCategoryWrap" style="display:none; margin-top:14px;">
+
+                  <label class="creator-label">
+
+                    <span class="c-label-title">
+
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+
+                      New Category Name
+
+                    </span>
+
+                  </label>
+
+                  <input type="text" id="hubNewCategoryInput" class="dash-input" placeholder="e.g. Voice Rooms (Duo & Trio)" maxlength="80">
+
+                </div>
+
+
+
+                <!-- Auto Interface Toggle -->
+
+                <div class="config-group toggle-group" style="margin-top:16px;">
+
+                  <div class="toggle-text-wrap">
+
+                    <span class="toggle-title">
+
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px; vertical-align:-2px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+
+                      Auto-create / Sync #interface Panel
+
+                    </span>
+
+                    <span class="c-help-text">Ensures interactive control buttons (Lock, Hide, Limit, Kick) exist in this category.</span>
+
+                  </div>
+
+                  <label class="switch">
+
+                    <input type="checkbox" id="hubCreateInterface" checked>
+
+                    <span class="slider"></span>
+
+                  </label>
+
+                </div>
+
               </div>
 
-              <div class="config-group" style="margin-top:20px;">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg> Temporary Channel Bitrate</span>
-                </label>
-                <select id="cfgBitrate" class="dash-select">
-                  <option value="64">64kbps</option>
-                  <option value="96" selected>96kbps</option>
-                  <option value="128">128kbps (Nitro Tier 1)</option>
-                  <option value="256">256kbps (Nitro Tier 2)</option>
-                  <option value="384">384kbps (Nitro Tier 3)</option>
-                </select>
-                <span class="c-help-text">Choose the audio bitrate for temporary voice channels. Higher values improve quality. <a href="#">Learn more.</a></span>
+
+
+              <!-- Right Column: Bitrate & Position -->
+
+              <div class="creator-col">
+
+                <div class="config-group">
+
+                  <label class="creator-label">
+
+                    <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg> Voice Audio Bitrate</span>
+
+                  </label>
+
+                  <select id="cfgBitrate" class="dash-select">
+
+                    <option value="64">64kbps (Standard Quality)</option>
+
+                    <option value="96" selected>96kbps (High Quality - Recommended)</option>
+
+                    <option value="128">128kbps (Nitro Tier 1)</option>
+
+                    <option value="256">256kbps (Nitro Tier 2)</option>
+
+                    <option value="384">384kbps (Nitro Tier 3)</option>
+
+                  </select>
+
+                  <span class="c-help-text">Select audio bitrate for newly generated voice channels.</span>
+
+                </div>
+
+
+
+                <div class="config-group" style="margin-top:16px;">
+
+                  <label class="creator-label">
+
+                    <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="2"/></svg> Temporary Channel Position</span>
+
+                  </label>
+
+                  <select id="cfgPosition" class="dash-select">
+
+                    <option value="bottom" selected>At the bottom of category</option>
+
+                    <option value="top">At the top of category</option>
+
+                    <option value="below">Below Creator Channel</option>
+
+                  </select>
+
+                  <span class="c-help-text">Where user rooms spawn in relation to the Master Join channel.</span>
+
+                </div>
+
               </div>
 
-              <div class="config-group" style="margin-top:20px;">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2"/></svg> Temporary Channel Position</span>
-                </label>
-                <select id="cfgPosition" class="dash-select">
-                  <option value="bottom" selected>At the bottom</option>
-                  <option value="top">At the top</option>
-                  <option value="below">Below Creator Channel</option>
-                </select>
-                <span class="c-help-text">Set where the temporary channel will be created in relation to the Creator Channel. <a href="#">Learn more.</a></span>
-              </div>
             </div>
 
           </div>
+
+
+
+          <!-- Card 2: Voice Channel Deployer & Presets -->
+
+          <div class="setup-section-card" style="margin-top:20px;">
+
+            <div class="setup-section-header">
+
+              <div class="setup-section-title">
+
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+
+                Deploy Voice Channels (Duo, Trio, Squad, Custom Limit, JTC)
+
+              </div>
+
+              <span class="setup-section-desc">Click a quick preset or customize player capacity and room template. Deploy as many channels as you need!</span>
+
+            </div>
+
+
+
+            <!-- Quick Presets Grid -->
+
+            <div class="hub-presets-wrap">
+
+              <div class="hub-presets-title">Quick 1-Click Presets</div>
+
+              <div class="hub-presets-grid">
+
+                <button type="button" class="hub-preset-card" id="presetDuo">
+
+                  <span class="preset-icon-svg">
+
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+
+                  </span>
+
+                  <span class="preset-name">Duo VC Hub</span>
+
+                  <span class="preset-meta">Limit: 2 Players</span>
+
+                </button>
+
+
+
+                <button type="button" class="hub-preset-card" id="presetTrio">
+
+                  <span class="preset-icon-svg">
+
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="6 2 18 2 18 6 6 6 6 2"/><rect x="3" y="6" width="18" height="16" rx="2"/><circle cx="12" cy="14" r="2"/></svg>
+
+                  </span>
+
+                  <span class="preset-name">Trio VC Hub</span>
+
+                  <span class="preset-meta">Limit: 3 Players</span>
+
+                </button>
+
+
+
+                <button type="button" class="hub-preset-card" id="presetSquad">
+
+                  <span class="preset-icon-svg">
+
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+
+                  </span>
+
+                  <span class="preset-name">Squad VC Hub</span>
+
+                  <span class="preset-meta">Limit: 4 Players</span>
+
+                </button>
+
+
+
+                <button type="button" class="hub-preset-card" id="presetJtc">
+
+                  <span class="preset-icon-svg">
+
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+
+                  </span>
+
+                  <span class="preset-name">Standard JTC</span>
+
+                  <span class="preset-meta">Dynamic (Limit: ∞)</span>
+
+                </button>
+
+
+
+                <button type="button" class="hub-preset-card" id="presetFixed">
+
+                  <span class="preset-icon-svg">
+
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+
+                  </span>
+
+                  <span class="preset-name">Fixed-Name Hub</span>
+
+                  <span class="preset-meta">Enforced Room Name</span>
+
+                </button>
+
+
+
+                <button type="button" class="hub-preset-card" id="presetPerm">
+
+                  <span class="preset-icon-svg">
+
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+
+                  </span>
+
+                  <span class="preset-name">Permanent VC</span>
+
+                  <span class="preset-meta">24/7 Persistent Room</span>
+
+                </button>
+
+              </div>
+
+            </div>
+
+
+
+            <!-- Hub Config Inputs (2 Column Grid) -->
+
+            <div class="creator-2col-grid" style="margin-top:16px;">
+
+              <!-- Left Column: Master Join Name & User Limit -->
+
+              <div class="creator-col">
+
+                <!-- Hub Architecture Type -->
+
+                <div class="config-group">
+
+                  <label class="creator-label">
+
+                    <span class="c-label-title">
+
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+
+                      Hub Architecture Type
+
+                    </span>
+
+                  </label>
+
+                  <select id="hubTypeSelect" class="dash-select">
+
+                    <option value="duo">Duo Voice Hub (Limit: 2 Players)</option>
+
+                    <option value="trio">Trio Voice Hub (Limit: 3 Players)</option>
+
+                    <option value="squad">Squad Voice Hub (Limit: 4 Players)</option>
+
+                    <option value="jtc">Standard Join-to-Create (Dynamic)</option>
+
+                    <option value="fixed">Fixed-Name Themed Hub (Locked Name)</option>
+
+                    <option value="permanent">Permanent 24/7 Channel Hub</option>
+
+                  </select>
+
+                  <span class="c-help-text">Choose the operating model and capacity behavior for this hub.</span>
+
+                </div>
+
+
+
+                <!-- Master Join Channel Name -->
+
+                <div class="config-group" style="margin-top:16px;">
+
+                  <label class="creator-label">
+
+                    <span class="c-label-title">
+
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+
+                      Master Join Channel Name
+
+                    </span>
+
+                  </label>
+
+                  <input type="text" id="hubJoinChanName" class="dash-input" value="+ Join Duo" placeholder="e.g. + Join Duo" maxlength="90">
+
+                  <span class="c-help-text">The channel members click to automatically spawn their room.</span>
+
+                </div>
+
+
+
+                <!-- User Limit (Slider + Input) -->
+
+                <div class="config-group" style="margin-top:16px;">
+
+                  <label class="creator-label">
+
+                    <span class="c-label-title">
+
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+
+                      Player Capacity Limit
+
+                    </span>
+
+                    <span class="limit-badge-pill" id="hubLimitBadge">2</span>
+
+                  </label>
+
+                  <div class="slider-row">
+
+                    <input type="range" id="hubLimitSlider" min="0" max="99" value="2" class="c-slider">
+
+                    <input type="number" id="hubLimitNum" min="0" max="99" value="2" class="dash-input" style="width:70px; text-align:center;">
+
+                  </div>
+
+                  <span class="c-help-text">Set 0 for unlimited, 2 for Duo, 3 for Trio, 4 for Squad, or any custom number.</span>
+
+                </div>
+
+              </div>
+
+
+
+              <!-- Right Column: Room Name Template & Lock -->
+
+              <div class="creator-col">
+
+                <!-- Spawned Room Name Template -->
+
+                <div class="config-group">
+
+                  <label class="creator-label">
+
+                    <span class="c-label-title">
+
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+
+                      Spawned Room Name Template
+
+                    </span>
+
+                  </label>
+
+                  <input type="text" id="hubRoomNameTemplate" class="dash-input" value="Duo {num}" placeholder="e.g. Duo {num} or {user}'s Room" maxlength="90">
+
+                  <div class="naming-variable-chips" style="margin-top:6px;">
+
+                    <span class="var-chip" onclick="document.getElementById('hubRoomNameTemplate').value += ' {user}';">+ {user}</span>
+
+                    <span class="var-chip" onclick="document.getElementById('hubRoomNameTemplate').value += ' {game}';">+ {game}</span>
+
+                    <span class="var-chip" onclick="document.getElementById('hubRoomNameTemplate').value += ' {num}';">+ {num}</span>
+
+                    <span class="var-chip" onclick="document.getElementById('hubRoomNameTemplate').value += ' [OWNER_NICKNAME]';">+ [OWNER_NICKNAME]</span>
+
+                  </div>
+
+                  <span class="c-help-text">Format used when generating rooms from this hub.</span>
+
+                </div>
+
+
+
+                <!-- Lock Room Name Toggle -->
+
+                <div class="config-group toggle-group" style="margin-top:20px;">
+
+                  <div class="toggle-text-wrap">
+
+                    <span class="toggle-title">
+
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px; vertical-align:-2px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+
+                      Lock Spawned Room Name
+
+                    </span>
+
+                    <span class="c-help-text">Prevent users from changing the room name via control panel.</span>
+
+                  </div>
+
+                  <label class="switch">
+
+                    <input type="checkbox" id="hubLockName">
+
+                    <span class="slider"></span>
+
+                  </label>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+
+            <!-- Deploy Action Bar -->
+
+            <div class="hub-deploy-footer" style="margin-top:20px;">
+
+              <div class="hub-deploy-hint">
+
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+
+                <span>Channels will be created instantly under the selected Discord category.</span>
+
+              </div>
+
+              <button type="button" class="btn-deploy-hub" id="btnDeployHub">
+
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+
+                Deploy Voice Hub to Server
+
+              </button>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- Card 3: Active Voice Hubs in Server -->
+          <div class="active-hubs-wrap" style="margin-top:20px;">
+            <div class="active-hubs-header">
+              <h5>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:6px;"><path d="M2 12h20"/><path d="M20 12v8H4v-8"/><path d="M6 12V4h12v8"/></svg>
+                Active Voice Hubs in this Server
+              </h5>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnRefreshHubsList" style="padding:6px 12px; font-size:0.78rem; display:inline-flex; align-items:center; gap:6px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Refresh Hubs
+              </button>
+            </div>
+            <div id="activeHubsList" class="active-hubs-container">
+              <div class="empty-hubs-state">Loading active voice hubs...</div>
+            </div>
+          </div>
+
         </div>
 
         <!-- SUBTAB 2: PERMISSIONS -->
         <div class="creator-tab-pane" id="panePermissions">
-          <div class="creator-2col-grid">
-            
-            <div class="creator-col">
-              <div class="config-group">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Temporary Channel Access Roles</span>
-                  <span class="limit-badge-pill" id="accessRoleBadge">@everyone</span>
-                </label>
-                <select id="cfgAccessRole" class="dash-select">
-                  <option value="@everyone">@everyone</option>
-                </select>
-                <span class="c-help-text">Select roles that are required to see or access temporary channels, overriding default @everyone. <a href="#">Learn more.</a></span>
+          
+          <div class="setup-section-card">
+            <div class="setup-section-header">
+              <div class="setup-section-title">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Channel Access & Privacy Modes
               </div>
-
-              <div class="config-group" style="margin-top:20px;">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Temporary Channel Permissions</span>
-                </label>
-                <select id="cfgPermissionsSync" class="dash-select">
-                  <option value="dont_sync" selected>Don't Sync</option>
-                  <option value="sync_category">Sync with Category</option>
-                </select>
-                <span class="c-help-text">Choose where to sync permissions from when creating a temporary channel. <a href="#">Learn more.</a></span>
-              </div>
+              <span class="setup-section-desc">Control who can see, connect to, and sync permissions with newly created voice rooms.</span>
             </div>
 
-            <div class="creator-col">
-              <div class="config-group">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Temporary Channel Privacy Mode</span>
-                </label>
-                <select id="cfgPrivacyMode" class="dash-select">
-                  <option value="public" selected>Public</option>
-                  <option value="locked">Locked</option>
-                  <option value="hidden">Hidden</option>
-                </select>
-                <span class="c-help-text">Choose whether temporary channels are public, locked, or hidden from other users by default. <a href="#">Learn more.</a></span>
-              </div>
-
-              <div class="config-group" style="margin-top:20px;">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg> Temporary Channel Owner Permissions</span>
-                </label>
-                <div class="perm-multiselect" id="ownerPermsMultiselect">
-                  <div class="perm-multiselect-trigger" id="ownerPermsTrigger" tabindex="0">
-                    <div class="perm-trigger-content">
-                      <span class="perm-trigger-badge" id="ownerPermsBadge">11 Selected</span>
-                      <span class="perm-trigger-preview" id="ownerPermsPreview">Send Polls, Screenshare, Voice...</span>
-                    </div>
-                    <svg class="perm-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-                  </div>
-                  <div class="perm-dropdown-menu" id="ownerPermsDropdown">
-                    <div class="perm-dropdown-toolbar">
-                      <div class="perm-search-box">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="text" id="ownerPermsSearch" placeholder="Search permissions..." autocomplete="off" />
-                      </div>
-                      <div class="perm-actions">
-                        <button type="button" class="perm-action-btn" id="btnPermSelectAll">All</button>
-                        <button type="button" class="perm-action-btn" id="btnPermSelectSafe">Default</button>
-                        <button type="button" class="perm-action-btn" id="btnPermSelectNone">None</button>
-                      </div>
-                    </div>
-                    <div class="perm-list-scroll" id="ownerPermsList">
-                      <!-- Rendered dynamically -->
-                    </div>
-                  </div>
+            <div class="creator-2col-grid">
+              <!-- Left Column: Access Roles & Permissions Sync -->
+              <div class="creator-col">
+                <div class="config-group">
+                  <label class="creator-label">
+                    <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Temporary Channel Access Roles</span>
+                    <span class="limit-badge-pill" id="accessRoleBadge">@everyone</span>
+                  </label>
+                  <select id="cfgAccessRole" class="dash-select">
+                    <option value="@everyone">@everyone</option>
+                  </select>
+                  <span class="c-help-text">Select roles required to view or connect to temporary rooms, overriding @everyone.</span>
                 </div>
-                <span class="c-help-text">Grant owners of temporary channels extra permissions (e.g. Webcam, Soundboard, Voice Activity) while in control of their room. <a href="#">Learn more.</a></span>
+
+                <div class="config-group" style="margin-top:16px;">
+                  <label class="creator-label">
+                    <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Category Permissions Sync</span>
+                  </label>
+                  <select id="cfgPermissionsSync" class="dash-select">
+                    <option value="dont_sync" selected>Don't Sync (Independent Channel)</option>
+                    <option value="sync_category">Sync with Category Permissions</option>
+                  </select>
+                  <span class="c-help-text">Choose whether temporary channels inherit parent category permission overrides.</span>
+                </div>
+              </div>
+
+              <!-- Right Column: Privacy Mode & Owner Permissions -->
+              <div class="creator-col">
+                <div class="config-group">
+                  <label class="creator-label">
+                    <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Default Privacy Mode</span>
+                  </label>
+                  <select id="cfgPrivacyMode" class="dash-select">
+                    <option value="public" selected>Public (Anyone with access can join)</option>
+                    <option value="locked">Locked (Only invited or permitted members)</option>
+                    <option value="hidden">Hidden (Invisible to other server members)</option>
+                  </select>
+                  <span class="c-help-text">Initial visibility and lock state of user channels when created.</span>
+                </div>
+
+                <div class="config-group" style="margin-top:16px;">
+                  <label class="creator-label">
+                    <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg> Temporary Channel Owner Permissions</span>
+                  </label>
+                  <div class="perm-multiselect" id="ownerPermsMultiselect">
+                    <div class="perm-multiselect-trigger" id="ownerPermsTrigger" tabindex="0">
+                      <div class="perm-trigger-content">
+                        <span class="perm-trigger-badge" id="ownerPermsBadge">11 Selected</span>
+                        <span class="perm-trigger-preview" id="ownerPermsPreview">Send Polls, Screenshare, Voice...</span>
+                      </div>
+                      <svg class="perm-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div class="perm-dropdown-menu" id="ownerPermsDropdown">
+                      <div class="perm-dropdown-toolbar">
+                        <div class="perm-search-box">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                          <input type="text" id="ownerPermsSearch" placeholder="Search permissions..." autocomplete="off" />
+                        </div>
+                        <div class="perm-actions">
+                          <button type="button" class="perm-action-btn" id="btnPermSelectAll">All</button>
+                          <button type="button" class="perm-action-btn" id="btnPermSelectSafe">Default</button>
+                          <button type="button" class="perm-action-btn" id="btnPermSelectNone">None</button>
+                        </div>
+                      </div>
+                      <div class="perm-list-scroll" id="ownerPermsList">
+                        <!-- Rendered dynamically -->
+                      </div>
+                    </div>
+                  </div>
+                  <span class="c-help-text">Special Discord permissions granted to the channel creator inside their room.</span>
+                </div>
               </div>
             </div>
-
           </div>
+
         </div>
 
         <!-- SUBTAB 3: MODERATION -->
         <div class="creator-tab-pane" id="paneModeration">
-          <div class="creator-2col-grid">
-            
-            <div class="creator-col">
-              <div class="config-group">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Toggle Features</span>
-                </label>
-                <button type="button" class="btn btn-secondary" id="btnOpenToggleFeaturesTab" style="width:100%; justify-content:center; padding:10px;">
-                  View Settings
-                </button>
-                <span class="c-help-text">Choose which features temporary channel owners are allowed to use while they are in control of the channel. <a href="#">Learn more.</a></span>
+          
+          <!-- Card 1: Channel Security & Moderation Actions -->
+          <div class="setup-section-card">
+            <div class="setup-section-header">
+              <div class="setup-section-title">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Channel Security & Moderation Guardrails
               </div>
-
-              <div class="config-group" style="margin-top:20px;">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Moderation Log</span>
-                  <span class="limit-badge-pill" style="background:rgba(236,72,153,0.15); color:#f472b6; border-color:rgba(236,72,153,0.3);">PREMIUM</span>
-                </label>
-                <input type="text" id="cfgModerationWebhook" class="dash-input" placeholder="Configure Webhook URL...">
-                <span class="c-help-text">Sends messages to a text channel using a Discord webhook URL to log temporary channel actions. <a href="#">Learn more.</a></span>
-              </div>
-
-              <div class="config-group" style="margin-top:20px;">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Vote Kick Percentage</span>
-                  <span class="limit-badge-pill" id="voteKickBadge">50%</span>
-                </label>
-                <input type="range" id="cfgVoteKickSlider" min="10" max="100" value="50" class="c-slider">
-                <span class="c-help-text">Set how many members of a temporary channel have to vote for a kick before the user gets kicked. <a href="#">Learn more.</a></span>
-              </div>
+              <span class="setup-section-desc">Automated rules for vote kicking, name censorship, owner settings recovery, and age verification.</span>
             </div>
 
-            <div class="creator-col">
-              <div class="config-group">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> Recover Owner Settings</span>
-                </label>
-                <select id="cfgRecoverSettings" class="dash-select">
-                  <option value="all" selected>Name, User Limit, Trusted & Blocked Users, Privacy Mode (Locked or...</option>
-                  <option value="none">Don't Recover</option>
-                </select>
-                <span class="c-help-text">Recovers a temporary channel with the same settings it had before being deleted, including name, permissions and user limit. <a href="#">Learn more.</a></span>
-              </div>
-
-              <div class="config-group" style="margin-top:20px;">
-                <label class="creator-label">
-                  <span class="c-label-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Censor Channel Names</span>
-                </label>
-                <input type="text" id="cfgCensorNames" class="dash-input" placeholder="Configure censored words...">
-                <span class="c-help-text">Automatically censor inappropriate words in temporary channel names. <a href="#">Learn more.</a></span>
-              </div>
-
-              <div class="config-group toggle-group" style="margin-top:20px;">
-                <div class="toggle-text-wrap">
-                  <span class="toggle-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px; vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>Age Restriction (18+) for In-Voice Chat</span>
-                  <span class="c-help-text">Users will need to confirm that they are over the legal age to see the messages in this channel.</span>
+            <div class="creator-2col-grid">
+              <!-- Left Column: Vote Kick & 18+ Age Gate -->
+              <div class="creator-col">
+                <div class="config-group">
+                  <label class="creator-label">
+                    <span class="c-label-title">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                      Vote Kick Percentage Required
+                    </span>
+                    <span class="limit-badge-pill" id="voteKickBadge">50%</span>
+                  </label>
+                  <div class="slider-row">
+                    <input type="range" id="cfgVoteKickSlider" min="10" max="100" step="5" value="50" class="c-slider">
+                  </div>
+                  <span class="c-help-text">Percentage of active channel members required to vote yes before a user is kicked.</span>
                 </div>
-                <label class="switch">
-                  <input type="checkbox" id="cfgAgeRestriction">
-                  <span class="slider"></span>
-                </label>
+
+                <div class="config-group toggle-group" style="margin-top:20px;">
+                  <div class="toggle-text-wrap">
+                    <span class="toggle-title">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px; vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                      Age Restriction (18+) for In-Voice Chat
+                    </span>
+                    <span class="c-help-text">Enforces Discord NSFW/18+ content verification for chat & media in temporary rooms.</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="cfgAgeRestriction">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Right Column: Auto-Recovery & Name Censorship -->
+              <div class="creator-col">
+                <div class="config-group">
+                  <label class="creator-label">
+                    <span class="c-label-title">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                      Recover Owner Settings
+                    </span>
+                  </label>
+                  <select id="cfgRecoverSettings" class="dash-select">
+                    <option value="all" selected>Full Recovery (Name, Limit, Blocked/Trusted, Privacy)</option>
+                    <option value="minimal">Minimal (Name & User Limit only)</option>
+                    <option value="none">Disabled (Reset Settings on Re-Join)</option>
+                  </select>
+                  <span class="c-help-text">Restores previous room configuration automatically when the owner reconnects.</span>
+                </div>
+
+                <div class="config-group" style="margin-top:16px;">
+                  <label class="creator-label">
+                    <span class="c-label-title">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                      Censor Words in Channel Names
+                    </span>
+                  </label>
+                  <input type="text" id="cfgCensorNames" class="dash-input" placeholder="e.g. badword1, badword2, swearword">
+                  <span class="c-help-text">Comma-separated list of prohibited words. Inappropriate channel names will be masked.</span>
+                </div>
               </div>
             </div>
-
           </div>
+
+          <!-- Card 2: Discord Audit & Moderation Webhook -->
+          <div class="setup-section-card" style="margin-top:20px;">
+            <div class="setup-section-header">
+              <div class="setup-section-title">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Discord Audit Logging Webhook
+              </div>
+              <span class="setup-section-desc">Receive real-time Discord notifications whenever rooms are created, renamed, locked, kicked, or deleted.</span>
+            </div>
+
+            <div class="config-group">
+              <label class="creator-label">
+                <span class="c-label-title">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  Discord Webhook URL
+                </span>
+                <span class="limit-badge-pill" style="background:rgba(88,101,242,0.15); color:#a5b4fc; border-color:rgba(88,101,242,0.3);">DISCORD WEBHOOK</span>
+              </label>
+              <input type="text" id="cfgModerationWebhook" class="dash-input" placeholder="https://discord.com/api/webhooks/...">
+              <span class="c-help-text">Create a webhook under Discord Server Settings → Integrations → Webhooks and paste its URL here.</span>
+            </div>
+          </div>
+
         </div>
 
         <!-- SUBTAB 5: TOGGLE FEATURES (ROLE PERMISSIONS MATRIX - Screenshots 4 & 5) -->
+
         <div class="creator-tab-pane" id="paneFeatures">
+
           <div class="feature-roles-intro">
+
             <h4><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Toggle Features & Permissions Matrix</h4>
+
             <p>Select which Discord role is granted permission to use each feature and command.</p>
+
           </div>
+
+
 
           <div class="feature-roles-list" id="featureRolesList">
+
             <!-- 19 Granular Feature Items Populated Dynamically -->
+
           </div>
+
         </div>
 
+
+
+
+
+
+
       </div>
+
+
 
       <!-- Modal Footer -->
+
       <div class="dash-modal-footer">
+
         <button type="button" class="btn btn-secondary" id="btnCancelConfig">Cancel</button>
+
         <button type="button" class="btn btn-primary" id="btnSaveConfig">
+
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+
           Save All Settings
+
         </button>
+
       </div>
+
+
 
     </div>
+
   </div>
 
+
+
   <!-- Plan Edit / Create Modal -->
+
   <div class="dash-modal-backdrop" id="planModal">
+
     <div class="dash-modal-card">
+
       <div class="dash-modal-header">
+
         <div class="dash-modal-title-group">
+
           <div class="guild-modal-avatar" style="color:var(--accent-cyan); background:rgba(0,242,254,0.1);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M11 3L8 9l4 12 4-12-3-6"/><path d="M2 9h20"/></svg></div>
+
           <div class="guild-modal-text">
+
             <h3 id="planModalTitle">Edit Pricing Plan</h3>
+
             <span class="modal-guild-id" id="planModalSub">Customize pricing tier parameters</span>
+
           </div>
+
         </div>
+
         <button class="dash-modal-close" id="btnClosePlanModal">
+
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+
         </button>
+
       </div>
+
+
+
 
 
       <div class="dash-modal-body">
+
         <input type="hidden" id="editPlanId">
+
         
+
         <div class="config-row-2col">
+
           <div class="config-group">
+
             <label class="config-label"><span class="label-main">Plan Name</span></label>
+
             <input type="text" id="editPlanName" class="dash-input" placeholder="e.g. Pro Server Monthly">
+
           </div>
+
           <div class="config-group">
+
             <label class="config-label"><span class="label-main">Badge Tag (Optional)</span></label>
+
             <input type="text" id="editPlanBadge" class="dash-input" placeholder="e.g. Popular, Save 40%">
+
           </div>
+
         </div>
 
+
+
         <div class="config-row-2col">
+
           <div class="config-group">
+
             <label class="config-label"><span class="label-main">Display Price</span></label>
+
             <input type="text" id="editPlanPrice" class="dash-input" placeholder="e.g. $2.99 or ৳299">
+
           </div>
+
           <div class="config-group">
+
             <label class="config-label"><span class="label-main">Billing Cycle / Period</span></label>
+
             <input type="text" id="editPlanPeriod" class="dash-input" placeholder="e.g. / month, / year, one-time">
+
           </div>
+
         </div>
 
+
+
         <div class="config-group">
+
           <label class="config-label"><span class="label-main">Short Description</span></label>
+
           <input type="text" id="editPlanDesc" class="dash-input" placeholder="Highlight why users should get this tier">
+
         </div>
 
+
+
         <div class="config-group">
+
           <label class="config-label">
+
             <span class="label-main">Features & Perks (One per line)</span>
+
             <span class="config-hint">Each line becomes a verified checkmark in the pricing card</span>
+
           </label>
+
           <textarea id="editPlanFeatures" class="dash-input" rows="5" style="resize:vertical;"></textarea>
+
         </div>
 
+
+
         <div class="config-group">
+
           <label class="config-label"><span class="label-main">Checkout / Support Link</span></label>
+
           <input type="text" id="editPlanCheckoutUrl" class="dash-input" placeholder="https://discord.gg/y9pgpbt or Stripe checkout link">
+
         </div>
+
+
 
         <div class="config-row-2col">
+
           <div class="config-group toggle-group" style="padding:10px 14px;">
+
             <span class="toggle-title">Featured Card</span>
+
             <label class="switch">
+
               <input type="checkbox" id="editPlanFeatured">
+
               <span class="slider"></span>
+
             </label>
+
           </div>
+
           <div class="config-group toggle-group" style="padding:10px 14px;">
+
             <span class="toggle-title">Plan Active</span>
+
             <label class="switch">
+
               <input type="checkbox" id="editPlanActive" checked>
+
               <span class="slider"></span>
+
             </label>
+
           </div>
+
         </div>
+
+
 
       </div>
+
+
 
       <div class="dash-modal-footer">
+
         <button class="btn btn-secondary" id="btnCancelPlanModal">Cancel</button>
+
         <button class="btn btn-primary" id="btnSavePlanModal">Save Tier</button>
+
       </div>
+
     </div>
+
   </div>
 
+
+
   <script src="/dashboard.js?v=4.2"></script>
+
 </body>
+
 </html>
+

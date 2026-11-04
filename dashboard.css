@@ -808,7 +808,9 @@ svg {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease;
-  padding: 24px;
+  padding: 20px 16px;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .dash-modal-backdrop.open {
@@ -1570,27 +1572,66 @@ input:checked + .slider:before {
    ========================================================================= */
 
 .creator-modal-card {
-  max-width: 900px !important;
-  width: 92% !important;
+  max-width: 920px !important;
+  width: 95% !important;
+  max-height: min(920px, calc(100vh - 40px)) !important;
+  height: min(920px, calc(100vh - 40px)) !important;
   background: #121318 !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 20px !important;
-  padding: 28px !important;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.1) !important;
+  border-radius: 18px !important;
+  padding: 0 !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), 0 0 1px rgba(255, 255, 255, 0.1) !important;
   color: #f1f5f9;
-  overflow: visible !important;
-}
-
-.creator-modal-body {
-  overflow: visible !important;
-  padding-bottom: 24px;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  margin: auto !important;
 }
 
 .creator-modal-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  padding: 20px 26px 8px 26px;
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.creator-modal-body {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 24px 26px !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.creator-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.creator-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.creator-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+}
+
+.creator-modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.creator-modal-card .dash-modal-footer {
+  padding: 16px 26px !important;
+  background: #0e0f14 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
 }
 
 /* Modern Minimalist Modal Close Button */
@@ -1649,9 +1690,10 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 20px;
+  padding: 0 26px 14px 26px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  margin-bottom: 20px;
+  flex-shrink: 0;
+  margin-bottom: 0;
 }
 
 .creator-title-left {
@@ -1740,7 +1782,17 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 24px;
+  padding: 10px 26px;
+  background: rgba(255, 255, 255, 0.015);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: 0;
+}
+
+.creator-subtabs-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .creator-subtab {
@@ -3427,9 +3479,362 @@ input:checked + .slider:before {
   }
 }
 
+/* =====================================================
+   VOICE SETUP & HUBS UNIFIED PANE STYLES
+   ===================================================== */
+.setup-section-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
 
+.setup-section-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
 
+.setup-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
+.setup-section-desc {
+  display: block;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin-top: 4px;
+  line-height: 1.4;
+}
 
+/* =====================================================
+   VOICE HUBS (DUO / TRIO / JTC) DEPLOYER STYLES
+   ===================================================== */
+.hub-header-banner {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
 
+.hub-header-text h4 {
+  margin: 0 0 4px 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  display: flex;
+  align-items: center;
+}
 
+.hub-header-text p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+/* Presets Grid */
+.hub-presets-wrap {
+  margin-bottom: 20px;
+}
+
+.hub-presets-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.hub-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .hub-presets-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
+}
+
+.hub-preset-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #f1f5f9;
+}
+
+.hub-preset-card:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.preset-icon-svg {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.hub-preset-card:hover .preset-icon-svg {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+.preset-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 2px;
+}
+
+.preset-meta {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+/* Active Hubs List */
+.active-hubs-wrap {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.active-hubs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.active-hubs-header h5 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  display: flex;
+  align-items: center;
+}
+
+.active-hubs-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.empty-hubs-state {
+  text-align: center;
+  padding: 24px 16px;
+  color: #64748b;
+  font-size: 0.84rem;
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 9px;
+  border: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+.hub-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #181922;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+}
+
+.hub-item-card:hover {
+  background: #1c1d27;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.hub-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hub-channel-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.hub-channel-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hub-channel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: #f1f5f9;
+}
+
+.hub-pill-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.03em;
+}
+
+.hub-pill-badge.perm {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.hub-pill-badge.lock {
+  background: rgba(14, 165, 233, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.25);
+}
+
+.hub-channel-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.76rem;
+  color: #64748b;
+}
+
+.hub-channel-meta strong {
+  color: #cbd5e1;
+}
+
+.hub-channel-meta code {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  color: #f1f5f9;
+  font-size: 0.72rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 768px) {
+  .hub-item-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .hub-card-actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+/* Deploy Hub Action Bar & Sleek Discord Button */
+.hub-deploy-footer {
+  margin-top: 24px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hub-deploy-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.hub-deploy-hint svg {
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+.btn-deploy-hub {
+  background: #5865F2;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.btn-deploy-hub:hover {
+  background: #4752C4;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 14px rgba(88, 101, 242, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-deploy-hub:active {
+  background: #3C45A5;
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn-deploy-hub:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .hub-deploy-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .btn-deploy-hub {
+    justify-content: center;
+    width: 100%;
+  }
+}

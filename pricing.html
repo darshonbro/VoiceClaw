@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoiceClaw Premium & Pricing | Discord Voice Infrastructure</title>
+  <meta name="description" content="Unlock VoiceClaw Premium - 384 kbps studio bitrate, unlimited voice hubs, custom bot identity, and zero-latency audio dispatching.">
+  <link rel="icon" href="/favicon.png">
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/style.css?v=3.6">
+  <link rel="stylesheet" href="/dashboard.css?v=3.6">
+  <style>
+    /* User Portal Specific Aesthetics */
+    .portal-hero {
+      text-align: center;
+      padding: 60px 20px 40px 20px;
+      max-width: 840px;
+      margin: 0 auto;
+    }
+    .portal-hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.74rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--accent-cyan);
+      background: rgba(0, 242, 254, 0.08);
+      border: 1px solid rgba(0, 242, 254, 0.25);
+      padding: 4px 14px;
+      border-radius: 9999px;
+      margin-bottom: 16px;
+    }
+    .portal-hero h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .portal-hero p {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* User Subscriptions Box */
+    .user-subs-card {
+      background: rgba(14, 16, 26, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 50px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+    .user-subs-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .user-subs-header h3 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .user-servers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .user-server-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+    .user-server-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--border-hover);
+    }
+    .server-item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .server-item-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      object-fit: cover;
+      background: #181a24;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .server-item-info {
+      min-width: 0;
+    }
+    .server-item-name {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .server-item-status {
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .status-free { color: var(--text-muted); }
+    .status-pro { color: #34d399; }
+
+    /* Public Pricing Grid */
+    .public-pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 26px;
+      margin-bottom: 60px;
+    }
+    .public-price-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .public-price-card.featured {
+      border-color: rgba(99, 102, 241, 0.5);
+      background: linear-gradient(135deg, rgba(22, 26, 42, 0.95) 0%, rgba(13, 15, 25, 0.95) 100%);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(99, 102, 241, 0.2);
+      transform: scale(1.02);
+    }
+    .public-price-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-hover);
+    }
+    .public-price-card.featured:hover {
+      transform: scale(1.02) translateY(-4px);
+    }
+    .btn-choose-plan {
+      width: 100%;
+      padding: 12px 20px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    /* Comparison Table */
+    .compare-section {
+      margin-top: 40px;
+      margin-bottom: 80px;
+    }
+    .compare-card {
+      background: rgba(14, 16, 26, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="dash-body">
+
+  <!-- Ambient Background Glows -->
+  <div class="dash-ambient-glow glow-1"></div>
+  <div class="dash-ambient-glow glow-2"></div>
+
+  <!-- Header -->
+  <header class="dash-header">
+    <div class="dash-nav-container">
+      <div class="dash-nav-left">
+        <a href="/" class="dash-brand" aria-label="VoiceClaw Home">
+          <div class="brand-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+          </div>
+          <div class="brand-text-col">
+            <span class="dash-brand-name">VoiceClaw</span>
+            <span class="dash-brand-sub">PREMIUM PORTAL</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="dash-nav-center">
+        <a href="/" class="dash-nav-item">Website Home</a>
+        <a href="/dashboard" class="dash-nav-item">Server Console</a>
+        <a href="https://discord.gg/y9pgpbt" target="_blank" rel="noopener" class="dash-nav-item">Support Discord</a>
+      </div>
+
+      <div class="dash-nav-right" id="userProfileArea">
+        <div class="dash-profile-skeleton">Loading session...</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="dash-main-container">
+    
+    <!-- Hero Section -->
+    <section class="portal-hero">
+      <div class="portal-hero-tag">
+        <span class="hero-tag-glow"></span>
+        <span>VOICECLAW STUDIO AUDIO & UNLIMITED INFRASTRUCTURE</span>
+      </div>
+      <h1>Elevate Your Discord Voice Channels</h1>
+      <p>
+        Unlock 384 kbps ultra-high bitrate, permanent voice retention, custom server bot avatars, and zero-latency channel dispatching for your community.
+      </p>
+    </section>
+
+    <!-- User Server Subscriptions Card (Active User Dashboard View) -->
+    <section class="user-subs-card" id="userSubsCard" style="display:none;">
+      <div class="user-subs-header">
+        <div>
+          <h3>Your Servers & Active Licenses</h3>
+          <p style="font-size:0.86rem; color:var(--text-secondary); margin-top:3px;">
+            Manage which servers currently enjoy VoiceClaw Pro or upgrade instantly.
+          </p>
+        </div>
+        <a href="/dashboard" class="btn btn-secondary btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Configure Audio Hubs
+        </a>
+      </div>
+
+      <div class="user-servers-grid" id="userServersGrid">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- Public Live Pricing Plans Grid -->
+    <div class="public-pricing-grid" id="publicPricingGrid">
+      <div class="dash-loading-card" style="grid-column: 1 / -1;">
+        <div class="dash-spinner"></div>
+        <span>Loading live pricing plans...</span>
+      </div>
+    </div>
+
+    <!-- Comparison Table Section -->
+    <section class="compare-section">
+      <div style="text-align:center; margin-bottom:24px;">
+        <h2 style="font-size:1.6rem; font-weight:800; color:#fff;">Feature Comparison</h2>
+        <p style="font-size:0.9rem; color:var(--text-secondary); margin-top:4px;">Everything you get with VoiceClaw Premium vs Free</p>
+      </div>
+
+      <div class="compare-card">
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th>Feature Capability</th>
+              <th>Free Tier</th>
+              <th>Pro Server</th>
+              <th>Lifetime VIP</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Audio Bitrate</strong></td>
+              <td>Up to 96 kbps</td>
+              <td>Up to 384 kbps (Nitro Studio)</td>
+              <td>Up to 384 kbps Max</td>
+            </tr>
+            <tr>
+              <td><strong>Join-to-Create Voice Hubs</strong></td>
+              <td>1 Active Hub</td>
+              <td>Unlimited Hubs</td>
+              <td>Unlimited Hubs</td>
+            </tr>
+            <tr>
+              <td><strong>Custom Server Bot Identity</strong></td>
+              <td>Default VoiceClaw</td>
+              <td>Custom Avatar & Nickname</td>
+              <td>Custom Avatar, Name & Bio</td>
+            </tr>
+            <tr>
+              <td><strong>Dynamic V2 Layout Refresh</strong></td>
+              <td>Standard</td>
+              <td>Priority</td>
+              <td>Dedicated VIP Engine</td>
+            </tr>
+            <tr>
+              <td><strong>Auto-Lock & Host Approvals</strong></td>
+              <td>✓ Included</td>
+              <td>✓ Included</td>
+              <td>✓ Included</td>
+            </tr>
+            <tr>
+              <td><strong>Support Level</strong></td>
+              <td>Community Discord</td>
+              <td>Priority Support Ticket</td>
+              <td>Direct Developer Line</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Checkout & Upgrade Modal -->
+  <div class="dash-modal-backdrop" id="checkoutModal">
+    <div class="dash-modal-card">
+      <div class="dash-modal-header">
+        <div class="dash-modal-title-group">
+          <div class="guild-modal-avatar" style="color:#34d399; background:rgba(16,185,129,0.1);">👑</div>
+          <div class="guild-modal-text">
+            <h3 id="checkoutPlanTitle">Upgrade Server to Premium</h3>
+            <span class="modal-guild-id" id="checkoutPlanPrice">Select your server and confirm upgrade</span>
+          </div>
+        </div>
+        <button class="dash-modal-close" id="btnCloseCheckout">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+
+      <div class="dash-modal-body">
+        
+        <div class="config-group">
+          <label class="config-label"><span class="label-main">Select Discord Server to Upgrade</span></label>
+          <select id="checkoutServerSelect" class="dash-select">
+            <option value="">-- Choose Server --</option>
+          </select>
+        </div>
+
+        <div class="admin-payment-settings-card" style="margin-bottom:0; background:rgba(255,255,255,0.02);">
+          <div style="font-weight:700; color:#fff; margin-bottom:8px;">Payment & Verification Instructions:</div>
+          <p id="checkoutInstructions" style="font-size:0.86rem; color:var(--text-secondary); line-height:1.5;">
+            Pay via bKash / Nagad or open a ticket in our Support Discord with your Transaction ID to get verified instantly.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="dash-modal-footer">
+        <button class="btn btn-secondary" id="btnCancelCheckout">Cancel</button>
+        <a href="https://discord.gg/y9pgpbt" target="_blank" rel="noopener" class="btn btn-primary" id="btnConfirmCheckout">
+          Proceed to Support Discord Ticket
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const userProfileArea = document.getElementById('userProfileArea');
+      const userSubsCard = document.getElementById('userSubsCard');
+      const userServersGrid = document.getElementById('userServersGrid');
+      const publicPricingGrid = document.getElementById('publicPricingGrid');
+      const checkoutModal = document.getElementById('checkoutModal');
+      const btnCloseCheckout = document.getElementById('btnCloseCheckout');
+      const btnCancelCheckout = document.getElementById('btnCancelCheckout');
+      const checkoutPlanTitle = document.getElementById('checkoutPlanTitle');
+      const checkoutPlanPrice = document.getElementById('checkoutPlanPrice');
+      const checkoutServerSelect = document.getElementById('checkoutServerSelect');
+      const checkoutInstructions = document.getElementById('checkoutInstructions');
+      const btnConfirmCheckout = document.getElementById('btnConfirmCheckout');
+
+      let userGuilds = [];
+      let activePlans = [];
+
+      // 1. Fetch Subscription & User Data
+      try {
+        const res = await fetch('/api/user/subscription');
+        const data = await res.json();
+
+        if (data.authenticated && data.user) {
+          const user = data.user;
+          const avatarUrl = user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png';
+          const userName = user.global_name || user.username || 'Discord User';
+
+          userProfileArea.innerHTML = `
+            <div class="user-pill">
+              <img src="${avatarUrl}" alt="${userName}" class="user-avatar">
+              <span class="user-name">${userName}</span>
+              <a href="/dashboard" class="user-logout-btn" style="color:#60a5fa; text-decoration:none;">Dashboard</a>
+            </div>
+          `;
+
+          // Show User Servers Section
+          userGuilds = data.guilds || [];
+          if (userGuilds.length > 0) {
+            userSubsCard.style.display = 'block';
+            userServersGrid.innerHTML = userGuilds.map(g => {
+              const iconHtml = g.icon_url 
+                ? `<img src="${g.icon_url}" class="server-item-avatar" alt="${g.name}">`
+                : `<div class="server-item-avatar">${(g.name || 'VC').slice(0, 2).toUpperCase()}</div>`;
+
+              const isPrem = g.isPremium;
+              const statusBadge = isPrem
+                ? `<span class="server-item-status status-pro">👑 Pro Active</span>`
+                : `<span class="server-item-status status-free">Free Tier</span>`;
+
+              const actionBtn = isPrem
+                ? `<a href="/dashboard" class="btn btn-secondary btn-sm">Configure</a>`
+                : `<button class="btn btn-primary btn-sm btn-upgrade-server" data-id="${g.id}" data-name="${escapeHtml(g.name)}">Upgrade</button>`;
+
+              return `
+                <div class="user-server-item">
+                  <div class="server-item-left">
+                    ${iconHtml}
+                    <div class="server-item-info">
+                      <div class="server-item-name" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</div>
+                      ${statusBadge}
+                    </div>
+                  </div>
+                  <div>
+                    ${actionBtn}
+                  </div>
+                </div>
+              `;
+            }).join('');
+
+            // Populate checkout select
+            checkoutServerSelect.innerHTML = `<option value="">-- Choose Server --</option>` +
+              userGuilds.map(g => `<option value="${g.id}">${escapeHtml(g.name)}</option>`).join('');
+
+            document.querySelectorAll('.btn-upgrade-server').forEach(btn => {
+              btn.addEventListener('click', () => {
+                const gid = btn.getAttribute('data-id');
+                checkoutServerSelect.value = gid;
+                openCheckoutModal(activePlans[0] || null);
+              });
+            });
+          }
+
+        } else {
+          userProfileArea.innerHTML = `
+            <a href="/api/auth/login" class="btn btn-primary" style="background:#5865F2;">
+              Login with Discord
+            </a>
+          `;
+        }
+      } catch (err) {
+        console.error('Subscription load error:', err);
+      }
+
+      // 2. Fetch & Render Pricing Tiers
+      try {
+        const res = await fetch('/api/pricing');
+        const data = await res.json();
+        activePlans = data.plans || [];
+
+        publicPricingGrid.innerHTML = activePlans.map(p => {
+          const badgeHtml = p.badge ? `<span class="pricing-card-badge">${escapeHtml(p.badge)}</span>` : '';
+          const featuresHtml = (p.features || []).map(f => `
+            <li class="pricing-feature-item">
+              <svg class="feature-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>${escapeHtml(f)}</span>
+            </li>
+          `).join('');
+
+          return `
+            <div class="public-price-card ${p.isFeatured ? 'featured' : ''}">
+              <div>
+                ${badgeHtml}
+                <h3 class="pricing-plan-title">${escapeHtml(p.name)}</h3>
+                <p class="pricing-plan-desc">${escapeHtml(p.description || '')}</p>
+                
+                <div class="pricing-price-row">
+                  <span class="pricing-price-val">${escapeHtml(p.price)}</span>
+                  <span class="pricing-price-period">${escapeHtml(p.period || '')}</span>
+                </div>
+
+                <ul class="pricing-features-list">
+                  ${featuresHtml}
+                </ul>
+              </div>
+
+              <div>
+                <button class="btn ${p.isFeatured ? 'btn-primary' : 'btn-secondary'} btn-choose-plan btn-select-plan" data-id="${p.id}">
+                  Get Started with ${escapeHtml(p.name)}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        document.querySelectorAll('.btn-select-plan').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-id');
+            const plan = activePlans.find(p => p.id === id);
+            openCheckoutModal(plan);
+          });
+        });
+
+      } catch (err) {
+        publicPricingGrid.innerHTML = `<div class="dash-loading-card">Failed to load plans.</div>`;
+      }
+
+      // 3. Checkout Modal
+      function openCheckoutModal(plan) {
+        if (plan) {
+          checkoutPlanTitle.textContent = `Upgrade to ${plan.name}`;
+          checkoutPlanPrice.textContent = `${plan.price} ${plan.period || ''}`;
+          if (plan.checkoutUrl) {
+            btnConfirmCheckout.href = plan.checkoutUrl;
+          }
+        }
+        checkoutModal.classList.add('open');
+      }
+
+      function closeCheckoutModal() {
+        checkoutModal.classList.remove('open');
+      }
+
+      btnCloseCheckout.addEventListener('click', closeCheckoutModal);
+      btnCancelCheckout.addEventListener('click', closeCheckoutModal);
+      checkoutModal.addEventListener('click', (e) => {
+        if (e.target === checkoutModal) closeCheckoutModal();
+      });
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+    });
+  </script>
+</body>
+</html>

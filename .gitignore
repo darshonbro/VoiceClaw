@@ -33,3 +33,4 @@ vps_deploy.json
 vps_deploy.py
 .vps*
 *credentials*
+tempvoice-clone/
