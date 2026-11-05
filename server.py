@@ -433,34 +433,34 @@ def safe_file_response(filename: str):
 # ROUTE HANDLERS
 # ---------------------------------------------------------------------------
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def serve_index():
     return safe_file_response("index.html")
 
-@app.get("/dashboard")
-@app.get("/dashboard/")
+@app.api_route("/dashboard", methods=["GET", "HEAD"])
+@app.api_route("/dashboard/", methods=["GET", "HEAD"])
 async def serve_dashboard():
     return safe_file_response("dashboard.html")
 
-@app.get("/pricing")
-@app.get("/pricing/")
-@app.get("/user-dashboard")
-@app.get("/user-dashboard/")
+@app.api_route("/pricing", methods=["GET", "HEAD"])
+@app.api_route("/pricing/", methods=["GET", "HEAD"])
+@app.api_route("/user-dashboard", methods=["GET", "HEAD"])
+@app.api_route("/user-dashboard/", methods=["GET", "HEAD"])
 async def serve_pricing():
     return safe_file_response("pricing.html")
 
-@app.get("/privacy")
-@app.get("/privacy/")
-@app.get("/terms")
-@app.get("/terms/")
-@app.get("/data")
-@app.get("/data/")
+@app.api_route("/privacy", methods=["GET", "HEAD"])
+@app.api_route("/privacy/", methods=["GET", "HEAD"])
+@app.api_route("/terms", methods=["GET", "HEAD"])
+@app.api_route("/terms/", methods=["GET", "HEAD"])
+@app.api_route("/data", methods=["GET", "HEAD"])
+@app.api_route("/data/", methods=["GET", "HEAD"])
 async def serve_privacy():
     return safe_file_response("privacy.html")
 
 # Real Stats API
 
-@app.get("/api/stats")
+@app.api_route("/api/stats", methods=["GET", "HEAD"])
 async def get_stats():
     global _cached_stats, _cached_stats_time
     now = time.time()
@@ -1244,7 +1244,7 @@ async def get_user_subscription(request: Request):
 
 
 # Static assets with security check (Defined last as fallback)
-@app.get("/{filename:path}")
+@app.api_route("/{filename:path}", methods=["GET", "HEAD"])
 async def serve_static_assets(filename: str):
     allowed_exts = {".html", ".css", ".js", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".webp", ".woff", ".woff2", ".ttf"}
     target_path = (BASE_DIR / filename).resolve()
