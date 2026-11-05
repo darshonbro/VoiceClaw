@@ -5337,6 +5337,19 @@ class voice(commands.Cog):
                 if not isinstance(category, discord.CategoryChannel):
                     category = None
 
+                # Check Dashboard Guild Settings from MongoDB
+                dash_settings = {}
+                try:
+                    db = mongo_db.get_db()
+                    if db is not None:
+                        s_doc = await db.guildSettings.find_one({"guildID": str(guild.id)})
+                        if not s_doc:
+                            s_doc = await db.guildSettings.find_one({"guildID": guild.id})
+                        if s_doc and "settings" in s_doc:
+                            dash_settings = s_doc["settings"]
+                except Exception:
+                    pass
+
                 user_pref = await self.get_user_setting(member.id)
                 guild_pref = await self.get_guild_setting(guild.id)
 
@@ -5345,6 +5358,33 @@ class voice(commands.Cog):
                 chan_limit = 0
                 target_bitrate = None
 
+                # 1. Apply Web Dashboard Naming Template if configured
+                prefix_tmpl = dash_settings.get("roomPrefix")
+                if prefix_tmpl:
+                    chan_name = prefix_tmpl.replace("[OWNER_NICKNAME]", clean_name).replace("{user}", clean_name).replace("{owner}", clean_name).strip()
+
+                # 2. Apply Web Dashboard User Limit
+                if dash_settings.get("userLimit") is not None:
+                    try:
+                        chan_limit = int(dash_settings.get("userLimit", 0))
+                    except Exception:
+                        pass
+
+                # 3. Apply Web Dashboard Bitrate
+                if dash_settings.get("bitrate"):
+                    try:
+                        target_bitrate = min(int(dash_settings["bitrate"]) * 1000, guild.bitrate_limit)
+                    except Exception:
+                        pass
+
+                # 4. Apply Censored words filter from Dashboard
+                censor_str = dash_settings.get("censorChannelNames", "")
+                if censor_str:
+                    bad_words = [w.strip().lower() for w in censor_str.split(",") if w.strip()]
+                    if any(bw in chan_name.lower() for bw in bad_words):
+                        chan_name = f"{clean_name}'s Room"
+
+                # 5. Overrides from user presets (if user has custom settings)
                 if guild_pref:
                     chan_limit = guild_pref[1]
 
