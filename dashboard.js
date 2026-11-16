@@ -150,8 +150,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
 
-  // Toast
+  // Admin Tabs & Gate Elements
+  const tabPricingBtn = document.getElementById('tabPricingBtn');
+  const tabLicensesBtn = document.getElementById('tabLicensesBtn');
+  const adminRootBadge = document.getElementById('adminRootBadge');
 
+  // Admin Auth Modal Elements
+  const adminAuthModal = document.getElementById('adminAuthModal');
+  const btnCloseAdminAuthModal = document.getElementById('btnCloseAdminAuthModal');
+  const btnCancelAdminAuthModal = document.getElementById('btnCancelAdminAuthModal');
+  const btnSubmitAdminAuth = document.getElementById('btnSubmitAdminAuth');
+  const adminAuthPasswordInput = document.getElementById('adminAuthPasswordInput');
+  const adminAuthError = document.getElementById('adminAuthError');
+
+  // Toast
   const dashToast = document.getElementById('dashToast');
 
   const dashToastMsg = document.getElementById('dashToastMsg');
@@ -218,152 +230,171 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Render User Profile Badge Helper
 
+
+  function openAdminAuthModal() {
+    if (adminAuthModal) {
+      adminAuthModal.classList.add('open');
+      if (adminAuthError) adminAuthError.style.display = 'none';
+      if (adminAuthPasswordInput) {
+        adminAuthPasswordInput.value = '';
+        setTimeout(() => adminAuthPasswordInput.focus(), 150);
+      }
+    }
+  }
+
+  function closeAdminAuthModal() {
+    if (adminAuthModal) adminAuthModal.classList.remove('open');
+  }
+
+  if (btnCloseAdminAuthModal) btnCloseAdminAuthModal.addEventListener('click', closeAdminAuthModal);
+  if (btnCancelAdminAuthModal) btnCancelAdminAuthModal.addEventListener('click', closeAdminAuthModal);
+
+  async function submitAdminAuth() {
+    const pass = adminAuthPasswordInput ? adminAuthPasswordInput.value.trim() : '';
+    if (!pass) return;
+    if (btnSubmitAdminAuth) btnSubmitAdminAuth.disabled = true;
+    if (adminAuthError) adminAuthError.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pass })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('Owner session authenticated successfully!', 'success');
+        closeAdminAuthModal();
+        setTimeout(() => window.location.reload(), 300);
+      } else {
+        if (adminAuthError) {
+          adminAuthError.textContent = data.detail || 'Incorrect Master Admin Password';
+          adminAuthError.style.display = 'block';
+        }
+      }
+    } catch (err) {
+      if (adminAuthError) {
+        adminAuthError.textContent = 'Connection error: ' + err.message;
+        adminAuthError.style.display = 'block';
+      }
+    } finally {
+      if (btnSubmitAdminAuth) btnSubmitAdminAuth.disabled = false;
+    }
+  }
+
+  if (btnSubmitAdminAuth) btnSubmitAdminAuth.addEventListener('click', submitAdminAuth);
+  if (adminAuthPasswordInput) {
+    adminAuthPasswordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitAdminAuth();
+    });
+  }
+
   function renderUserProfile(user) {
+    if (!userProfileArea) return;
 
-    if (!userProfileArea || !user) return;
+    if (!user || !user.id) {
+      if (tabPricingBtn) tabPricingBtn.style.display = 'none';
+      if (tabLicensesBtn) tabLicensesBtn.style.display = 'none';
+      if (adminRootBadge) adminRootBadge.style.display = 'none';
+      if (welcomeUser) welcomeUser.textContent = 'VoiceClaw Master Console';
 
-    let avatarUrl = user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png';
-
-    if (avatarUrl.includes('unsplash.com')) {
-
-      avatarUrl = 'https://cdn.discordapp.com/avatars/1281114279948582923/6e876478cad012f7e56259015854b4bf.png?size=128';
-
+      userProfileArea.innerHTML = `
+        <div class="auth-buttons-group">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnHeaderAdminLogin" style="display:inline-flex; align-items:center; gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Owner Key</span>
+          </button>
+          <a href="/api/auth/login" class="btn btn-primary btn-sm" style="background:#5865F2; display:inline-flex; align-items:center; gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+            <span>Login Discord</span>
+          </a>
+        </div>
+      `;
+      const btnHeaderAdmin = document.getElementById('btnHeaderAdminLogin');
+      if (btnHeaderAdmin) btnHeaderAdmin.addEventListener('click', openAdminAuthModal);
+      return;
     }
 
-    const userName = (user.id === '1281114279948582923' || user.isOwner) ? 'darshonbro' : (user.username || user.global_name || 'Discord Admin');
+    const isOwner = Boolean(user.id === '1281114279948582923' || user.isOwner);
+    const userName = isOwner ? 'darshonbro' : (user.username || user.global_name || 'Discord Admin');
+    const avatarUrl = user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png';
 
     if (welcomeUser) welcomeUser.textContent = `Welcome back, ${userName}`;
+    if (tabPricingBtn) tabPricingBtn.style.display = isOwner ? 'inline-flex' : 'none';
+    if (tabLicensesBtn) tabLicensesBtn.style.display = isOwner ? 'inline-flex' : 'none';
+    if (adminRootBadge) adminRootBadge.style.display = isOwner ? 'inline-flex' : 'none';
 
     userProfileArea.innerHTML = `
-
       <div class="user-pill">
-
         <img src="${avatarUrl}" alt="${userName}" class="user-avatar" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
-
         <div class="user-info-text">
-
           <span class="user-name">${userName}</span>
-
-          <span class="user-role-tag">${user.isOwner ? 'Bot Owner' : 'Server Admin'}</span>
-
+          <span class="user-role-tag">${isOwner ? 'Bot Owner' : 'Server Admin'}</span>
         </div>
-
         <button id="btnLogout" class="user-logout-btn" title="Log Out">Exit</button>
-
       </div>
-
     `;
 
     const btnLogout = document.getElementById('btnLogout');
-
     if (btnLogout) {
-
       btnLogout.addEventListener('click', async () => {
-
         try {
-
           localStorage.removeItem('vc_cached_user');
-
           localStorage.removeItem('vc_cached_guilds');
-
         } catch(e) {}
-
         await fetch('/api/auth/logout', { method: 'POST' });
-
-        window.location.href = '/';
-
+        window.location.reload();
       });
-
     }
-
   }
 
 
 
-  // 1.5. Instant Cache-First Hydration (0ms Load Time - Never wait for spinner!)
 
+  // 2. Fetch Verified Discord Session (Security Gate)
   try {
-
-    const cachedUser = JSON.parse(localStorage.getItem('vc_cached_user') || 'null');
-
-    const cachedGuilds = JSON.parse(localStorage.getItem('vc_cached_guilds') || 'null');
-
-    if (cachedUser && cachedUser.avatar_url && cachedUser.avatar_url.includes('unsplash.com')) {
-
-      cachedUser.avatar_url = 'https://cdn.discordapp.com/avatars/1281114279948582923/6e876478cad012f7e56259015854b4bf.png?size=128';
-
-      localStorage.setItem('vc_cached_user', JSON.stringify(cachedUser));
-
-    }
-
-    if (cachedUser && cachedGuilds && Array.isArray(cachedGuilds) && cachedGuilds.length > 0) {
-
-      currentGuilds = cachedGuilds;
-
-      renderUserProfile(cachedUser);
-
-      renderGuilds(cachedGuilds);
-
-      if (statGuildsCount) statGuildsCount.textContent = cachedGuilds.length;
-
-      if (activeServersPill) activeServersPill.textContent = `${cachedGuilds.length} Active ${cachedGuilds.length === 1 ? 'Server' : 'Servers'}`;
-
-      populateGrantServerDropdown(cachedGuilds);
-
-      checkUrlParamsAndAutoOpen();
-
-    }
-
-  } catch (e) {}
-
-
-
-  // 2. Fetch Discord Session & Active Servers (Fast background revalidation)
-
-  try {
-
     const res = await fetch('/api/auth/me');
-
     const data = await res.json();
 
-
-
-    if (!data.authenticated) {
-
+    if (!data.authenticated || !data.user) {
       try {
-
         localStorage.removeItem('vc_cached_user');
-
         localStorage.removeItem('vc_cached_guilds');
-
       } catch(e) {}
 
-      userProfileArea.innerHTML = `
+      renderUserProfile(null);
 
-        <a href="/api/auth/login" class="btn btn-primary" style="background:#5865F2; box-shadow: 0 0 16px rgba(88,101,242,0.35);">
-
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-
-          Authorize Discord
-
-        </a>
-
-      `;
+      if (statGuildsCount) statGuildsCount.textContent = '0';
+      if (activeServersPill) activeServersPill.textContent = 'Auth Required';
 
       guildsGrid.innerHTML = `
-
-        <div class="dash-loading-card" style="flex-direction:column; gap:16px;">
-
-          <p>Please authorize Discord to view and manage your active VoiceClaw servers.</p>
-
-          <a href="/api/auth/login" class="btn btn-primary" style="background:#5865F2;">Authorize Discord OAuth2</a>
-
+        <div class="dash-auth-gate-card">
+          <div class="gate-avatar-box">
+            <img src="/favicon.png" alt="VoiceClaw" class="gate-avatar-img">
+            <div class="gate-lock-badge">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+          </div>
+          <h2 class="gate-title">Protected Management Console</h2>
+          <p class="gate-subtitle">
+            Sign in with Discord to configure your voice rooms and dynamic hubs, or unlock full administration with the Owner Master Key.
+          </p>
+          <div class="gate-actions">
+            <a href="/api/auth/login" class="btn btn-primary" style="background:#5865F2; padding:12px 24px; font-weight:700; box-shadow:0 0 20px rgba(88,101,242,0.4);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-right:8px; vertical-align:-3px;"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+              Login with Discord
+            </a>
+            <button type="button" class="btn btn-secondary" id="btnGateAdminLogin" style="padding:12px 20px; font-weight:600;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px; vertical-align:-2px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Owner Master Key
+            </button>
+          </div>
         </div>
-
       `;
 
+      const btnGateAdmin = document.getElementById('btnGateAdminLogin');
+      if (btnGateAdmin) btnGateAdmin.addEventListener('click', openAdminAuthModal);
       return;
-
     }
 
 

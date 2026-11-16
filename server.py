@@ -40,6 +40,7 @@ DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "1553908026241454090")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "").strip()
 DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", f"http://localhost:{PORT}/api/auth/callback")
 OWNER_ID = os.getenv("OWNER_ID", "1281114279948582923")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Q2006@Ff")
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -354,6 +355,51 @@ async def fetch_real_owner_profile():
     return _cached_owner_profile
 
 
+
+def get_current_user_from_req(request: Request) -> Optional[dict]:
+    session_id = request.cookies.get("voiceclaw_session")
+    if not session_id:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            session_id = auth_header[7:].strip()
+    if not session_id:
+        return None
+    session_data = _memory_sessions.get(session_id)
+    if session_data and session_data.get("user"):
+        return session_data["user"]
+    db = get_mongo_db()
+    if db is not None:
+        try:
+            doc = db.webSessions.find_one({"_id": session_id})
+            if doc and "session" in doc and doc["session"].get("user"):
+                _memory_sessions[session_id] = doc["session"]
+                return doc["session"]["user"]
+        except Exception:
+            pass
+    return None
+
+def verify_is_owner(request: Request) -> dict:
+    user = get_current_user_from_req(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required. Please sign in.")
+    if str(user.get("id")) != OWNER_ID and not user.get("isOwner"):
+        raise HTTPException(status_code=403, detail="Forbidden: Bot owner access required.")
+    return user
+
+def verify_guild_admin(request: Request, guild_id: str) -> dict:
+    user = get_current_user_from_req(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required. Please sign in.")
+    if str(user.get("id")) == OWNER_ID or user.get("isOwner"):
+        return user
+    session_id = request.cookies.get("voiceclaw_session")
+    session = _memory_sessions.get(session_id, {})
+    user_guilds = session.get("guilds", [])
+    has_perm = any(str(g.get("id")) == str(guild_id) and g.get("hasAdmin") for g in user_guilds)
+    if not has_perm:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not have permission to manage this server.")
+    return user
+
 def get_or_create_fallback_session():
     global _cached_fallback_session
     if _cached_fallback_session:
@@ -390,7 +436,6 @@ def get_or_create_fallback_session():
 async def lifespan(app: FastAPI):
     """Background startup warmer for instant response on first load."""
     try:
-        get_or_create_fallback_session()
         asyncio.create_task(refresh_guilds_cache_background())
         asyncio.create_task(fetch_real_owner_profile())
     except Exception as e:
@@ -506,10 +551,7 @@ async def get_stats():
 @app.get("/api/auth/login")
 async def oauth_login():
     if not DISCORD_CLIENT_SECRET:
-        sess_id, _ = get_or_create_fallback_session()
-        resp = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
-        resp.set_cookie(key="voiceclaw_session", value=sess_id, max_age=604800, httponly=True, samesite="lax")
-        return resp
+        return RedirectResponse(url="/dashboard?auth_error=oauth_not_configured", status_code=status.HTTP_302_FOUND)
 
     oauth_url = (
         f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}"
@@ -613,34 +655,79 @@ async def get_me(request: Request, response: Response):
         # Avoid synchronous blocking if remote mongo
         session_data = _memory_sessions.get(session_id)
 
-    if not session_data:
-        session_id, session_data = get_or_create_fallback_session()
-        new_cookie = True
-    elif session_data.get("user"):
-        u = session_data["user"]
-        if u.get("id") == OWNER_ID or "unsplash" in u.get("avatar_url", ""):
-            session_data["user"] = dict(_cached_owner_profile)
-    t1 = time.time()
+    if not session_data or not session_data.get("user"):
+        return {
+            "authenticated": False,
+            "session_id": None,
+            "user": None,
+            "guilds": [],
+            "activeGuildId": None,
+            "oauth_configured": bool(DISCORD_CLIENT_SECRET)
+        }
 
-    raw_guilds = session_data.get("guilds", [])
-    active_guilds = await fetch_all_bot_guilds_detailed(user_session_guilds=raw_guilds)
-    t2 = time.time()
+    u = session_data["user"]
+    is_owner = (str(u.get("id")) == OWNER_ID) or bool(u.get("isOwner"))
+    u["isOwner"] = is_owner
+    if is_owner:
+        u["username"] = _cached_owner_profile.get("username", "darshonbro")
+        u["avatar_url"] = _cached_owner_profile.get("avatar_url", u.get("avatar_url"))
+
+    if is_owner:
+        active_guilds = await fetch_all_bot_guilds_detailed()
+    else:
+        raw_guilds = session_data.get("guilds", [])
+        active_guilds = await fetch_all_bot_guilds_detailed(user_session_guilds=raw_guilds)
+
     session_data["guilds"] = active_guilds
-
-    if new_cookie:
-        response.set_cookie(key="voiceclaw_session", value=session_id, max_age=604800, httponly=True, samesite="lax")
-
-    print(f"[Timing /api/auth/me] session={t1-t0:.4f}s, guilds={t2-t1:.4f}s, total={time.time()-t0:.4f}s")
+    t1 = time.time()
+    print(f"[Timing /api/auth/me] user={u.get('username')} authenticated, guilds={len(active_guilds)}")
 
     return {
         "authenticated": True,
         "session_id": session_id,
-        "user": session_data.get("user"),
+        "user": u,
         "guilds": active_guilds,
         "activeGuildId": active_guilds[0]["id"] if active_guilds else None,
         "oauth_configured": bool(DISCORD_CLIENT_SECRET)
     }
 
+
+
+# Master Admin Password Authentication
+@app.post("/api/auth/admin-login")
+async def admin_login(request: Request, response: Response):
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    password = payload.get("password", "").strip()
+    if not password or password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Invalid Master Admin Password")
+
+    session_id = f"sess_admin_{secrets.token_hex(24)}"
+    admin_user = dict(_cached_owner_profile)
+    admin_user["isOwner"] = True
+
+    session_obj = {
+        "user": admin_user,
+        "guilds": [],
+        "isOwner": True,
+        "createdAt": time.time()
+    }
+    _memory_sessions[session_id] = session_obj
+    db = get_mongo_db()
+    if db is not None:
+        try:
+            db.webSessions.replace_one(
+                {"_id": session_id},
+                {"_id": session_id, "session": session_obj, "userId": OWNER_ID},
+                upsert=True
+            )
+        except Exception:
+            pass
+
+    response.set_cookie(key="voiceclaw_session", value=session_id, max_age=604800, httponly=True, samesite="lax")
+    return {"success": True, "user": admin_user}
 
 # Logout API
 @app.post("/api/auth/logout")
@@ -654,7 +741,8 @@ async def logout(request: Request, response: Response):
 
 # Guild Settings Fetch (Creator Channel & Features Matrix)
 @app.get("/api/guild/{guild_id}")
-async def get_guild_settings(guild_id: str):
+async def get_guild_settings(guild_id: str, request: Request):
+    verify_guild_admin(request, guild_id)
     db = get_mongo_db()
     config = {
         "guildID": guild_id,
@@ -802,6 +890,7 @@ async def get_guild_settings(guild_id: str):
 # Save Guild Settings
 @app.post("/api/guild/{guild_id}/settings")
 async def save_guild_settings(guild_id: str, request: Request):
+    verify_guild_admin(request, guild_id)
     payload = await request.json()
     db = get_mongo_db()
     if db is not None:
@@ -818,7 +907,8 @@ async def save_guild_settings(guild_id: str, request: Request):
 
 # Voice Hubs API: Get Active Hubs
 @app.get("/api/guild/{guild_id}/hubs")
-async def get_guild_voice_hubs(guild_id: str):
+async def get_guild_voice_hubs(guild_id: str, request: Request):
+    verify_guild_admin(request, guild_id)
     db = get_mongo_db()
     hubs_list = []
     int_id = int(guild_id) if guild_id.isdigit() else guild_id
@@ -863,6 +953,7 @@ async def get_guild_voice_hubs(guild_id: str):
 # Voice Hubs API: Deploy New Hub
 @app.post("/api/guild/{guild_id}/hub/deploy")
 async def deploy_guild_voice_hub(guild_id: str, request: Request):
+    verify_guild_admin(request, guild_id)
     payload = await request.json()
     category_id = payload.get("categoryID")
     new_cat_name = payload.get("newCategoryName", "").strip()
@@ -1029,6 +1120,7 @@ async def deploy_guild_voice_hub(guild_id: str, request: Request):
 # Voice Hubs API: Delete Hub
 @app.post("/api/guild/{guild_id}/hub/delete")
 async def delete_guild_voice_hub(guild_id: str, request: Request):
+    verify_guild_admin(request, guild_id)
     payload = await request.json()
     join_channel_id = payload.get("joinChannelID")
     delete_discord_chan = bool(payload.get("deleteDiscordChannel", True))
@@ -1078,11 +1170,13 @@ async def get_pricing():
 
 # Admin Pricing Manager
 @app.get("/api/admin/pricing")
-async def get_admin_pricing():
+async def get_admin_pricing(request: Request):
+    verify_is_owner(request)
     return get_admin_pricing_data()
 
 @app.post("/api/admin/pricing/save")
 async def save_admin_pricing(request: Request):
+    verify_is_owner(request)
     payload = await request.json()
     plans = payload.get("plans", [])
     settings = payload.get("settings", {})
@@ -1100,6 +1194,7 @@ async def save_admin_pricing(request: Request):
 
 @app.post("/api/admin/pricing/delete")
 async def delete_admin_pricing(request: Request):
+    verify_is_owner(request)
     payload = await request.json()
     plan_id = payload.get("id")
     db = get_mongo_db()
@@ -1113,7 +1208,8 @@ async def delete_admin_pricing(request: Request):
 
 # Premium Licenses Management
 @app.get("/api/admin/premium/list")
-async def get_premium_list():
+async def get_premium_list(request: Request):
+    verify_is_owner(request)
     db = get_mongo_db()
     prem_guilds = []
     prem_users = []
@@ -1139,6 +1235,7 @@ async def get_premium_list():
 
 @app.post("/api/admin/premium/grant")
 async def grant_license(request: Request):
+    verify_is_owner(request)
     payload = await request.json()
     t_type = payload.get("targetType", "guild")
     t_id = str(payload.get("targetID", "")).strip()
@@ -1171,6 +1268,7 @@ async def grant_license(request: Request):
 
 @app.post("/api/admin/premium/revoke")
 async def revoke_license(request: Request):
+    verify_is_owner(request)
     payload = await request.json()
     t_type = payload.get("targetType", "guild")
     t_id = str(payload.get("targetID", "")).strip()
