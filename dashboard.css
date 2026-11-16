@@ -3847,3 +3847,386 @@ input:checked + .slider:before {
     width: 100%;
   }
 }
+
+
+/* ==========================================================================
+   Jahid_Hasan Liquid Glossium & Discord Simulator UI Additions
+   ========================================================================== */
+
+/* 1. Dynamic Ambient Mesh Canvas */
+#ambient-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.7;
+}
+
+/* 2. Liquid Glossium 3D Cards & Specular Edge */
+.dash-stat-box,
+.guild-card,
+.setup-section-card,
+.admin-pricing-card,
+.discord-simulator-card {
+  position: relative;
+  background: rgba(13, 19, 31, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(20px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease !important;
+  will-change: transform;
+}
+
+.dash-stat-box::before,
+.guild-card::before,
+.setup-section-card::before,
+.admin-pricing-card::before,
+.discord-simulator-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 242, 254, 0.4), transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.guild-card:hover,
+.dash-stat-box:hover {
+  border-color: rgba(0, 242, 254, 0.35) !important;
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.6), 0 0 24px -4px rgba(0, 242, 254, 0.18) !important;
+}
+
+/* 3. Analytics KPI Trend Badges */
+.stat-number-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.kpi-trend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.kpi-trend-pill.success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.kpi-trend-pill.cyan {
+  background: rgba(0, 242, 254, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(0, 242, 254, 0.3);
+}
+
+.kpi-trend-pill.purple {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.kpi-trend-pill.emerald {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.kpi-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: kpiPulse 2s infinite ease-in-out;
+}
+
+@keyframes kpiPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* 4. Quick Server Filter Pills */
+.dash-quick-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.filter-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.filter-pill.active {
+  background: rgba(0, 242, 254, 0.15);
+  color: var(--accent-cyan);
+  border-color: rgba(0, 242, 254, 0.4);
+  box-shadow: 0 0 14px rgba(0, 242, 254, 0.2);
+}
+
+/* 5. Discord Visual Channel Simulator */
+.discord-simulator-card {
+  margin-top: 24px;
+  border-radius: 16px;
+  padding: 20px;
+  background: rgba(14, 18, 30, 0.85) !important;
+}
+
+.simulator-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sim-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.discord-sim-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(88, 101, 242, 0.18);
+  color: #5865F2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(88, 101, 242, 0.35);
+  flex-shrink: 0;
+}
+
+.sim-header-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.sim-header-desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.sim-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.badge-dot-green {
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #10b981;
+  animation: kpiPulse 2s infinite ease-in-out;
+}
+
+/* Discord UI Left Sidebar Simulator Container */
+.discord-mock-container {
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px 12px;
+  font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  max-width: 520px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.mock-category-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #949ba4;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.mock-channel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: #949ba4;
+  font-size: 0.88rem;
+  font-weight: 500;
+  margin-bottom: 3px;
+  transition: background 0.15s ease, color 0.15s ease;
+  user-select: none;
+}
+
+.mock-channel-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #dbdee1;
+}
+
+.mock-chan-icon {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #80848e;
+  line-height: 1;
+}
+
+.mock-chan-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mock-chan-badge {
+  font-size: 0.65rem;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #dbdee1;
+  font-weight: 600;
+}
+
+.mock-channel-row.voice-chan.master {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  color: #dbdee1;
+}
+
+.mock-join-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(88, 101, 242, 0.25);
+  color: #99a2f7;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(88, 101, 242, 0.4);
+}
+
+.mock-channel-row.voice-chan.spawned-active {
+  background: rgba(255, 255, 255, 0.07);
+  color: #f2f3f5;
+  font-weight: 600;
+}
+
+.mock-speaker-icon.active {
+  color: #23a55a;
+}
+
+.mock-chan-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mock-limit-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #1e1f22;
+  padding: 1px 7px;
+  border-radius: 10px;
+  color: #949ba4;
+}
+
+.mock-user-tree {
+  margin-left: 28px;
+  padding-left: 10px;
+  border-left: 2px solid rgba(255, 255, 255, 0.08);
+  margin-top: 4px;
+  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mock-user-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #dbdee1;
+}
+
+.mock-user-pfp {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.mock-user-pfp-placeholder {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #5865F2;
+  color: #ffffff;
+  font-size: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.mock-user-name {
+  font-weight: 500;
+}
+
+.mock-crown {
+  font-size: 0.85rem;
+}
+
+.mock-voice-activity {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #23a55a;
+  box-shadow: 0 0 6px #23a55a;
+}
+
+.mock-muted-icon {
+  color: #f23f43;
+  margin-left: auto;
+}
