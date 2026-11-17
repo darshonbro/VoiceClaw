@@ -846,3 +846,131 @@ async def _cursor_to_list(cursor) -> List[Dict]:
 # Global singleton instance
 def get_db():
     return MongoDatabase()
+
+
+# ---------------------------------------------------------------------------
+# Extra Owners & Blacklist System Helpers
+# ---------------------------------------------------------------------------
+
+async def get_extra_owners_async(guild_id: Union[int, str]) -> List[str]:
+    gid = str(guild_id)
+    _, db = MongoDatabase.get_client()
+    if db is None:
+        return []
+    try:
+        col = db["guild_extra_owners"]
+        doc = await _run_async(col.find_one, {"guild_id": gid})
+        if doc and "extra_owners" in doc:
+            return [str(u) for u in doc["extra_owners"]]
+    except Exception as e:
+        logger.warning(f"[MongoDB] get_extra_owners error: {e}")
+    return []
+
+async def is_extra_owner_async(guild_id: Union[int, str], user_id: Union[int, str]) -> bool:
+    owners = await get_extra_owners_async(guild_id)
+    return str(user_id) in owners
+
+async def add_extra_owner_async(guild_id: Union[int, str], user_id: Union[int, str], added_by: Union[int, str] = "") -> bool:
+    gid, uid = str(guild_id), str(user_id)
+    _, db = MongoDatabase.get_client()
+    if db is None:
+        return False
+    try:
+        col = db["guild_extra_owners"]
+        import time as _t
+        await _run_async(
+            col.update_one,
+            {"guild_id": gid},
+            {
+                "$addToSet": {"extra_owners": uid},
+                "$set": {"updated_at": _t.time(), "last_modified_by": str(added_by)}
+            },
+            upsert=True
+        )
+        return True
+    except Exception as e:
+        logger.error(f"[MongoDB] add_extra_owner error: {e}")
+        return False
+
+async def remove_extra_owner_async(guild_id: Union[int, str], user_id: Union[int, str]) -> bool:
+    gid, uid = str(guild_id), str(user_id)
+    _, db = MongoDatabase.get_client()
+    if db is None:
+        return False
+    try:
+        col = db["guild_extra_owners"]
+        await _run_async(
+            col.update_one,
+            {"guild_id": gid},
+            {"$pull": {"extra_owners": uid}}
+        )
+        return True
+    except Exception as e:
+        logger.error(f"[MongoDB] remove_extra_owner error: {e}")
+        return False
+
+async def is_guild_blacklisted_async(guild_id: Union[int, str]) -> bool:
+    gid = str(guild_id)
+    _, db = MongoDatabase.get_client()
+    if db is None:
+        return False
+    try:
+        col = db["blacklisted_guilds"]
+        doc = await _run_async(col.find_one, {"guild_id": gid})
+        return bool(doc)
+    except Exception:
+        return False
+
+async def blacklist_guild_async(guild_id: Union[int, str], reason: str = "Banned by Bot Owner", banned_by: Union[int, str] = "") -> bool:
+    gid = str(guild_id)
+    _, db = MongoDatabase.get_client()
+    if db is None:
+        return False
+    try:
+        col = db["blacklisted_guilds"]
+        import time as _t
+        await _run_async(
+            col.update_one,
+            {"guild_id": gid},
+            {
+                "$set": {
+                    "guild_id": gid,
+                    "reason": reason,
+                    "banned_by": str(banned_by),
+                    "banned_at": _t.time()
+                }
+            },
+            upsert=True
+        )
+        return True
+    except Exception as e:
+        logger.error(f"[MongoDB] blacklist_guild error: {e}")
+        return False
+
+async def unblacklist_guild_async(guild_id: Union[int, str]) -> bool:
+    gid = str(guild_id)
+    _, db = MongoDatabase.get_client()
+    if db is None:
+        return False
+    try:
+        col = db["blacklisted_guilds"]
+        await _run_async(col.delete_one, {"guild_id": gid})
+        return True
+    except Exception as e:
+        logger.error(f"[MongoDB] unblacklist_guild error: {e}")
+        return False
+
+async def get_blacklisted_guilds_async() -> List[Dict]:
+    _, db = MongoDatabase.get_client()
+    if db is None:
+        return []
+    try:
+        col = db["blacklisted_guilds"]
+        docs = await _cursor_to_list(col.find({}))
+        for d in docs:
+            d.pop("_id", None)
+        return docs
+    except Exception as e:
+        logger.error(f"[MongoDB] get_blacklisted_guilds error: {e}")
+        return []
+

@@ -152,6 +152,154 @@ async def manual_sync(ctx):
     except Exception as e:
         await ctx.send(f"✕ Sync failed: {e}")
 
+@bot.event
+async def on_guild_join(guild: discord.Guild):
+    """Check if the joined guild is blacklisted by Bot Owner; leave immediately if so."""
+    try:
+        from mongo_db import is_guild_blacklisted_async
+        if await is_guild_blacklisted_async(guild.id):
+            print(f"[Blacklist Guard] Server {guild.name} ({guild.id}) is blacklisted. Leaving immediately.")
+            try:
+                target_ch = guild.system_channel or next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
+                if target_ch:
+                    view = discord.ui.LayoutView()
+                    container = discord.ui.Container(
+                        discord.ui.TextDisplay("🚫 **This server has been banned from using VoiceClaw by the bot developer.**"),
+                        accent_color=None
+                    )
+                    view.add_item(container)
+                    await target_ch.send(view=view)
+            except Exception:
+                pass
+            await guild.leave()
+    except Exception as e:
+        print(f"[on_guild_join error]: {e}", file=sys.stderr)
+
+# ---------------------------------------------------------------------------
+# Extra Ownership Management (Discord Components V2)
+# ---------------------------------------------------------------------------
+
+@bot.group(name="extraowner", invoke_without_command=True)
+async def extraowner_group(ctx):
+    """Manage Extra Owners who can configure VoiceClaw hubs and dashboard."""
+    if not ctx.guild:
+        return await ctx.send("✕ This command can only be used inside a server.")
+
+    pref = getattr(ctx.bot, 'guild_prefixes', {}).get(ctx.guild.id, BOT_PREFIX)
+    text = (
+        "## 👑 Server Extra Ownership\n"
+        "Extra Owners have complete permission to set up VoiceClaw voice hubs, "
+        "modify categories, adjust bitrates, and access the Web Dashboard.\n\n"
+        f"**Available Commands:**\n"
+        f"• `{pref}extraowner add <@user|ID>` — Grant Extra Owner permission\n"
+        f"• `{pref}extraowner remove <@user|ID>` — Revoke Extra Owner permission\n"
+        f"• `{pref}extraowner list` — View all active Extra Owners"
+    )
+    view = discord.ui.LayoutView()
+    container = discord.ui.Container(discord.ui.TextDisplay(text), accent_color=None)
+    view.add_item(container)
+    await ctx.send(view=view)
+
+@extraowner_group.command(name="add")
+async def extraowner_add(ctx, user: discord.User):
+    """Grant Extra Owner permissions to a user (Server Owner only)."""
+    if not ctx.guild:
+        return
+    if ctx.author.id != ctx.guild.owner_id and ctx.author.id != OWNER_ID:
+        return await ctx.send("✕ Only the Discord Server Owner or Bot Developer can grant Extra Ownership.")
+
+    from mongo_db import add_extra_owner_async
+    success = await add_extra_owner_async(ctx.guild.id, user.id, added_by=ctx.author.id)
+    if success:
+        text = f"✅ **Granted Extra Ownership** to <@{user.id}> (`{user.name}`).\nThey can now configure VoiceClaw via chat commands and the Web Dashboard."
+    else:
+        text = f"✕ Failed to add <@{user.id}> as Extra Owner. Database error."
+
+    view = discord.ui.LayoutView()
+    container = discord.ui.Container(discord.ui.TextDisplay(text), accent_color=None)
+    view.add_item(container)
+    await ctx.send(view=view)
+
+@extraowner_group.command(name="remove")
+async def extraowner_remove(ctx, user: discord.User):
+    """Revoke Extra Owner permissions from a user (Server Owner only)."""
+    if not ctx.guild:
+        return
+    if ctx.author.id != ctx.guild.owner_id and ctx.author.id != OWNER_ID:
+        return await ctx.send("✕ Only the Discord Server Owner or Bot Developer can revoke Extra Ownership.")
+
+    from mongo_db import remove_extra_owner_async
+    success = await remove_extra_owner_async(ctx.guild.id, user.id)
+    if success:
+        text = f"🗑️ **Revoked Extra Ownership** from <@{user.id}> (`{user.name}`)."
+    else:
+        text = f"✕ Failed to remove <@{user.id}> from Extra Owners."
+
+    view = discord.ui.LayoutView()
+    container = discord.ui.Container(discord.ui.TextDisplay(text), accent_color=None)
+    view.add_item(container)
+    await ctx.send(view=view)
+
+@extraowner_group.command(name="list")
+async def extraowner_list(ctx):
+    """List all Extra Owners for this server."""
+    if not ctx.guild:
+        return
+    from mongo_db import get_extra_owners_async
+    owners = await get_extra_owners_async(ctx.guild.id)
+    if not owners:
+        lines = "No Extra Owners assigned yet for this server.\nOnly the Server Owner has management access."
+    else:
+        lines = "\n".join([f"• <@{uid}> (`{uid}`)" for uid in owners])
+
+    text = f"## 👑 Extra Owners for {ctx.guild.name}\n\n{lines}"
+    view = discord.ui.LayoutView()
+    container = discord.ui.Container(discord.ui.TextDisplay(text), accent_color=None)
+    view.add_item(container)
+    await ctx.send(view=view)
+
+# ---------------------------------------------------------------------------
+# Bot Super Owner Server Administration (botban, botunban)
+# ---------------------------------------------------------------------------
+
+@bot.command(name="botban")
+async def botban_server(ctx, guild_id: int, *, reason: str = "Banned by Bot Owner"):
+    """Ban a server from using the bot (Bot Owner only)."""
+    if ctx.author.id != OWNER_ID:
+        return await ctx.send("✕ Only the Bot Owner can use this command.")
+
+    from mongo_db import blacklist_guild_async
+    await blacklist_guild_async(guild_id, reason=reason, banned_by=ctx.author.id)
+
+    target_g = bot.get_guild(guild_id)
+    g_name = target_g.name if target_g else f"Guild {guild_id}"
+    if target_g:
+        try:
+            await target_g.leave()
+        except Exception:
+            pass
+
+    text = f"🚫 **Server Blacklisted**: `{g_name}` (`{guild_id}`)\n**Reason**: {reason}\nBot has departed the server."
+    view = discord.ui.LayoutView()
+    container = discord.ui.Container(discord.ui.TextDisplay(text), accent_color=None)
+    view.add_item(container)
+    await ctx.send(view=view)
+
+@bot.command(name="botunban")
+async def botunban_server(ctx, guild_id: int):
+    """Unban a server from using the bot (Bot Owner only)."""
+    if ctx.author.id != OWNER_ID:
+        return await ctx.send("✕ Only the Bot Owner can use this command.")
+
+    from mongo_db import unblacklist_guild_async
+    await unblacklist_guild_async(guild_id)
+
+    text = f"✅ **Server Unbanned**: `{guild_id}`. This server can now invite and use VoiceClaw."
+    view = discord.ui.LayoutView()
+    container = discord.ui.Container(discord.ui.TextDisplay(text), accent_color=None)
+    view.add_item(container)
+    await ctx.send(view=view)
+
 if __name__ == "__main__":
     if DISCORD_TOKEN and DISCORD_TOKEN != "your_discord_bot_token_here":
         bot.run(DISCORD_TOKEN)

@@ -909,9 +909,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (paneFeatures) paneFeatures.classList.toggle('active', tabName === 'features');
 
+    const paneAccess = document.getElementById('paneAccess');
+
+    if (paneAccess) paneAccess.classList.toggle('active', tabName === 'access');
+
     if (tabName === 'setup' && typeof loadActiveHubs === 'function') {
 
       loadActiveHubs();
+
+    }
+
+    if (tabName === 'access' && selectedGuild && typeof loadExtraOwners === 'function') {
+
+      loadExtraOwners(selectedGuild.id);
 
     }
 
@@ -1717,6 +1727,165 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     selectedGuild = null;
 
+  }
+
+  // ---------------------------------------------------------------------------
+  // Extra Owners & Super Owner Server Controls
+  // ---------------------------------------------------------------------------
+
+  async function loadExtraOwners(guildId) {
+    const listEl = document.getElementById('extraOwnersList');
+    if (!listEl) return;
+    listEl.innerHTML = '<div style="padding:1rem; border-radius:10px; background:rgba(255,255,255,0.02); border:1px dashed var(--border-color); color:var(--text-muted); font-size:0.88rem; text-align:center;">Loading extra owners...</div>';
+
+    // Show/hide owner super controls based on currentUser.isOwner
+    const ownerCard = document.getElementById('cardOwnerSuperControls');
+    if (ownerCard) {
+      ownerCard.style.display = (currentUser && currentUser.isOwner) ? 'block' : 'none';
+    }
+
+    try {
+      const res = await fetch(`/api/guild/${guildId}/extra-owners`);
+      if (!res.ok) {
+        listEl.innerHTML = '<div style="padding:0.75rem; color:#f87171; font-size:0.88rem;">Failed to load extra owners.</div>';
+        return;
+      }
+      const data = await res.json();
+      const owners = data.extra_owners || [];
+      if (owners.length === 0) {
+        listEl.innerHTML = '<div style="padding:1rem; border-radius:10px; background:rgba(255,255,255,0.02); border:1px dashed var(--border-color); color:var(--text-muted); font-size:0.88rem; text-align:center;">No extra owners granted yet. Only the Discord Server Owner has access.</div>';
+        return;
+      }
+
+      listEl.innerHTML = owners.map(o => `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:0.6rem 0.85rem; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px;">
+          <div style="display:flex; align-items:center; gap:0.65rem;">
+            <img src="${o.avatar_url}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.1);" alt="Avatar">
+            <div>
+              <div style="font-size:0.88rem; font-weight:600; color:var(--text-primary);">${o.username}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted); font-family:monospace;">ID: ${o.id}</div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-revoke-owner" data-id="${o.id}" style="padding:0.35rem 0.65rem; font-size:0.78rem; background:rgba(239,68,68,0.1); color:#f87171; border:1px solid rgba(239,68,68,0.2); border-radius:6px; cursor:pointer;">
+            Revoke
+          </button>
+        </div>
+      `).join('');
+
+      listEl.querySelectorAll('.btn-revoke-owner').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const targetId = btn.getAttribute('data-id');
+          if (!confirm(`Are you sure you want to revoke Extra Ownership from user ${targetId}?`)) return;
+          try {
+            const revRes = await fetch(`/api/guild/${guildId}/extra-owners/remove`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: targetId })
+            });
+            if (revRes.ok) {
+              showToast('Extra ownership revoked.', 'info');
+              loadExtraOwners(guildId);
+            } else {
+              showToast('Failed to revoke extra ownership.', 'error');
+            }
+          } catch(e) {
+            showToast('Network error revoking extra owner.', 'error');
+          }
+        });
+      });
+    } catch (e) {
+      listEl.innerHTML = '<div style="padding:0.75rem; color:#f87171; font-size:0.88rem;">Network error fetching extra owners.</div>';
+    }
+  }
+
+  // Add Extra Owner Button Handler
+  const btnAddExtraOwner = document.getElementById('btnAddExtraOwner');
+  const inputExtraOwnerId = document.getElementById('inputExtraOwnerId');
+  if (btnAddExtraOwner && inputExtraOwnerId) {
+    btnAddExtraOwner.addEventListener('click', async () => {
+      const targetUid = inputExtraOwnerId.value.trim();
+      if (!targetUid || !selectedGuild) return;
+      if (!/^\d{16,21}$/.test(targetUid)) {
+        showToast('Please enter a valid numeric Discord User ID (17-19 digits).', 'error');
+        return;
+      }
+      btnAddExtraOwner.disabled = true;
+      btnAddExtraOwner.textContent = 'Granting...';
+      try {
+        const res = await fetch(`/api/guild/${selectedGuild.id}/extra-owners/add`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: targetUid })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(data.message || 'Extra Owner added successfully!', 'success');
+          inputExtraOwnerId.value = '';
+          loadExtraOwners(selectedGuild.id);
+        } else {
+          showToast(data.detail || 'Failed to add extra owner.', 'error');
+        }
+      } catch (e) {
+        showToast('Network error adding extra owner.', 'error');
+      } finally {
+        btnAddExtraOwner.disabled = false;
+        btnAddExtraOwner.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Grant Extra Ownership';
+      }
+    });
+  }
+
+  // Bot Super Owner Server Controls (Ban Server & Force Leave)
+  const btnBanServer = document.getElementById('btnBanServer');
+  if (btnBanServer) {
+    btnBanServer.addEventListener('click', async () => {
+      if (!selectedGuild) return;
+      const reason = prompt(`Enter reason for banning server "${selectedGuild.name}" from VoiceClaw:`, 'Violating terms / spam');
+      if (reason === null) return;
+      if (!confirm(`CONFIRM: Blacklist and ban server "${selectedGuild.name}"? VoiceClaw will leave immediately.`)) return;
+
+      try {
+        const res = await fetch(`/api/admin/guild/${selectedGuild.id}/ban`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: reason || 'Banned by Bot Owner' })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(`Server ${selectedGuild.name} banned! Bot has departed.`, 'success');
+          closeGuildModal();
+          initDashboard();
+        } else {
+          showToast(data.detail || 'Failed to ban server.', 'error');
+        }
+      } catch (e) {
+        showToast('Network error while banning server.', 'error');
+      }
+    });
+  }
+
+  const btnLeaveServer = document.getElementById('btnLeaveServer');
+  if (btnLeaveServer) {
+    btnLeaveServer.addEventListener('click', async () => {
+      if (!selectedGuild) return;
+      if (!confirm(`Are you sure you want VoiceClaw to leave "${selectedGuild.name}"?`)) return;
+
+      try {
+        const res = await fetch(`/api/admin/guild/${selectedGuild.id}/leave`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(`Bot forced to leave ${selectedGuild.name}.`, 'info');
+          closeGuildModal();
+          initDashboard();
+        } else {
+          showToast(data.detail || 'Failed to force leave server.', 'error');
+        }
+      } catch (e) {
+        showToast('Network error while leaving server.', 'error');
+      }
+    });
   }
 
 

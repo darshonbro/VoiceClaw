@@ -378,6 +378,114 @@ def get_current_user_from_req(request: Request) -> Optional[dict]:
             pass
     return None
 
+def get_guild_extra_owners_sync(guild_id: str) -> List[str]:
+    db = get_mongo_db()
+    if db is None:
+        return []
+    try:
+        doc = db.guild_extra_owners.find_one({"guild_id": str(guild_id)})
+        if doc and "extra_owners" in doc:
+            return [str(u) for u in doc["extra_owners"]]
+    except Exception:
+        pass
+    return []
+
+def add_guild_extra_owner_sync(guild_id: str, user_id: str, added_by: str = "") -> bool:
+    db = get_mongo_db()
+    if db is None:
+        return False
+    try:
+        db.guild_extra_owners.update_one(
+            {"guild_id": str(guild_id)},
+            {
+                "$addToSet": {"extra_owners": str(user_id)},
+                "$set": {"updated_at": time.time(), "last_modified_by": str(added_by)}
+            },
+            upsert=True
+        )
+        return True
+    except Exception:
+        return False
+
+def remove_guild_extra_owner_sync(guild_id: str, user_id: str) -> bool:
+    db = get_mongo_db()
+    if db is None:
+        return False
+    try:
+        db.guild_extra_owners.update_one(
+            {"guild_id": str(guild_id)},
+            {"$pull": {"extra_owners": str(user_id)}}
+        )
+        return True
+    except Exception:
+        return False
+
+def is_guild_banned_sync(guild_id: str) -> bool:
+    db = get_mongo_db()
+    if db is None:
+        return False
+    try:
+        doc = db.blacklisted_guilds.find_one({"guild_id": str(guild_id)})
+        return bool(doc)
+    except Exception:
+        return False
+
+def ban_guild_sync(guild_id: str, reason: str = "Banned by Bot Owner", banned_by: str = OWNER_ID) -> bool:
+    db = get_mongo_db()
+    if db is None:
+        return False
+    try:
+        db.blacklisted_guilds.update_one(
+            {"guild_id": str(guild_id)},
+            {
+                "$set": {
+                    "guild_id": str(guild_id),
+                    "reason": reason,
+                    "banned_by": str(banned_by),
+                    "banned_at": time.time()
+                }
+            },
+            upsert=True
+        )
+        return True
+    except Exception:
+        return False
+
+def unban_guild_sync(guild_id: str) -> bool:
+    db = get_mongo_db()
+    if db is None:
+        return False
+    try:
+        db.blacklisted_guilds.delete_one({"guild_id": str(guild_id)})
+        return True
+    except Exception:
+        return False
+
+def get_banned_guilds_sync() -> List[dict]:
+    db = get_mongo_db()
+    if db is None:
+        return []
+    try:
+        docs = list(db.blacklisted_guilds.find())
+        for d in docs:
+            d.pop("_id", None)
+        return docs
+    except Exception:
+        return []
+
+async def force_bot_leave_guild(guild_id: str) -> bool:
+    if not DISCORD_TOKEN:
+        return False
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=4.0)) as session:
+            headers = {"Authorization": f"Bot {DISCORD_TOKEN}", "User-Agent": "VoiceClawASGI/2.0"}
+            async with session.delete(f"https://discord.com/api/v10/users/@me/guilds/{guild_id}", headers=headers) as resp:
+                print(f"[Force Leave Guild {guild_id}] Status: {resp.status}")
+                return resp.status in (200, 204)
+    except Exception as e:
+        print(f"[Force Leave Guild Error]: {e}", file=sys.stderr)
+        return False
+
 def verify_is_owner(request: Request) -> dict:
     user = get_current_user_from_req(request)
     if not user:
@@ -390,15 +498,25 @@ def verify_guild_admin(request: Request, guild_id: str) -> dict:
     user = get_current_user_from_req(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required. Please sign in.")
-    if str(user.get("id")) == OWNER_ID or user.get("isOwner"):
+    uid = str(user.get("id"))
+    # 1. Bot Super Owner has universal access
+    if uid == OWNER_ID or user.get("isOwner"):
         return user
+
+    # 2. Server Owner check
     session_id = request.cookies.get("voiceclaw_session")
     session = _memory_sessions.get(session_id, {})
     user_guilds = session.get("guilds", [])
-    has_perm = any(str(g.get("id")) == str(guild_id) and g.get("hasAdmin") for g in user_guilds)
-    if not has_perm:
-        raise HTTPException(status_code=403, detail="Forbidden: You do not have permission to manage this server.")
-    return user
+    is_server_owner = any(str(g.get("id")) == str(guild_id) and g.get("owner") for g in user_guilds)
+    if is_server_owner:
+        return user
+
+    # 3. Extra Owner check from DB
+    extra_owners = get_guild_extra_owners_sync(guild_id)
+    if uid in extra_owners:
+        return user
+
+    raise HTTPException(status_code=403, detail="Forbidden: You must be the Server Owner or an Extra Owner to configure this server.")
 
 def get_or_create_fallback_session():
     global _cached_fallback_session
@@ -547,15 +665,24 @@ async def get_stats():
     return stats
 
 
+def get_effective_redirect_uri(request: Request) -> str:
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or ""
+    if "voiceclaw.space" in host:
+        return "https://voiceclaw.space/api/auth/callback"
+    if "darshon.lol" in host:
+        return f"https://{host}/api/auth/callback"
+    return DISCORD_REDIRECT_URI
+
 # Discord OAuth2 Login
 @app.get("/api/auth/login")
-async def oauth_login():
+async def oauth_login(request: Request):
     if not DISCORD_CLIENT_SECRET:
         return RedirectResponse(url="/dashboard?auth_error=oauth_not_configured", status_code=status.HTTP_302_FOUND)
 
+    redirect_uri = get_effective_redirect_uri(request)
     oauth_url = (
         f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}"
-        f"&redirect_uri={DISCORD_REDIRECT_URI}&response_type=code"
+        f"&redirect_uri={redirect_uri}&response_type=code"
         f"&scope=identify%20guilds"
     )
     return RedirectResponse(url=oauth_url, status_code=status.HTTP_302_FOUND)
@@ -563,8 +690,10 @@ async def oauth_login():
 
 # Discord OAuth2 Callback
 @app.get("/api/auth/callback")
-async def oauth_callback(code: Optional[str] = None):
+async def oauth_callback(request: Request, code: Optional[str] = None):
     session_id = None
+    redirect_uri = get_effective_redirect_uri(request)
+
     if code and DISCORD_CLIENT_SECRET:
         try:
             token_payload = {
@@ -572,7 +701,7 @@ async def oauth_callback(code: Optional[str] = None):
                 "client_secret": DISCORD_CLIENT_SECRET,
                 "grant_type": "authorization_code",
                 "code": code,
-                "redirect_uri": DISCORD_REDIRECT_URI
+                "redirect_uri": redirect_uri
             }
             async with aiohttp.ClientSession() as session:
                 async with session.post(
@@ -591,13 +720,21 @@ async def oauth_callback(code: Optional[str] = None):
                             async with session.get("https://discord.com/api/v10/users/@me/guilds", headers=auth_headers) as g_resp:
                                 raw_guilds = await g_resp.json()
 
+                            u_id = str(user_data["id"])
+                            is_bot_owner = (u_id == OWNER_ID)
                             known_guild_ids = get_bot_guild_ids()
                             parsed_guilds = []
+
                             for g in raw_guilds:
-                                perms = int(g.get("permissions", 0))
-                                has_admin = bool(perms & 0x8) or bool(perms & 0x20) or g.get("owner", False)
                                 g_id = str(g["id"])
-                                if has_admin and (g_id in known_guild_ids):
+                                if g_id not in known_guild_ids:
+                                    continue
+                                is_discord_owner = bool(g.get("owner", False))
+                                extra_owners = get_guild_extra_owners_sync(g_id)
+                                is_extra = u_id in extra_owners
+
+                                # Only Server Owner or Extra Owner (or Bot Super Owner) can manage
+                                if is_bot_owner or is_discord_owner or is_extra:
                                     icon = g.get("icon")
                                     icon_url = f"https://cdn.discordapp.com/icons/{g_id}/{icon}.png?size=128" if icon else ""
                                     parsed_guilds.append({
@@ -605,22 +742,23 @@ async def oauth_callback(code: Optional[str] = None):
                                         "name": g.get("name"),
                                         "icon": icon,
                                         "icon_url": icon_url,
-                                        "owner": g.get("owner", False),
+                                        "owner": is_discord_owner,
+                                        "isExtraOwner": is_extra,
                                         "hasAdmin": True,
                                         "hasBot": True
                                     })
 
                             avatar_id = user_data.get("avatar")
-                            avatar_url = f"https://cdn.discordapp.com/avatars/{user_data['id']}/{avatar_id}.png" if avatar_id else "https://cdn.discordapp.com/embed/avatars/0.png"
+                            avatar_url = f"https://cdn.discordapp.com/avatars/{u_id}/{avatar_id}.png" if avatar_id else "https://cdn.discordapp.com/embed/avatars/0.png"
                             session_id = f"sess_{secrets.token_hex(24)}"
                             session_obj = {
                                 "user": {
-                                    "id": str(user_data["id"]),
+                                    "id": u_id,
                                     "username": user_data.get("username"),
                                     "global_name": user_data.get("global_name", user_data.get("username")),
                                     "avatar": avatar_id,
                                     "avatar_url": avatar_url,
-                                    "isOwner": str(user_data["id"]) == OWNER_ID
+                                    "isOwner": is_bot_owner
                                 },
                                 "guilds": parsed_guilds,
                                 "activeGuildId": parsed_guilds[0]["id"] if parsed_guilds else None,
@@ -629,12 +767,12 @@ async def oauth_callback(code: Optional[str] = None):
                             _memory_sessions[session_id] = session_obj
                             db = get_mongo_db()
                             if db is not None:
-                                db.webSessions.replace_one({"_id": session_id}, {"_id": session_id, "session": session_obj, "userId": str(user_data["id"])}, upsert=True)
+                                db.webSessions.replace_one({"_id": session_id}, {"_id": session_id, "session": session_obj, "userId": u_id}, upsert=True)
         except Exception as e:
             print(f"[OAuth2 Error]: {e}", file=sys.stderr)
 
     if not session_id:
-        session_id, _ = get_or_create_fallback_session()
+        return RedirectResponse(url="/dashboard?auth_error=oauth_failed", status_code=status.HTTP_302_FOUND)
 
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     response.set_cookie(key="voiceclaw_session", value=session_id, max_age=604800, httponly=True, samesite="lax")
@@ -647,13 +785,19 @@ async def get_me(request: Request, response: Response):
     t0 = time.time()
     session_id = request.cookies.get("voiceclaw_session")
     session_data = None
-    new_cookie = False
 
     if session_id and session_id in _memory_sessions:
         session_data = _memory_sessions[session_id]
     elif session_id:
-        # Avoid synchronous blocking if remote mongo
-        session_data = _memory_sessions.get(session_id)
+        db = get_mongo_db()
+        if db is not None:
+            try:
+                doc = db.webSessions.find_one({"_id": session_id})
+                if doc and "session" in doc:
+                    session_data = doc["session"]
+                    _memory_sessions[session_id] = session_data
+            except Exception:
+                pass
 
     if not session_data or not session_data.get("user"):
         return {
@@ -666,19 +810,44 @@ async def get_me(request: Request, response: Response):
         }
 
     u = session_data["user"]
-    is_owner = (str(u.get("id")) == OWNER_ID) or bool(u.get("isOwner"))
+    uid = str(u.get("id"))
+    is_owner = (uid == OWNER_ID) or bool(u.get("isOwner"))
     u["isOwner"] = is_owner
     if is_owner:
         u["username"] = _cached_owner_profile.get("username", "darshonbro")
         u["avatar_url"] = _cached_owner_profile.get("avatar_url", u.get("avatar_url"))
 
     if is_owner:
+        # Bot Super Owner sees ALL servers where VoiceClaw is joined
         active_guilds = await fetch_all_bot_guilds_detailed()
+        for g in active_guilds:
+            gid = str(g.get("id"))
+            g["isOwnerView"] = True
+            g["hasAdmin"] = True
+            g["isBanned"] = is_guild_banned_sync(gid)
     else:
+        # Regular user only sees servers where they are Server Owner OR Extra Owner
         raw_guilds = session_data.get("guilds", [])
-        active_guilds = await fetch_all_bot_guilds_detailed(user_session_guilds=raw_guilds)
+        active_guilds = []
+        for g in raw_guilds:
+            gid = str(g.get("id"))
+            is_disc_owner = bool(g.get("owner", False))
+            extra_owners = get_guild_extra_owners_sync(gid)
+            if is_disc_owner or (uid in extra_owners):
+                g["isExtraOwner"] = uid in extra_owners
+                g["hasAdmin"] = True
+                active_guilds.append(g)
 
     session_data["guilds"] = active_guilds
+
+    return {
+        "authenticated": True,
+        "session_id": session_id,
+        "user": u,
+        "guilds": active_guilds,
+        "activeGuildId": active_guilds[0]["id"] if active_guilds else None,
+        "oauth_configured": bool(DISCORD_CLIENT_SECRET)
+    }
     t1 = time.time()
     print(f"[Timing /api/auth/me] user={u.get('username')} authenticated, guilds={len(active_guilds)}")
 
@@ -1160,6 +1329,145 @@ async def delete_guild_voice_hub(guild_id: str, request: Request):
             print(f"[Hub Delete] Error deleting discord channel: {e}")
 
     return {"success": True, "deletedJoinChannelID": str(join_channel_id)}
+
+
+# ---------------------------------------------------------------------------
+# Extra Owners API
+# ---------------------------------------------------------------------------
+
+@app.get("/api/guild/{guild_id}/extra-owners")
+async def get_extra_owners_route(guild_id: str, request: Request):
+    verify_guild_admin(request, guild_id)
+    raw_ids = get_guild_extra_owners_sync(guild_id)
+    users = []
+
+    # Enrich with Discord user details if bot token available
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3.0)) as session:
+        headers = {"Authorization": f"Bot {DISCORD_TOKEN}", "User-Agent": "VoiceClawASGI/2.0"} if DISCORD_TOKEN else {}
+        for uid in raw_ids:
+            u_info = {
+                "id": uid,
+                "username": f"User {uid[:6]}",
+                "avatar_url": "https://cdn.discordapp.com/embed/avatars/0.png"
+            }
+            if DISCORD_TOKEN:
+                try:
+                    async with session.get(f"https://discord.com/api/v10/users/{uid}", headers=headers) as r:
+                        if r.status == 200:
+                            data = await r.json()
+                            av = data.get("avatar")
+                            u_info["username"] = data.get("global_name") or data.get("username", uid)
+                            if av:
+                                u_info["avatar_url"] = f"https://cdn.discordapp.com/avatars/{uid}/{av}.png?size=64"
+                except Exception:
+                    pass
+            users.append(u_info)
+
+    return {"success": True, "extra_owners": users}
+
+
+@app.post("/api/guild/{guild_id}/extra-owners/add")
+async def add_extra_owner_route(guild_id: str, request: Request):
+    user = verify_guild_admin(request, guild_id)
+    payload = await request.json()
+    target_uid = str(payload.get("user_id", "")).strip()
+    if not target_uid.isdigit() or len(target_uid) < 15:
+        raise HTTPException(status_code=400, detail="Invalid Discord User ID. Must be a 17-19 digit numeric ID.")
+
+    target_username = target_uid
+    target_avatar = ""
+    if DISCORD_TOKEN:
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=4.0)) as session:
+                headers = {"Authorization": f"Bot {DISCORD_TOKEN}", "User-Agent": "VoiceClawASGI/2.0"}
+                async with session.get(f"https://discord.com/api/v10/users/{target_uid}", headers=headers) as r:
+                    if r.status == 200:
+                        data = await r.json()
+                        target_username = data.get("global_name") or data.get("username", target_uid)
+                        av = data.get("avatar")
+                        if av:
+                            target_avatar = f"https://cdn.discordapp.com/avatars/{target_uid}/{av}.png?size=64"
+                    else:
+                        raise HTTPException(status_code=404, detail="Discord User ID not found on Discord.")
+        except HTTPException:
+            raise
+        except Exception as ex:
+            print(f"[Resolve User Error]: {ex}")
+
+    success = add_guild_extra_owner_sync(guild_id, target_uid, added_by=str(user.get("id")))
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to save extra owner to database.")
+
+    return {
+        "success": True,
+        "message": f"Added {target_username} as an Extra Owner.",
+        "user": {
+            "id": target_uid,
+            "username": target_username,
+            "avatar_url": target_avatar or "https://cdn.discordapp.com/embed/avatars/0.png"
+        }
+    }
+
+
+@app.post("/api/guild/{guild_id}/extra-owners/remove")
+async def remove_extra_owner_route(guild_id: str, request: Request):
+    verify_guild_admin(request, guild_id)
+    payload = await request.json()
+    target_uid = str(payload.get("user_id", "")).strip()
+    if not target_uid:
+        raise HTTPException(status_code=400, detail="user_id is required.")
+
+    remove_guild_extra_owner_sync(guild_id, target_uid)
+    return {"success": True, "message": "Extra owner removed."}
+
+
+# ---------------------------------------------------------------------------
+# Bot Super Owner Server Administration (Ban, Unban, Force Leave)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/admin/guilds/banned")
+async def get_banned_guilds_route(request: Request):
+    verify_is_owner(request)
+    return {"success": True, "banned_guilds": get_banned_guilds_sync()}
+
+
+@app.post("/api/admin/guild/{guild_id}/ban")
+async def ban_guild_route(guild_id: str, request: Request):
+    owner = verify_is_owner(request)
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    reason = payload.get("reason", "Banned by Bot Owner via Master Dashboard")
+
+    ban_guild_sync(guild_id, reason=reason, banned_by=str(owner.get("id")))
+    left = await force_bot_leave_guild(guild_id)
+
+    global _cached_bot_guild_ids
+    _cached_bot_guild_ids = None
+
+    return {
+        "success": True,
+        "message": f"Server {guild_id} has been banned and bot has departed.",
+        "bot_left": left
+    }
+
+
+@app.post("/api/admin/guild/{guild_id}/unban")
+async def unban_guild_route(guild_id: str, request: Request):
+    verify_is_owner(request)
+    unban_guild_sync(guild_id)
+    return {"success": True, "message": f"Server {guild_id} has been unbanned."}
+
+
+@app.post("/api/admin/guild/{guild_id}/leave")
+async def leave_guild_route(guild_id: str, request: Request):
+    verify_is_owner(request)
+    left = await force_bot_leave_guild(guild_id)
+    global _cached_bot_guild_ids
+    _cached_bot_guild_ids = None
+    return {"success": True, "left": left, "message": f"Bot forced to leave server {guild_id}."}
+
 
 
 # Public Pricing Plans

@@ -3514,7 +3514,7 @@ class voice(commands.Cog):
         return 0.0
 
     async def is_server_owner_or_bot_owner(self, user: typing.Union[discord.Member, discord.User], guild: typing.Optional[discord.Guild]) -> bool:
-        """Strict check ensuring only the Server Owner (or Bot Developer) can access setup configurations"""
+        """Strict check ensuring only the Server Owner, Bot Developer, or authorized Extra Owner can access setup configurations"""
         if not guild:
             return False
         if user.id == guild.owner_id:
@@ -3523,6 +3523,13 @@ class voice(commands.Cog):
             return True
         try:
             if await self.bot.is_owner(user):
+                return True
+        except Exception:
+            pass
+        # Extra Owner check
+        try:
+            from mongo_db import is_extra_owner_async
+            if await is_extra_owner_async(guild.id, user.id):
                 return True
         except Exception:
             pass
