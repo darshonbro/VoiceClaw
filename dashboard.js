@@ -155,13 +155,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tabLicensesBtn = document.getElementById('tabLicensesBtn');
   const adminRootBadge = document.getElementById('adminRootBadge');
 
-  // Admin Auth Modal Elements
-  const adminAuthModal = document.getElementById('adminAuthModal');
-  const btnCloseAdminAuthModal = document.getElementById('btnCloseAdminAuthModal');
-  const btnCancelAdminAuthModal = document.getElementById('btnCancelAdminAuthModal');
-  const btnSubmitAdminAuth = document.getElementById('btnSubmitAdminAuth');
-  const adminAuthPasswordInput = document.getElementById('adminAuthPasswordInput');
-  const adminAuthError = document.getElementById('adminAuthError');
 
   // Toast
   const dashToast = document.getElementById('dashToast');
