@@ -771,9 +771,7 @@ async def oauth_callback(request: Request, code: Optional[str] = None):
             print(f"[OAuth2 Error]: {e}", file=sys.stderr)
 
     if not session_id:
-        if not DISCORD_CLIENT_SECRET:
-            return RedirectResponse(url="/dashboard?auth_error=client_secret_missing", status_code=status.HTTP_302_FOUND)
-        return RedirectResponse(url="/dashboard?auth_error=oauth_failed", status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
 
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     response.set_cookie(key="voiceclaw_session", value=session_id, max_age=604800, httponly=True, samesite="lax")
