@@ -676,9 +676,6 @@ def get_effective_redirect_uri(request: Request) -> str:
 # Discord OAuth2 Login
 @app.get("/api/auth/login")
 async def oauth_login(request: Request):
-    if not DISCORD_CLIENT_SECRET:
-        return RedirectResponse(url="/dashboard?auth_error=oauth_not_configured", status_code=status.HTTP_302_FOUND)
-
     redirect_uri = get_effective_redirect_uri(request)
     oauth_url = (
         f"https://discord.com/api/oauth2/authorize?client_id={DISCORD_CLIENT_ID}"
@@ -730,11 +727,13 @@ async def oauth_callback(request: Request, code: Optional[str] = None):
                                 if g_id not in known_guild_ids:
                                     continue
                                 is_discord_owner = bool(g.get("owner", False))
+                                perms = int(g.get("permissions", 0))
+                                has_admin = bool(perms & 0x8) or bool(perms & 0x20) or is_discord_owner
                                 extra_owners = get_guild_extra_owners_sync(g_id)
                                 is_extra = u_id in extra_owners
 
-                                # Only Server Owner or Extra Owner (or Bot Super Owner) can manage
-                                if is_bot_owner or is_discord_owner or is_extra:
+                                # Bot Super Owner, Server Owner, Server Admin, or Extra Owner
+                                if is_bot_owner or is_discord_owner or has_admin or is_extra:
                                     icon = g.get("icon")
                                     icon_url = f"https://cdn.discordapp.com/icons/{g_id}/{icon}.png?size=128" if icon else ""
                                     parsed_guilds.append({
@@ -772,6 +771,8 @@ async def oauth_callback(request: Request, code: Optional[str] = None):
             print(f"[OAuth2 Error]: {e}", file=sys.stderr)
 
     if not session_id:
+        if not DISCORD_CLIENT_SECRET:
+            return RedirectResponse(url="/dashboard?auth_error=client_secret_missing", status_code=status.HTTP_302_FOUND)
         return RedirectResponse(url="/dashboard?auth_error=oauth_failed", status_code=status.HTTP_302_FOUND)
 
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
