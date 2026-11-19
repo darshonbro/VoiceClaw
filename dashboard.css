@@ -1241,6 +1241,19 @@ input:checked + .slider:before {
 /* ==========================================================================
    Navigation Tabs & Section Switcher
    ========================================================================== */
+.owner-only-hidden,
+.dash-nav-tab.owner-only-hidden,
+#tabPricingBtn.owner-only-hidden,
+#tabLicensesBtn.owner-only-hidden,
+.dash-nav-tab[style*="display: none"],
+.dash-nav-tab[style*="display:none"],
+#tabPricingBtn[style*="display: none"],
+#tabPricingBtn[style*="display:none"],
+#tabLicensesBtn[style*="display: none"],
+#tabLicensesBtn[style*="display:none"] {
+  display: none !important;
+}
+
 .dash-nav-tab {
   background: transparent;
   border: 1px solid transparent;
@@ -3123,12 +3136,12 @@ input:checked + .slider:before {
     display: inline !important;
   }
 
-  /* Nav Tabs - Equal 3-Column Side-by-Side Segmented Bar (Zero cut-off) */
+  /* Nav Tabs - Equal Dynamic Side-by-Side Segmented Bar (Zero cut-off) */
   .dash-nav-center {
     width: 100% !important;
     order: 3;
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
+    display: flex !important;
+    align-items: center !important;
     gap: 4px !important;
     padding: 3px !important;
     background: rgba(14, 18, 28, 0.95) !important;
@@ -3143,7 +3156,8 @@ input:checked + .slider:before {
 
   .dash-nav-tab,
   .dash-nav-item {
-    display: flex !important;
+    display: flex;
+    flex: 1 1 0;
     align-items: center !important;
     justify-content: center !important;
     white-space: nowrap !important;
@@ -3156,6 +3170,19 @@ input:checked + .slider:before {
     height: 36px !important;
     box-sizing: border-box !important;
     gap: 5px !important;
+  }
+
+  .owner-only-hidden,
+  .dash-nav-tab.owner-only-hidden,
+  #tabPricingBtn.owner-only-hidden,
+  #tabLicensesBtn.owner-only-hidden,
+  .dash-nav-tab[style*="display: none"],
+  .dash-nav-tab[style*="display:none"],
+  #tabPricingBtn[style*="display: none"],
+  #tabPricingBtn[style*="display:none"],
+  #tabLicensesBtn[style*="display: none"],
+  #tabLicensesBtn[style*="display:none"] {
+    display: none !important;
   }
 
   .dash-nav-tab svg {

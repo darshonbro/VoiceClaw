@@ -228,9 +228,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!userProfileArea) return;
 
     if (!user || !user.id) {
-      if (tabPricingBtn) tabPricingBtn.style.display = 'none';
-      if (tabLicensesBtn) tabLicensesBtn.style.display = 'none';
-      if (adminRootBadge) adminRootBadge.style.display = 'none';
+      if (tabPricingBtn) {
+        tabPricingBtn.style.setProperty('display', 'none', 'important');
+        tabPricingBtn.classList.add('owner-only-hidden');
+      }
+      if (tabLicensesBtn) {
+        tabLicensesBtn.style.setProperty('display', 'none', 'important');
+        tabLicensesBtn.classList.add('owner-only-hidden');
+      }
+      if (adminRootBadge) {
+        adminRootBadge.style.setProperty('display', 'none', 'important');
+        adminRootBadge.classList.add('owner-only-hidden');
+      }
       if (welcomeUser) welcomeUser.textContent = 'VoiceClaw Master Console';
 
       userProfileArea.innerHTML = `
@@ -247,9 +256,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const avatarUrl = user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png';
 
     if (welcomeUser) welcomeUser.textContent = `Welcome back, ${userName}`;
-    if (tabPricingBtn) tabPricingBtn.style.display = isOwner ? 'inline-flex' : 'none';
-    if (tabLicensesBtn) tabLicensesBtn.style.display = isOwner ? 'inline-flex' : 'none';
-    if (adminRootBadge) adminRootBadge.style.display = isOwner ? 'inline-flex' : 'none';
+    if (tabPricingBtn) {
+      tabPricingBtn.style.setProperty('display', isOwner ? 'inline-flex' : 'none', 'important');
+      tabPricingBtn.classList.toggle('owner-only-hidden', !isOwner);
+    }
+    if (tabLicensesBtn) {
+      tabLicensesBtn.style.setProperty('display', isOwner ? 'inline-flex' : 'none', 'important');
+      tabLicensesBtn.classList.toggle('owner-only-hidden', !isOwner);
+    }
+    if (adminRootBadge) {
+      adminRootBadge.style.setProperty('display', isOwner ? 'inline-flex' : 'none', 'important');
+      adminRootBadge.classList.toggle('owner-only-hidden', !isOwner);
+    }
 
     userProfileArea.innerHTML = `
       <div class="user-pill">
