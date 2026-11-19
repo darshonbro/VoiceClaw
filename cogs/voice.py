@@ -100,7 +100,7 @@ discord.Webhook.send = _v2_webhook_send
 
 def make_web_setup_redirect(feature_name: str = 'Voice Setup', guild_id: typing.Optional[int] = None) -> discord.ui.LayoutView:
     view = discord.ui.LayoutView()
-    url = f'https://voiceclaw.online/dashboard?guild={guild_id}' if guild_id else 'https://voiceclaw.online/dashboard'
+    url = f'https://voiceclaw.space/dashboard?guild={guild_id}' if guild_id else 'https://voiceclaw.space/dashboard'
     content = (
         '### 🌐 VoiceClaw Web Dashboard Setup\n'
         f'Bot setup and channel creation for **{feature_name}** are now managed directly from the **VoiceClaw Web Dashboard**!\n\n'

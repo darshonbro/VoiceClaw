@@ -29,7 +29,7 @@ Our discord server:
 https://discord.gg/y9pgpbt
 
 Use our public bot:
-https://voiceclaw.xyz/
+https://voiceclaw.space/
 
 **This version of the bot is sufficient enough for casual use on afew servers, I have no intention what so ever of updating it nor will support anyone with hosting it.**
 
