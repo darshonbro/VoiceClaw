@@ -74,12 +74,17 @@ _cached_guild_roles_time: Dict[str, float] = {}
 
 
 def get_bot_guild_ids():
-    global _cached_bot_guild_ids, _cached_bot_guilds_time
+    global _cached_bot_guild_ids, _cached_bot_guilds_time, _cached_detailed_guilds
     now = time.time()
     if _cached_bot_guild_ids is not None and (now - _cached_bot_guilds_time) < 60:
         return _cached_bot_guild_ids
 
     ids = set()
+    if _cached_detailed_guilds:
+        for g in _cached_detailed_guilds:
+            if isinstance(g, dict) and "id" in g:
+                ids.add(str(g["id"]))
+
     db = get_mongo_db()
     if db is not None:
         try:
@@ -503,20 +508,33 @@ def verify_guild_admin(request: Request, guild_id: str) -> dict:
     if uid == OWNER_ID or user.get("isOwner"):
         return user
 
-    # 2. Server Owner check
+    # 2. Server Owner or Discord Admin check from session
     session_id = request.cookies.get("voiceclaw_session")
     session = _memory_sessions.get(session_id, {})
-    user_guilds = session.get("guilds", [])
-    is_server_owner = any(str(g.get("id")) == str(guild_id) and g.get("owner") for g in user_guilds)
-    if is_server_owner:
+    if not session and session_id:
+        db = get_mongo_db()
+        if db is not None:
+            try:
+                doc = db.webSessions.find_one({"_id": session_id})
+                if doc and "session" in doc:
+                    session = doc["session"]
+            except Exception:
+                pass
+
+    user_guilds = session.get("guilds", []) if session else []
+    has_perm = any(
+        str(g.get("id")) == str(guild_id) and (g.get("owner") or g.get("hasAdmin") or g.get("isExtraOwner"))
+        for g in user_guilds
+    )
+    if has_perm:
         return user
 
-    # 3. Extra Owner check from DB
+    # 3. Extra Owner check from DB directly
     extra_owners = get_guild_extra_owners_sync(guild_id)
     if uid in extra_owners:
         return user
 
-    raise HTTPException(status_code=403, detail="Forbidden: You must be the Server Owner or an Extra Owner to configure this server.")
+    raise HTTPException(status_code=403, detail="Forbidden: You must be the Server Owner, Administrator, or an Extra Owner to configure this server.")
 
 def get_or_create_fallback_session():
     global _cached_fallback_session
@@ -736,7 +754,10 @@ async def oauth_callback(request: Request, code: Optional[str] = None):
                             if g_id not in known_guild_ids:
                                 continue
                             is_discord_owner = bool(g.get("owner", False))
-                            perms = int(g.get("permissions", 0))
+                            try:
+                                perms = int(g.get("permissions", 0) or 0)
+                            except Exception:
+                                perms = 0
                             has_admin = bool(perms & 0x8) or bool(perms & 0x20) or is_discord_owner
                             extra_owners = get_guild_extra_owners_sync(g_id)
                             is_extra = u_id in extra_owners
@@ -744,20 +765,23 @@ async def oauth_callback(request: Request, code: Optional[str] = None):
                             # Bot Super Owner, Server Owner, Server Admin, or Extra Owner
                             if is_bot_owner or is_discord_owner or has_admin or is_extra:
                                 icon = g.get("icon")
-                                icon_url = f"https://cdn.discordapp.com/icons/{g_id}/{icon}.png?size=128" if icon else ""
+                                icon_ext = "gif" if (icon and icon.startswith("a_")) else "png"
+                                icon_url = f"https://cdn.discordapp.com/icons/{g_id}/{icon}.{icon_ext}?size=128" if icon else ""
                                 parsed_guilds.append({
                                     "id": g_id,
                                     "name": g.get("name"),
-                                    "icon": icon,
+                                    "icon": icon or "",
                                     "icon_url": icon_url,
                                     "owner": is_discord_owner,
                                     "isExtraOwner": is_extra,
                                     "hasAdmin": True,
-                                    "hasBot": True
+                                    "hasBot": True,
+                                    "isBanned": is_guild_banned_sync(g_id)
                                 })
 
                         avatar_id = user_data.get("avatar")
-                        avatar_url = f"https://cdn.discordapp.com/avatars/{u_id}/{avatar_id}.png" if avatar_id else "https://cdn.discordapp.com/embed/avatars/0.png"
+                        avatar_ext = "gif" if (avatar_id and avatar_id.startswith("a_")) else "png"
+                        avatar_url = f"https://cdn.discordapp.com/avatars/{u_id}/{avatar_id}.{avatar_ext}?size=128" if avatar_id else "https://cdn.discordapp.com/embed/avatars/0.png"
                         session_id = f"sess_{secrets.token_hex(24)}"
                         session_obj = {
                             "user": {
@@ -835,30 +859,34 @@ async def get_me(request: Request, response: Response):
             g["hasAdmin"] = True
             g["isBanned"] = is_guild_banned_sync(gid)
     else:
-        # Regular user only sees servers where they are Server Owner OR Extra Owner
+        # Regular user sees servers where they are Server Owner, Discord Admin, or Extra Owner
         raw_guilds = session_data.get("guilds", [])
+        if not raw_guilds and session_id:
+            db = get_mongo_db()
+            if db is not None:
+                try:
+                    sdoc = db.webSessions.find_one({"_id": session_id})
+                    if sdoc and "session" in sdoc:
+                        raw_guilds = sdoc["session"].get("guilds", [])
+                except Exception:
+                    pass
+
         active_guilds = []
         for g in raw_guilds:
             gid = str(g.get("id"))
             is_disc_owner = bool(g.get("owner", False))
             extra_owners = get_guild_extra_owners_sync(gid)
-            if is_disc_owner or (uid in extra_owners):
-                g["isExtraOwner"] = uid in extra_owners
+            is_extra = uid in extra_owners
+            has_admin = bool(g.get("hasAdmin", False)) or is_disc_owner or is_extra
+
+            if is_disc_owner or has_admin or is_extra:
+                g["isExtraOwner"] = is_extra
                 g["hasAdmin"] = True
+                g["isBanned"] = is_guild_banned_sync(gid)
                 active_guilds.append(g)
 
-    session_data["guilds"] = active_guilds
-
-    return {
-        "authenticated": True,
-        "session_id": session_id,
-        "user": u,
-        "guilds": active_guilds,
-        "activeGuildId": active_guilds[0]["id"] if active_guilds else None,
-        "oauth_configured": bool(DISCORD_CLIENT_SECRET)
-    }
-    t1 = time.time()
-    print(f"[Timing /api/auth/me] user={u.get('username')} authenticated, guilds={len(active_guilds)}")
+    if active_guilds and not session_data.get("guilds"):
+        session_data["guilds"] = active_guilds
 
     return {
         "authenticated": True,
