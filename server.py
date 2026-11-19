@@ -1191,25 +1191,45 @@ async def deploy_guild_voice_hub(guild_id: str, request: Request):
                         if iface_resp.status in [200, 201]:
                             iface_data = await iface_resp.json()
                             target_interface_id = str(iface_data["id"])
-
-                            # Deploy VoiceControlLayoutView into the new interface
-                            try:
-                                from cogs.voice import VoiceControlLayoutView
-                                ctrl_view = VoiceControlLayoutView(None)
-                                comp_payload = {
-                                    "flags": 32768,
-                                    "components": ctrl_view.to_components()
-                                }
-                                async with session.post(
-                                    f"https://discord.com/api/v10/channels/{target_interface_id}/messages",
-                                    headers=headers,
-                                    json=comp_payload
-                                ) as msg_resp:
-                                    pass
-                            except Exception as ex_view:
-                                print(f"[Hub Deploy] Interface panel send note: {ex_view}")
                 except Exception as ex_iface:
-                    print(f"[Hub Deploy] Interface creation exception: {ex_iface}")
+                    print(f"[Hub Deploy] Interface creation exception: {ex_iface}", file=sys.stderr)
+
+            # Ensure VoiceControlLayoutView is deployed into target_interface_id
+            if target_interface_id:
+                try:
+                    has_existing_panel = False
+                    async with session.get(f"https://discord.com/api/v10/channels/{target_interface_id}/messages?limit=5", headers=headers) as m_resp:
+                        if m_resp.status == 200:
+                            msgs = await m_resp.json()
+                            if any(m.get("components") for m in msgs):
+                                has_existing_panel = True
+
+                    if not has_existing_panel:
+                        from cogs.voice import VoiceControlLayoutView, BANNER_PATH
+                        has_banner = os.path.exists(BANNER_PATH)
+                        ctrl_view = VoiceControlLayoutView(None, has_banner=has_banner)
+                        comp_payload = {
+                            "flags": 32768,
+                            "components": ctrl_view.to_components()
+                        }
+                        form = aiohttp.FormData()
+                        form.add_field('payload_json', json.dumps(comp_payload))
+                        if has_banner:
+                            with open(BANNER_PATH, 'rb') as bf:
+                                form.add_field('files[0]', bf.read(), filename='banner.jpg', content_type='image/jpeg')
+
+                        async with session.post(
+                            f"https://discord.com/api/v10/channels/{target_interface_id}/messages",
+                            headers=headers,
+                            data=form
+                        ) as msg_resp:
+                            if msg_resp.status in [200, 201]:
+                                print(f"[Hub Deploy] Interface panel deployed successfully into {target_interface_id}")
+                            else:
+                                err_txt = await msg_resp.text()
+                                print(f"[Hub Deploy Error] Failed to send interface panel: {msg_resp.status} - {err_txt}", file=sys.stderr)
+                except Exception as ex_view:
+                    print(f"[Hub Deploy Error] Interface panel deployment exception: {ex_view}", file=sys.stderr)
 
         # 3. Create Master Join Voice Channel
         join_payload = {
