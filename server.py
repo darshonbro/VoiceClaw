@@ -31,7 +31,7 @@ import uvicorn
 load_dotenv()
 
 # Environment Variables
-PORT = int(os.getenv("PORT", "3000"))
+PORT = int(os.getenv("PORT", "3080"))
 MONGO_URI = os.getenv("MONGODB_URI")
 DB_NAME = os.getenv("MONGODB_DB", "voiceclaw")
 
