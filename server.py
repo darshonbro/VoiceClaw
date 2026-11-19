@@ -691,6 +691,11 @@ async def oauth_callback(request: Request, code: Optional[str] = None):
     session_id = None
     redirect_uri = get_effective_redirect_uri(request)
 
+    print(f"[OAuth2 Callback] Received request: code={'YES' if code else 'NO'}, DISCORD_CLIENT_SECRET={'CONFIGURED' if DISCORD_CLIENT_SECRET else 'EMPTY'}")
+
+    if not DISCORD_CLIENT_SECRET:
+        print("[OAuth2 Error] Login cannot complete because DISCORD_CLIENT_SECRET is missing or empty in .env!", file=sys.stderr)
+
     if code and DISCORD_CLIENT_SECRET:
         try:
             token_payload = {
@@ -709,6 +714,10 @@ async def oauth_callback(request: Request, code: Optional[str] = None):
                     if resp.status == 200:
                         token_data = await resp.json()
                         access_token = token_data.get("access_token")
+                    else:
+                        err_body = await resp.text()
+                        print(f"[OAuth2 Token Error] Discord returned HTTP {resp.status}: {err_body}", file=sys.stderr)
+                        access_token = None
 
                         if access_token:
                             auth_headers = {"Authorization": f"Bearer {access_token}"}
