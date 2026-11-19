@@ -719,63 +719,64 @@ async def oauth_callback(request: Request, code: Optional[str] = None):
                         print(f"[OAuth2 Token Error] Discord returned HTTP {resp.status}: {err_body}", file=sys.stderr)
                         access_token = None
 
-                        if access_token:
-                            auth_headers = {"Authorization": f"Bearer {access_token}"}
-                            async with session.get("https://discord.com/api/v10/users/@me", headers=auth_headers) as u_resp:
-                                user_data = await u_resp.json()
-                            async with session.get("https://discord.com/api/v10/users/@me/guilds", headers=auth_headers) as g_resp:
-                                raw_guilds = await g_resp.json()
+                    if access_token:
+                        auth_headers = {"Authorization": f"Bearer {access_token}"}
+                        async with session.get("https://discord.com/api/v10/users/@me", headers=auth_headers) as u_resp:
+                            user_data = await u_resp.json()
+                        async with session.get("https://discord.com/api/v10/users/@me/guilds", headers=auth_headers) as g_resp:
+                            raw_guilds = await g_resp.json()
 
-                            u_id = str(user_data["id"])
-                            is_bot_owner = (u_id == OWNER_ID)
-                            known_guild_ids = get_bot_guild_ids()
-                            parsed_guilds = []
+                        u_id = str(user_data["id"])
+                        is_bot_owner = (u_id == OWNER_ID)
+                        known_guild_ids = get_bot_guild_ids()
+                        parsed_guilds = []
 
-                            for g in raw_guilds:
-                                g_id = str(g["id"])
-                                if g_id not in known_guild_ids:
-                                    continue
-                                is_discord_owner = bool(g.get("owner", False))
-                                perms = int(g.get("permissions", 0))
-                                has_admin = bool(perms & 0x8) or bool(perms & 0x20) or is_discord_owner
-                                extra_owners = get_guild_extra_owners_sync(g_id)
-                                is_extra = u_id in extra_owners
+                        for g in raw_guilds:
+                            g_id = str(g["id"])
+                            if g_id not in known_guild_ids:
+                                continue
+                            is_discord_owner = bool(g.get("owner", False))
+                            perms = int(g.get("permissions", 0))
+                            has_admin = bool(perms & 0x8) or bool(perms & 0x20) or is_discord_owner
+                            extra_owners = get_guild_extra_owners_sync(g_id)
+                            is_extra = u_id in extra_owners
 
-                                # Bot Super Owner, Server Owner, Server Admin, or Extra Owner
-                                if is_bot_owner or is_discord_owner or has_admin or is_extra:
-                                    icon = g.get("icon")
-                                    icon_url = f"https://cdn.discordapp.com/icons/{g_id}/{icon}.png?size=128" if icon else ""
-                                    parsed_guilds.append({
-                                        "id": g_id,
-                                        "name": g.get("name"),
-                                        "icon": icon,
-                                        "icon_url": icon_url,
-                                        "owner": is_discord_owner,
-                                        "isExtraOwner": is_extra,
-                                        "hasAdmin": True,
-                                        "hasBot": True
-                                    })
+                            # Bot Super Owner, Server Owner, Server Admin, or Extra Owner
+                            if is_bot_owner or is_discord_owner or has_admin or is_extra:
+                                icon = g.get("icon")
+                                icon_url = f"https://cdn.discordapp.com/icons/{g_id}/{icon}.png?size=128" if icon else ""
+                                parsed_guilds.append({
+                                    "id": g_id,
+                                    "name": g.get("name"),
+                                    "icon": icon,
+                                    "icon_url": icon_url,
+                                    "owner": is_discord_owner,
+                                    "isExtraOwner": is_extra,
+                                    "hasAdmin": True,
+                                    "hasBot": True
+                                })
 
-                            avatar_id = user_data.get("avatar")
-                            avatar_url = f"https://cdn.discordapp.com/avatars/{u_id}/{avatar_id}.png" if avatar_id else "https://cdn.discordapp.com/embed/avatars/0.png"
-                            session_id = f"sess_{secrets.token_hex(24)}"
-                            session_obj = {
-                                "user": {
-                                    "id": u_id,
-                                    "username": user_data.get("username"),
-                                    "global_name": user_data.get("global_name", user_data.get("username")),
-                                    "avatar": avatar_id,
-                                    "avatar_url": avatar_url,
-                                    "isOwner": is_bot_owner
-                                },
-                                "guilds": parsed_guilds,
-                                "activeGuildId": parsed_guilds[0]["id"] if parsed_guilds else None,
-                                "createdAt": time.time()
-                            }
-                            _memory_sessions[session_id] = session_obj
-                            db = get_mongo_db()
-                            if db is not None:
-                                db.webSessions.replace_one({"_id": session_id}, {"_id": session_id, "session": session_obj, "userId": u_id}, upsert=True)
+                        avatar_id = user_data.get("avatar")
+                        avatar_url = f"https://cdn.discordapp.com/avatars/{u_id}/{avatar_id}.png" if avatar_id else "https://cdn.discordapp.com/embed/avatars/0.png"
+                        session_id = f"sess_{secrets.token_hex(24)}"
+                        session_obj = {
+                            "user": {
+                                "id": u_id,
+                                "username": user_data.get("username"),
+                                "global_name": user_data.get("global_name", user_data.get("username")),
+                                "avatar": avatar_id,
+                                "avatar_url": avatar_url,
+                                "isOwner": is_bot_owner
+                            },
+                            "guilds": parsed_guilds,
+                            "activeGuildId": parsed_guilds[0]["id"] if parsed_guilds else None,
+                            "createdAt": time.time()
+                        }
+                        _memory_sessions[session_id] = session_obj
+                        db = get_mongo_db()
+                        if db is not None:
+                            db.webSessions.replace_one({"_id": session_id}, {"_id": session_id, "session": session_obj, "userId": u_id}, upsert=True)
+                        print(f"[OAuth2 Success] User {user_data.get('username')} ({u_id}) logged in! Guilds: {len(parsed_guilds)}")
         except Exception as e:
             print(f"[OAuth2 Error]: {e}", file=sys.stderr)
 
