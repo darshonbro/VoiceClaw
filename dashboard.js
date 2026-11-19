@@ -506,7 +506,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       return `
 
-        <div class="guild-card" data-tilt data-name="${g.name.toLowerCase()}" data-id="${g.id}">
+        <div class="guild-card" data-name="${g.name.toLowerCase()}" data-id="${g.id}">
 
           <div class="guild-top">
 
@@ -3568,46 +3568,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /* ==========================================================================
-     2. LIQUID GLOSSIUM 3D CARD PARALLAX TILT ENGINE
+     2. LIQUID GLOSSIUM 3D CARD PARALLAX TILT ENGINE (DISABLED FOR CLEAN STABILITY)
      ========================================================================== */
   function init3DTiltEngine() {
-    const cards = document.querySelectorAll('.dash-stat-box, .guild-card, .setup-section-card, .admin-pricing-card, [data-tilt]');
-    cards.forEach((card) => {
-      if (card.dataset.tiltBound) return;
-      card.dataset.tiltBound = 'true';
-      let bounds;
-
-      function onMouseEnter() {
-        bounds = card.getBoundingClientRect();
-        card.style.transition = 'transform 0.15s ease-out, box-shadow 0.3s ease, border-color 0.3s ease';
-      }
-
-      function onMouseMove(e) {
-        if (!bounds) bounds = card.getBoundingClientRect();
-        const mX = e.clientX - bounds.left;
-        const mY = e.clientY - bounds.top;
-
-        const xPct = mX / bounds.width - 0.5;
-        const yPct = mY / bounds.height - 0.5;
-
-        const maxTilt = 5;
-        const rotX = -yPct * maxTilt;
-        const rotY = xPct * maxTilt;
-
-        card.style.transform = `perspective(1000px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translateY(-3px)`;
-        card.style.setProperty('--mouse-x', `${(mX / bounds.width) * 100}%`);
-        card.style.setProperty('--mouse-y', `${(mY / bounds.height) * 100}%`);
-      }
-
-      function onMouseLeave() {
-        card.style.transition = 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.35s ease';
-        card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-      }
-
-      card.addEventListener('mouseenter', onMouseEnter);
-      card.addEventListener('mousemove', onMouseMove);
-      card.addEventListener('mouseleave', onMouseLeave);
-    });
+    // Disabled: Cards stay solid, stable, and flat without wobbling or moving on mouse hover
+    return;
   }
 
   /* ==========================================================================

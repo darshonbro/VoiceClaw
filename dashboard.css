@@ -640,7 +640,7 @@ svg {
 }
 
 .guild-card:hover {
-  transform: translateY(-3px);
+  transform: none;
   border-color: var(--border-hover);
   background: var(--bg-surface-hover);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 20px rgba(99, 102, 241, 0.1);
@@ -3405,59 +3405,312 @@ input:checked + .slider:before {
     justify-content: center;
   }
 
-  /* 8. Server Management Fullscreen Modal on Phone */
+  /* 8. Server Management Fullscreen Creator Modal on Phone */
+  .dash-modal-backdrop,
   .modal-overlay {
-    padding: 0;
+    padding: 0 !important;
+    align-items: flex-end !important;
   }
 
+  .creator-modal-card,
   .modal-content,
   .dash-modal {
     width: 100vw !important;
     max-width: 100vw !important;
     height: 100vh !important;
     max-height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
     border-radius: 0 !important;
     margin: 0 !important;
-    display: flex;
-    flex-direction: column;
+    border: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
   }
 
-  .dash-modal-header {
-    padding: 12px 14px;
-    flex-shrink: 0;
+  /* Creator Modal Top: Breadcrumbs & Close Button */
+  .creator-modal-top {
+    padding: 12px 14px 6px 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-shrink: 0 !important;
   }
 
+  .creator-breadcrumbs {
+    font-size: 0.72rem !important;
+    gap: 4px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: calc(100% - 40px) !important;
+  }
+
+  .creator-breadcrumbs .bc-current {
+    padding: 2px 8px !important;
+  }
+
+  .dash-modal-close {
+    width: 32px !important;
+    height: 32px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Creator Modal Title Row: 2-Row Stack for Mobile */
+  .creator-modal-title-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    padding: 0 14px 12px 14px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    flex-shrink: 0 !important;
+  }
+
+  .creator-title-left {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .creator-plus-icon {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 1.05rem !important;
+    border-radius: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .creator-title-left h2 {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    margin: 0 !important;
+    flex: 1 !important;
+  }
+
+  .creator-date-pill {
+    font-size: 0.68rem !important;
+    padding: 2px 7px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .creator-title-badges {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .creator-badge {
+    font-size: 0.7rem !important;
+    padding: 3px 9px !important;
+    border-radius: 6px !important;
+  }
+
+  /* Creator Subtabs Navigation: Smooth Finger Swiping */
+  .creator-subtabs-nav,
   .dash-modal-tabs {
-    padding: 0 12px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    flex-shrink: 0;
+    padding: 6px 12px !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
   }
+
+  .creator-subtabs-nav::-webkit-scrollbar,
   .dash-modal-tabs::-webkit-scrollbar {
-    display: none;
+    display: none !important;
   }
 
+  .creator-subtab,
   .modal-tab-btn {
-    white-space: nowrap;
-    padding: 8px 12px;
-    font-size: 0.8rem;
+    padding: 6px 12px !important;
+    font-size: 0.78rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    border-radius: 8px !important;
+    gap: 6px !important;
   }
 
+  .creator-subtab svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  /* Creator Modal Body: Clean Padding */
+  .creator-modal-body,
   .dash-modal-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 14px 12px;
+    padding: 12px 12px 30px 12px !important;
+    flex: 1 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
-  .dash-modal-footer {
-    padding: 12px 14px;
-    flex-shrink: 0;
-    gap: 8px;
+  .setup-section-card {
+    padding: 14px 12px !important;
+    border-radius: 12px !important;
+    margin-top: 14px !important;
   }
+
+  .setup-section-header {
+    margin-bottom: 12px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .setup-section-title {
+    font-size: 0.9rem !important;
+    gap: 6px !important;
+  }
+
+  .setup-section-desc {
+    font-size: 0.72rem !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Grid Conversions: 2-Col on Desktop -> 1-Col Stack on Phone (where 2 rows make sense) */
+  .creator-2col-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+
+  .creator-col {
+    width: 100% !important;
+  }
+
+  /* Quick Presets Grid: EXACTLY 2 Equal Columns on Phone */
+  .hub-presets-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .hub-preset-card {
+    padding: 10px 8px !important;
+    border-radius: 10px !important;
+  }
+
+  .preset-icon-svg {
+    width: 30px !important;
+    height: 30px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .preset-icon-svg svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .preset-name {
+    font-size: 0.78rem !important;
+  }
+
+  .preset-meta {
+    font-size: 0.68rem !important;
+  }
+
+  /* Toggle Groups on Phone: Clean Space-Between */
+  .toggle-group {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 12px !important;
+    gap: 10px !important;
+    border-radius: 10px !important;
+  }
+
+  .toggle-text-wrap {
+    max-width: calc(100% - 54px) !important;
+    flex: 1 !important;
+  }
+
+  .toggle-title {
+    font-size: 0.82rem !important;
+  }
+
+  .toggle-group .c-help-text {
+    font-size: 0.72rem !important;
+    line-height: 1.35 !important;
+    margin-top: 2px !important;
+  }
+
+  .switch {
+    flex-shrink: 0 !important;
+  }
+
+  /* Deploy Hub Action Footer on Phone */
+  .hub-deploy-footer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 12px 14px !important;
+    margin-top: 16px !important;
+  }
+
+  .hub-deploy-hint {
+    font-size: 0.74rem !important;
+    line-height: 1.35 !important;
+  }
+
+  .btn-deploy-hub {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 10px 14px !important;
+    font-size: 0.86rem !important;
+  }
+
+  /* Discord Simulator Card on Phone */
+  .discord-simulator-card {
+    margin-top: 16px !important;
+    padding: 12px !important;
+    border-radius: 12px !important;
+  }
+
+  .simulator-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+
+  .sim-live-badge {
+    align-self: flex-start !important;
+  }
+
+  .discord-mock-container {
+    padding: 10px !important;
+  }
+
+  .mock-channel-row {
+    padding: 7px 10px !important;
+  }
+
+  /* Modal Footer: 2 Buttons Side-by-Side on Phone */
+  .creator-modal-card .dash-modal-footer,
+  .dash-modal-footer {
+    padding: 12px 14px !important;
+    gap: 8px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-shrink: 0 !important;
+  }
+
+  .creator-modal-card .dash-modal-footer .btn,
+  .creator-modal-card .dash-modal-footer button,
   .dash-modal-footer .btn {
-    flex: 1;
-    justify-content: center;
+    flex: 1 1 0 !important;
+    padding: 10px 12px !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    justify-content: center !important;
+    text-align: center !important;
+    white-space: nowrap !important;
   }
 
   /* 9. Role Powers Panel on Phone */
@@ -3904,8 +4157,16 @@ input:checked + .slider:before {
   backdrop-filter: blur(20px) saturate(140%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
   overflow: hidden;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease !important;
-  will-change: transform;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease !important;
+  transform: none !important;
+}
+
+.dash-stat-box:hover,
+.guild-card:hover,
+.setup-section-card:hover,
+.admin-pricing-card:hover,
+.discord-simulator-card:hover {
+  transform: none !important;
 }
 
 .dash-stat-box::before,
