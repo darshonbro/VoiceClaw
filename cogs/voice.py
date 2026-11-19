@@ -4237,6 +4237,22 @@ class voice(commands.Cog):
         cleaned = " ".join(name.split())
         return cleaned[:50] if cleaned else "User"
 
+    def is_secondary_jtc_channel(self, channel: typing.Optional[discord.VoiceChannel]) -> bool:
+        """Strictly determines if an untracked channel inside VoiceClaw category is explicitly a Join-to-Create secondary hub"""
+        if not channel or not isinstance(channel, discord.VoiceChannel):
+            return False
+        name = channel.name.lower().strip()
+        # Explicit dynamic multi-channel markers
+        if any(marker in name for marker in ["create vc ²", "create vc ³", "create vc ⁴", "create vc 2", "create vc 3", "create vc 4"]):
+            return True
+        if any(marker in name for marker in ["+ duo", "+ trio", "+ squad", "＋ duo", "＋ trio", "＋ squad"]):
+            return True
+        if any(phrase in name for phrase in ["join to create", "create to join", "join-to-create"]):
+            return True
+        if name.startswith(("➕ join to create", "➕ create vc", "＋ join to create", "＋ create vc", "+ join to create")):
+            return True
+        return False
+
     async def is_join_or_master_channel(self, guild_id: int, channel_id: int) -> bool:
         """Checks if a voice channel is a master Join-to-Create channel that should never be deleted"""
         async with aiosqlite.connect(DB_PATH) as db:
@@ -4254,7 +4270,7 @@ class voice(commands.Cog):
         if guild:
             chan = guild.get_channel(channel_id)
             if chan and isinstance(chan, discord.VoiceChannel):
-                if any(k in chan.name.lower() for k in ["create", "join"]) or chan.name.startswith(("+", "＋")):
+                if self.is_secondary_jtc_channel(chan):
                     owner = await self.get_channel_owner(channel_id)
                     if owner is None:
                         return True
@@ -5000,8 +5016,11 @@ class voice(commands.Cog):
                     async with db.execute("SELECT userID, isPermanent FROM voiceChannel WHERE voiceID = ?", (c.id,)) as cur:
                         row = await cur.fetchone()
 
-                # If explicitly marked as permanent room, skip
-                if row and row[1]:
+                # IRONCLAD PROVENANCE & PERMANENCE PROTECTION:
+                # ONLY delete if this channel was genuinely created by VoiceClaw AND is tracked in DB as temporary (isPermanent == 0)!
+                # If row is None (it is a permanent/manual channel created by server staff) or row[1] == 1 (permanent room):
+                # NEVER DELETE!
+                if not row or row[1]:
                     continue
 
                 try:
@@ -5316,22 +5335,22 @@ class voice(commands.Cog):
 
             # 1. User Joined the "Join to Create" Master Channel
             is_temp_chan = await self.get_channel_owner(after.channel.id) if after.channel else None
-            is_create_name = after.channel and not is_temp_chan and (
-                any(k in after.channel.name.lower() for k in ["create", "join"]) or after.channel.name.startswith(("+", "＋"))
-            )
+            is_create_name = bool(after.channel and not is_temp_chan and self.is_secondary_jtc_channel(after.channel))
 
             # Self-healing: ONLY if existing master channel was deleted from Discord within registered category
             curr_master = guild.get_channel(master_channel_id) if master_channel_id else None
             if after.channel and is_create_name:
                 if curr_master is None and category_id and after.channel.category_id == category_id:
-                    # Only adopt as primary master if not a secondary duo/trio/squad channel
-                    if not any(k in after.channel.name.lower() for k in ["²", "³", "⁴", "duo", "trio", "squad"]):
-                        print(f"[VoiceClaw Self-Healing] Auto-updating missing master_channel_id {master_channel_id} -> {after.channel.id}")
-                        master_channel_id = after.channel.id
-                        curr_master = after.channel
-                        async with aiosqlite.connect(DB_PATH) as db:
-                            await db.execute('UPDATE guild SET voiceChannelID = ? WHERE guildID = ?', (master_channel_id, guild.id))
-                            await db.commit()
+                    # Only adopt as primary master if explicitly named as JTC master
+                    chan_lower = after.channel.name.lower()
+                    if "join to create" in chan_lower or "create vc" in chan_lower:
+                        if not any(k in chan_lower for k in ["²", "³", "⁴", "duo", "trio", "squad"]):
+                            print(f"[VoiceClaw Self-Healing] Auto-updating missing master_channel_id {master_channel_id} -> {after.channel.id}")
+                            master_channel_id = after.channel.id
+                            curr_master = after.channel
+                            async with aiosqlite.connect(DB_PATH) as db:
+                                await db.execute('UPDATE guild SET voiceChannelID = ? WHERE guildID = ?', (master_channel_id, guild.id))
+                                await db.commit()
 
             if after.channel and master_channel_id and after.channel.id == master_channel_id:
                 loop_now = asyncio.get_event_loop().time()
@@ -5780,23 +5799,20 @@ class voice(commands.Cog):
                     async with db.execute("SELECT userID, isPermanent FROM voiceChannel WHERE voiceID = ?", (chan_id,)) as cur:
                         chan_record = await cur.fetchone()
 
-                # Strict Category Guard: Ignore any channels outside VoiceClaw categories unless tracked in DB!
-                is_in_vc_category = await self.is_voiceclaw_category(b_guild.id, before.channel.category_id)
-                if not is_in_vc_category and not chan_record:
+                # IRONCLAD PROVENANCE & PERMANENCE GUARDS:
+                # 1. If this channel is NOT recorded in voiceChannel DB, VoiceClaw did NOT create it as a temporary room!
+                # It is a permanent or manual channel created by server staff/admins. NEVER TOUCH OR DELETE IT!
+                if not chan_record:
                     return
 
-                is_perm = False
-                if chan_record and chan_record[1]:
-                    is_perm = True
+                # 2. Permanent rooms (24/7) or channels with isPermanent = 1 NEVER auto-delete!
+                if chan_record[1]:
+                    return
 
-                # Check if inside permanent category
+                # 3. Check if inside dedicated permanent category
                 guild_cfg = await self.get_guild_config(b_guild.id)
                 perm_cat_id = guild_cfg[6] if guild_cfg and len(guild_cfg) > 6 else None
                 if perm_cat_id and before.channel.category_id == perm_cat_id:
-                    is_perm = True
-
-                # Permanent rooms (24/7) NEVER auto-delete!
-                if is_perm:
                     return
 
                 # Delete ONLY if 0 members
