@@ -3,7 +3,7 @@ import sys
 import asyncio
 import traceback
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
 if sys.platform == "win32":
@@ -103,19 +103,41 @@ class VoiceClawBot(commands.Bot):
         except Exception:
             pass
 
+    async def update_bot_presence(self):
+        """Update Discord status to Streaming with active server count."""
+        try:
+            guild_count = len(self.guilds)
+            stream_url = os.getenv("STREAM_URL", "https://twitch.tv/discord")
+            activity = discord.Streaming(
+                name=f"| In {guild_count} Servers",
+                url=stream_url
+            )
+            await self.change_presence(activity=activity)
+            print(f"[VoiceClaw] Updated presence to Streaming: '| In {guild_count} Servers'")
+        except Exception as e:
+            print(f"[VoiceClaw] Presence update error: {e}", file=sys.stderr)
+
+    @tasks.loop(minutes=10)
+    async def presence_updater_task(self):
+        await self.update_bot_presence()
+
+    @presence_updater_task.before_loop
+    async def before_presence_updater(self):
+        await self.wait_until_ready()
+
     async def on_ready(self):
+        guild_count = len(self.guilds)
         print("========================================")
         print(f" VoiceClaw Bot Online")
         print(f" Logged in as: {self.user.name} (ID: {self.user.id})")
+        print(f" Active in: {guild_count} servers")
         print(f" discord.py v{discord.__version__} | Components v2 Active")
         print("========================================")
         
-        # Set dynamic bot presence
-        activity = discord.Activity(
-            type=discord.ActivityType.listening,
-            name=f"{BOT_PREFIX}help | /voice"
-        )
-        await self.change_presence(status=discord.Status.online, activity=activity)
+        # Set dynamic bot presence: Streaming | In X Servers
+        await self.update_bot_presence()
+        if not self.presence_updater_task.is_running():
+            self.presence_updater_task.start()
 
 bot = VoiceClawBot()
 
@@ -152,6 +174,14 @@ async def manual_sync(ctx):
     except Exception as e:
         await ctx.send(f"✕ Sync failed: {e}")
 
+@bot.command(name="setstatus", aliases=["refreshstatus"])
+async def manual_set_status(ctx):
+    """Manually refresh bot Streaming presence with server count (Bot Owner only)"""
+    if ctx.author.id != OWNER_ID and (not bot.owner_ids or ctx.author.id not in bot.owner_ids):
+        return await ctx.send("✕ Only the bot owner can use this command.")
+    await bot.update_bot_presence()
+    await ctx.send(f"✓ Presence updated to: **Streaming | In {len(bot.guilds)} Servers**")
+
 @bot.event
 async def on_guild_join(guild: discord.Guild):
     """Check if the joined guild is blacklisted by Bot Owner; leave immediately if so."""
@@ -172,8 +202,20 @@ async def on_guild_join(guild: discord.Guild):
             except Exception:
                 pass
             await guild.leave()
+            return
+        
+        # Dynamically refresh status with updated server count
+        await bot.update_bot_presence()
     except Exception as e:
         print(f"[on_guild_join error]: {e}", file=sys.stderr)
+
+@bot.event
+async def on_guild_remove(guild: discord.Guild):
+    """Dynamically refresh status when removed from a server."""
+    try:
+        await bot.update_bot_presence()
+    except Exception as e:
+        print(f"[on_guild_remove error]: {e}", file=sys.stderr)
 
 # ---------------------------------------------------------------------------
 # Extra Ownership Management (Discord Components V2)
