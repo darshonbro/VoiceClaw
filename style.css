@@ -67,25 +67,31 @@ html {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 100vw;
   overflow-x: hidden;
   background: var(--bg-black);
   position: relative;
 }
 
-/* Subtle, sharp ambient glow at top center (VoiceClaw Pink) */
+/* Subtle, sharp ambient glow at top center (VoiceClaw Pink) - Viewport clamped */
 body::after {
   content: '';
   position: absolute;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 800px;
+  width: min(800px, 100vw);
+  max-width: 100%;
   height: 350px;
   background: radial-gradient(ellipse at 50% 0%, rgba(255, 42, 109, 0.16) 0%, transparent 70%);
   pointer-events: none;
@@ -364,6 +370,9 @@ img, svg {
   padding: 10px 0 45px;
   overflow: hidden;
   position: relative;
+  width: 100%;
+  max-width: 100vw;
+  contain: paint;
 }
 
 .servers-marquee-header {
@@ -371,11 +380,13 @@ img, svg {
   align-items: center;
   justify-content: center;
   margin-bottom: 22px;
+  padding: 0 16px;
 }
 
 .servers-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   background: rgba(34, 197, 94, 0.08);
   border: 1px solid rgba(34, 197, 94, 0.25);
@@ -385,6 +396,9 @@ img, svg {
   color: var(--text-primary);
   font-family: var(--font-sans);
   letter-spacing: -0.01em;
+  max-width: 100%;
+  text-align: center;
+  flex-wrap: wrap;
 }
 
 .servers-badge strong {
@@ -859,6 +873,7 @@ img.server-avatar-img {
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 6px;
   height: 38px;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1362,6 +1377,7 @@ img.server-avatar-img {
   border-radius: 10px;
   padding: 10px 6px;
   min-height: 54px;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1569,12 +1585,6 @@ img.server-avatar-img {
   }
   .vc-matrix-grid {
     grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .vc-matrix-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -1893,7 +1903,9 @@ img.server-avatar-img {
   transform: translateY(0);
 }
 
-/* Responsive */
+/* ==========================================================================
+   Comprehensive Mobile & Tablet Responsiveness (100% Zero Horizontal Overflow)
+   ========================================================================== */
 @media (max-width: 900px) {
   .steps-grid,
   .features-grid {
@@ -1909,19 +1921,241 @@ img.server-avatar-img {
 }
 
 @media (max-width: 680px) {
+  /* Prevent any root expansion */
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+  }
+
+  /* Compact Container */
+  .container {
+    padding: 0 16px;
+    max-width: 100%;
+  }
+
+  /* Header & Navigation Bar */
+  .site-header {
+    padding: 10px 14px 0;
+  }
+  .nav-container {
+    padding: 8px 12px;
+  }
   .nav-links, .status-badge {
     display: none;
   }
-  .metrics-grid,
-  .pricing-grid,
-  .steps-grid,
-  .features-grid {
-    grid-template-columns: 1fr;
+  .nav-actions {
+    gap: 6px;
   }
-  .sim-controls-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .nav-actions .btn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    gap: 4px;
+  }
+
+  /* Hero Section */
+  .hero {
+    padding: 75px 0 35px;
   }
   .hero-title {
-    font-size: 2.4rem;
+    font-size: 2.1rem;
+    line-height: 1.15;
+  }
+  .hero-desc {
+    font-size: 0.95rem;
+    margin-bottom: 24px;
+    padding: 0 4px;
+  }
+  .hero-actions {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 35px;
+  }
+  .hero-actions .btn {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  /* Servers Badge */
+  .servers-badge {
+    font-size: 0.76rem;
+    padding: 6px 12px;
+    max-width: 100%;
+    text-align: center;
+  }
+
+  /* 2x2 Metrics Grid */
+  .metrics-section {
+    padding: 10px 0 40px;
+  }
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .metric-card {
+    padding: 16px 10px;
+  }
+  .metric-num {
+    font-size: 1.55rem;
+  }
+  .metric-lbl {
+    font-size: 0.68rem;
+  }
+
+  /* Steps Section */
+  .steps-section {
+    padding: 40px 0;
+  }
+  .steps-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .step-card {
+    padding: 20px 16px;
+  }
+  .step-visual {
+    padding: 14px 10px;
+    min-height: 120px;
+  }
+  .vc-step-matrix-grid {
+    gap: 4px;
+  }
+  .vc-step-matrix-btn {
+    height: 32px;
+  }
+  .vc-step-matrix-btn img {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Simulator Section */
+  .simulator-section {
+    padding: 40px 0;
+  }
+  .sim-box {
+    border-radius: var(--radius-md);
+  }
+  .sim-header-bar {
+    padding: 10px 12px;
+  }
+  .sim-sidebar {
+    padding: 12px 10px;
+  }
+  .sim-pane {
+    padding: 14px 10px;
+  }
+  .sim-v2-container {
+    padding: 14px 10px;
+  }
+  .sim-v2-heading {
+    font-size: 0.95rem;
+  }
+  .sim-v2-desc {
+    font-size: 0.78rem;
+  }
+  .sim-room-banner {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .vc-matrix-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px;
+  }
+  .vc-matrix-btn {
+    min-height: 44px;
+    padding: 6px 4px;
+  }
+  .vc-matrix-btn img {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Features & Pricing */
+  .features-section,
+  .pricing-section,
+  .faq-section {
+    padding: 40px 0;
+  }
+  .features-grid,
+  .pricing-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .feature-card {
+    padding: 20px 16px;
+  }
+  .pricing-card {
+    padding: 24px 18px;
+  }
+
+  /* FAQ */
+  .faq-btn {
+    padding: 14px 16px;
+    font-size: 0.9rem;
+  }
+  .faq-content-inner {
+    padding: 0 16px 14px;
+    font-size: 0.84rem;
+  }
+
+  /* Footer */
+  .site-footer {
+    padding: 35px 0 25px;
+  }
+  .footer-row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 18px;
+  }
+  .footer-links {
+    justify-content: center;
+    gap: 12px 18px;
+  }
+  .footer-copy {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 400px) {
+  .site-header {
+    padding: 8px 10px 0;
+  }
+  .nav-container {
+    padding: 6px 10px;
+  }
+  .brand-name {
+    font-size: 0.92rem;
+  }
+  .nav-actions .btn {
+    padding: 5px 8px;
+    font-size: 0.74rem;
+  }
+  .hero-title {
+    font-size: 1.85rem;
+  }
+  .vc-step-matrix-grid {
+    gap: 3px;
+  }
+  .vc-step-matrix-btn {
+    height: 30px;
+  }
+  .vc-step-matrix-btn img {
+    width: 18px;
+    height: 18px;
+  }
+  .vc-matrix-grid {
+    gap: 4px;
+  }
+  .vc-matrix-btn {
+    min-height: 40px;
+  }
+  .vc-matrix-btn img {
+    width: 20px;
+    height: 20px;
   }
 }
